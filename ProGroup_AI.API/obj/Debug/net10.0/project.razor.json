@@ -1,0 +1,19 @@
+{
+  "FilePath": "d:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj",
+  "Configuration": {
+    "ConfigurationName": "MVC-3.0",
+    "LanguageVersion": "6.0",
+    "Extensions": [
+      {
+        "ExtensionName": "MVC-3.0"
+      }
+    ]
+  },
+  "ProjectWorkspaceState": {
+    "TagHelpers": [],
+    "CSharpLanguageVersion": 1000
+  },
+  "RootNamespace": "ProGroup_AI.API",
+  "Documents": [],
+  "SerializationFormat": "0.2"
+}
