@@ -1,5 +1,6 @@
 class TopicModel {
   final int id;
+  final int courseId;
   final String title;
   final String description;
   final String objective;
@@ -10,6 +11,7 @@ class TopicModel {
 
   const TopicModel({
     required this.id,
+    required this.courseId,
     required this.title,
     required this.description,
     required this.objective,

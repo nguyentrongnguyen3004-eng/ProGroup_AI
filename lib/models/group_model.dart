@@ -1,5 +1,6 @@
 class GroupModel {
   final int id;
+  final int courseId;
   final String name;
   final String leader;
   final int memberCount;
@@ -9,6 +10,7 @@ class GroupModel {
 
   const GroupModel({
     required this.id,
+    required this.courseId,
     required this.name,
     required this.leader,
     required this.memberCount,

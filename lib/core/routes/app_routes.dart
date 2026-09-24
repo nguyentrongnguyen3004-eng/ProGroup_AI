@@ -11,6 +11,8 @@ class AppRoutes {
 
   static const String home = '/home';
 
+  static const String lecturerMain = '/lecturer';
+
   static const String course = '/course';
 
   static const String group = '/group';
@@ -24,4 +26,12 @@ class AppRoutes {
   static const String chat = '/chat';
 
   static const String profile = '/profile';
+
+  static const courseDetail = '/course-detail';
+
+  static const createGroup = '/create-group';
+
+  static const joinGroup = '/join-group';
+
+  static const proposeTopic = '/propose-topic';
 }

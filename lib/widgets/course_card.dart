@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
+
 import '../models/course_model.dart';
 
 class CourseCard extends StatelessWidget {
   final CourseModel course;
   final VoidCallback? onTap;
 
-  const CourseCard({
-    super.key,
-    required this.course,
-    this.onTap,
-  });
+  const CourseCard({super.key, required this.course, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final isOpen = course.status == 'Đang đăng ký';
+
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -25,14 +24,16 @@ class CourseCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.menu_book,
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
 
@@ -47,10 +48,12 @@ class CourseCard extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  const Icon(Icons.chevron_right),
                 ],
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 15),
 
               Text('Mã học phần: ${course.code}'),
 
@@ -64,8 +67,36 @@ class CourseCard extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              Chip(
-                label: Text(course.status),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isOpen
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      course.status,
+                      style: TextStyle(
+                        color: isOpen
+                            ? Colors.green.shade700
+                            : Colors.orange.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    course.semester,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ],
               ),
             ],
           ),
