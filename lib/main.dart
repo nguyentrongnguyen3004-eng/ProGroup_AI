@@ -23,6 +23,9 @@ import 'screens/sinh_vien/group/group_detail_screen.dart';
 import 'screens/sinh_vien/group/group_screen.dart';
 import 'screens/sinh_vien/home/student_main_screen.dart';
 import 'screens/giang_vien/main/lecturer_main_screen.dart';
+import 'screens/giao_vu/main/governance_main_screen.dart';
+import 'screens/phong_dao_tao/main/training_main_screen.dart';
+import 'screens/admin/main/admin_main_screen.dart';
 import 'screens/sinh_vien/profile/profile_screen.dart';
 import 'screens/sinh_vien/topic/topic_detail_screen.dart';
 import 'screens/sinh_vien/topic/topic_screen.dart';
@@ -97,6 +100,33 @@ class ProGroupApp extends StatelessWidget {
                 }
                 return MaterialPageRoute(
                   builder: (_) => const StudentMainScreen(),
+                );
+
+              case AppRoutes.governanceMain:
+                final user = settings.arguments;
+                if (user is! UserModel || user.role != 'GIAOVU') {
+                  return MaterialPageRoute(builder: (_) => const LoginScreen());
+                }
+                return MaterialPageRoute(
+                  builder: (_) => const GovernanceMainScreen(),
+                );
+
+              case AppRoutes.trainingMain:
+                final user = settings.arguments;
+                if (user is! UserModel || user.role != 'PHONG_DAO_TAO') {
+                  return MaterialPageRoute(builder: (_) => const LoginScreen());
+                }
+                return MaterialPageRoute(
+                  builder: (_) => const TrainingMainScreen(),
+                );
+
+              case AppRoutes.adminMain:
+                final user = settings.arguments;
+                if (user is! UserModel || user.role != 'ADMIN') {
+                  return MaterialPageRoute(builder: (_) => const LoginScreen());
+                }
+                return MaterialPageRoute(
+                  builder: (_) => AdminMainScreen(user: user),
                 );
 
               case AppRoutes.course:

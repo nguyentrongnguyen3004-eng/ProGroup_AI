@@ -13,6 +13,12 @@ class AppRoutes {
 
   static const String lecturerMain = '/lecturer';
 
+  static const String governanceMain = '/governance';
+
+  static const String trainingMain = '/training';
+
+  static const String adminMain = '/admin';
+
   static const String course = '/course';
 
   static const String group = '/group';

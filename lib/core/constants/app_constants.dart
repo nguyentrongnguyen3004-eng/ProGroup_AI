@@ -5,7 +5,7 @@ class AppConstants {
 
   static const String mockUsername = 'admin';
 
-  static const String mockPassword = 'Admin@123';
+  static const String mockPassword = '123456';
 
   static const String mockStudentUsername = 'sv001';
 
@@ -14,4 +14,12 @@ class AppConstants {
   static const String mockLecturerUsername = 'gv001';
 
   static const String mockLecturerPassword = '123456';
+
+  static const String mockGovernanceUsername = 'giaovu';
+
+  static const String mockGovernancePassword = '123456';
+
+  static const String mockTrainingUsername = 'daotao';
+
+  static const String mockTrainingPassword = '123456';
 }

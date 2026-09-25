@@ -221,7 +221,7 @@ class AppLocalizations {
     'loginErrorInvalid': 'Tên đăng nhập hoặc mật khẩu không đúng.',
     'demoAccount': 'Tài khoản demo',
     'studentDemo': 'Sinh viên: sv001 / 123456',
-    'adminDemo': 'Admin: admin / Admin@123',
+    'adminDemo': 'Admin: admin / 123456',
 
     'forgotPasswordTitle': 'Quên mật khẩu',
     'recoverPassword': 'Khôi phục mật khẩu',
@@ -335,7 +335,7 @@ class AppLocalizations {
     'loginErrorInvalid': 'Incorrect username or password.',
     'demoAccount': 'Demo Account',
     'studentDemo': 'Student: sv001 / 123456',
-    'adminDemo': 'Admin: admin / Admin@123',
+    'adminDemo': 'Admin: admin / 123456',
 
     'forgotPasswordTitle': 'Forgot Password',
     'recoverPassword': 'Recover Password',

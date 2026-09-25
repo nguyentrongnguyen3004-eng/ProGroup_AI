@@ -74,6 +74,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final destination = switch (user.role) {
         'LECTURER' => AppRoutes.lecturerMain,
         'SINHVIEN' => AppRoutes.home,
+        'GIAOVU' => AppRoutes.governanceMain,
+        'PHONG_DAO_TAO' => AppRoutes.trainingMain,
+        'ADMIN' => AppRoutes.adminMain,
         _ => null,
       };
       if (destination == null) {
@@ -235,8 +238,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     Text(
                       AppLocalizations.text(
-                        'Admin: admin / Admin@123',
-                        en: 'Admin: admin / Admin@123',
+                        'Giáo vụ khoa: giaovu / 123456',
+                        en: 'Faculty staff: giaovu / 123456',
+                      ),
+                    ),
+                    Text(
+                      AppLocalizations.text(
+                        'Phòng đào tạo: daotao / 123456',
+                        en: 'Academic Affairs: daotao / 123456',
+                      ),
+                    ),
+                    Text(
+                      AppLocalizations.text(
+                        'Admin hệ thống: admin / 123456',
+                        en: 'System admin: admin / 123456',
                       ),
                     ),
                   ],

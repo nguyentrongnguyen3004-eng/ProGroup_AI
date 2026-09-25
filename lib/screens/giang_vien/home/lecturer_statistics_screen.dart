@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/mock/mock_lecturer_courses.dart';
 import '../../../data/mock/mock_lecturer_groups.dart';
-import '../../../data/mock/mock_lecturer_notifications.dart';
 import '../../../data/mock/mock_lecturer_topic_proposals.dart';
 import '../../../data/mock/mock_lecturer_topic_registrations.dart';
 import '../../../data/mock/mock_lecturer_topics.dart';
@@ -29,13 +28,6 @@ class _LecturerStatisticsScreenState extends State<LecturerStatisticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: MockLecturerNotifications.instance,
-      builder: (context, _) => _buildStatistics(context),
-    );
-  }
-
-  Widget _buildStatistics(BuildContext context) {
     final courses = MockLecturerCourses.courses;
     final selected = _courseId == null
         ? courses
@@ -68,8 +60,6 @@ class _LecturerStatisticsScreenState extends State<LecturerStatisticsScreen> {
         )
         .length;
     final stats = <String, int>{
-      'Tổng học phần': selected.length,
-      'Tổng đề tài': topics.length,
       'Sinh viên': selected.fold<int>(
         0,
         (sum, course) => sum + course.studentCount,
@@ -164,7 +154,6 @@ class _LecturerStatisticsScreenState extends State<LecturerStatisticsScreen> {
 }
 
 IconData _statIcon(String label) {
-  if (label.contains('học phần')) return Icons.school_outlined;
   if (label.contains('Sinh viên')) return Icons.people_outline;
   if (label.contains('Nhóm')) return Icons.groups_outlined;
   if (label.contains('Đề tài')) return Icons.lightbulb_outline;
