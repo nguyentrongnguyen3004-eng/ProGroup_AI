@@ -1,826 +1,1022 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
+import 'package:progroup_ai_frontend/data/mock/mock_topics.dart';
+import 'package:progroup_ai_frontend/models/ai_chat_message_model.dart';
+import 'package:progroup_ai_frontend/models/ai_feedback_model.dart';
+import 'package:progroup_ai_frontend/models/ai_topic_recommendation_model.dart';
+import 'package:progroup_ai_frontend/models/ai_topic_request_model.dart';
+import 'package:progroup_ai_frontend/services/ai_feedback_service.dart';
+import 'package:progroup_ai_frontend/services/ai_topic_recommendation_service.dart';
 
 class AiTopicScreen extends StatefulWidget {
-  const AiTopicScreen({super.key});
+  const AiTopicScreen({
+    super.key,
+    this.recommendationService = const AiTopicRecommendationService(),
+    this.feedbackService,
+  });
+
+  final AiTopicRecommendationService recommendationService;
+  final AiFeedbackService? feedbackService;
 
   @override
   State<AiTopicScreen> createState() => _AiTopicScreenState();
 }
 
 class _AiTopicScreenState extends State<AiTopicScreen> {
-  final technologyController = TextEditingController();
-  final requirementController = TextEditingController();
+  final _messageController = TextEditingController();
+  final _technologyController = TextEditingController();
+  final _scrollController = ScrollController();
+  late final AiFeedbackService _feedbackService;
 
-  String? selectedField;
-  String selectedLevel = 'Trung bình';
-
-  final List<String> fields = [
-    'Ứng dụng di động',
-    'Web',
-    'AI',
-    'IoT',
-    'Big Data',
-    'Cơ sở dữ liệu',
+  final List<AiChatMessageModel> _messages = [
+    const AiChatMessageModel(
+      id: 0,
+      text:
+          'Xin chào! Mình có thể giúp bạn tìm đề tài phù hợp với môn học, lĩnh vực và định hướng của bạn. Hãy chọn tiêu chí hoặc gửi yêu cầu bằng tin nhắn.',
+      isUser: false,
+    ),
   ];
 
-  final List<String> levels = ['Dễ', 'Trung bình', 'Khó'];
+  final Map<String, List<String>> _learningModules = {
+    'Công nghệ thông tin': [
+      'Lập trình Web',
+      'Lập trình Mobile',
+      'Trí tuệ nhân tạo',
+      'Machine Learning',
+      'Cơ sở dữ liệu',
+      'Phân tích thiết kế hệ thống',
+      'Công nghệ phần mềm',
+      'IoT',
+      'Big Data',
+    ],
+    'Kinh tế - Kinh doanh': [
+      'Quản trị kinh doanh',
+      'Marketing',
+      'Tài chính - Ngân hàng',
+      'Kế toán',
+      'Thương mại điện tử',
+      'Kinh doanh quốc tế',
+    ],
+    'Kỹ thuật': [
+      'Cơ khí',
+      'Cơ điện tử',
+      'Điện - Điện tử',
+      'Tự động hóa',
+      'Công nghệ ô tô',
+      'Robot',
+    ],
+    'Công nghệ thực phẩm': [
+      'An toàn thực phẩm',
+      'Chế biến thực phẩm',
+      'Kiểm nghiệm thực phẩm',
+    ],
+  };
 
-  bool isGenerating = false;
-  List<_AiTopicSuggestion> suggestions = [];
+  final List<String> _applicationFields = [
+    'Công nghệ thông tin',
+    'Kinh doanh',
+    'Marketing',
+    'Tài chính - Ngân hàng',
+    'Thực phẩm',
+    'Cơ khí',
+    'Cơ điện tử',
+    'Điện - Điện tử',
+    'Tự động hóa',
+    'Ô tô',
+    'Logistics',
+    'Nông nghiệp',
+    'Y tế',
+    'Giáo dục',
+    'Du lịch',
+    'Môi trường',
+    'Sản xuất',
+    'Thương mại điện tử',
+    'An toàn thông tin',
+    'Trí tuệ nhân tạo',
+  ];
+
+  final List<String> _priorities = [
+    'Dễ triển khai',
+    'Tính thực tế',
+    'Tính sáng tạo',
+    'Có AI',
+    'Phù hợp thời gian',
+    'Phù hợp kỹ năng',
+    'Khả năng mở rộng',
+    'Phù hợp đồ án tốt nghiệp',
+    'Có thể phát triển thành sản phẩm',
+  ];
+
+  final List<String> _levels = ['Cơ bản', 'Trung bình', 'Nâng cao'];
+  final List<String> _platforms = ['Web', 'Mobile', 'Web + Mobile'];
+  final Set<String> _selectedModules = {};
+  final Set<String> _selectedFields = {};
+  final Set<String> _selectedPriorities = {};
+
+  String _selectedLevel = 'Trung bình';
+  String _selectedPlatform = 'Web';
+  String _conversationId = DateTime.now().microsecondsSinceEpoch.toString();
+  int _nextMessageId = 1;
+  bool _isTyping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _feedbackService = widget.feedbackService ?? AiFeedbackService();
+  }
 
   @override
   void dispose() {
-    technologyController.dispose();
-    requirementController.dispose();
+    _messageController.dispose();
+    _technologyController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  String _fieldText(String value) {
-    switch (value) {
-      case 'Ứng dụng di động':
-        return AppLocalizations.text(
-          'Ứng dụng di động',
-          en: 'Mobile Application',
-        );
-      case 'Web':
-        return 'Web';
-      case 'AI':
-        return 'AI';
-      case 'IoT':
-        return 'IoT';
-      case 'Big Data':
-        return 'Big Data';
-      case 'Cơ sở dữ liệu':
-        return AppLocalizations.text('Cơ sở dữ liệu', en: 'Database');
-      default:
-        return value;
-    }
+  AiTopicRequestModel _currentRequest(String message) {
+    return AiTopicRequestModel(
+      message: message,
+      learningModules: Set.unmodifiable(_selectedModules),
+      applicationFields: Set.unmodifiable(_selectedFields),
+      level: _selectedLevel,
+      platform: _selectedPlatform,
+      technology: _technologyController.text.trim(),
+      priorities: Set.unmodifiable(_selectedPriorities),
+    );
   }
 
-  String _levelText(String value) {
-    switch (value) {
-      case 'Dễ':
-        return AppLocalizations.text('Dễ', en: 'Easy');
-      case 'Khó':
-        return AppLocalizations.text('Khó', en: 'Hard');
-      default:
-        return AppLocalizations.text('Trung bình', en: 'Medium');
-    }
-  }
+  Future<void> _sendMessage([String? preset]) async {
+    final text = (preset ?? _messageController.text).trim();
+    if (text.isEmpty || _isTyping) return;
 
-  void _generateSuggestions() {
-    if (selectedField == null) {
-      _showMessage(
-        AppLocalizations.text(
-          'Vui lòng chọn lĩnh vực.',
-          en: 'Please select a field.',
-        ),
+    final request = _currentRequest(text);
+    setState(() {
+      _messages.add(
+        AiChatMessageModel(id: _nextMessageId++, text: text, isUser: true),
       );
-      return;
-    }
+      _messageController.clear();
+      _isTyping = true;
+    });
+    _scrollToBottom();
+
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+
+    final recommendations = widget.recommendationService.recommend(
+      request: request,
+      topics: MockTopics.topics,
+      limit: 3,
+    );
+    final response = recommendations.isEmpty
+        ? 'Hiện chưa có đề tài trong danh mục để đối chiếu. Bạn hãy thử điều chỉnh tiêu chí.'
+        : 'Mình đã xếp hạng ${recommendations.length} đề tài theo tiêu chí bạn chọn. Điểm tổng hợp kết hợp 60% điểm tiêu chí và 40% độ tương đồng văn bản.';
 
     setState(() {
-      isGenerating = true;
-      suggestions = [];
+      _isTyping = false;
+      _messages.add(
+        AiChatMessageModel(
+          id: _nextMessageId++,
+          text: response,
+          isUser: false,
+          recommendations: recommendations,
+          request: request,
+        ),
+      );
     });
-
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (!mounted) return;
-
-      final field = selectedField!;
-      final technology = technologyController.text.trim();
-
-      setState(() {
-        isGenerating = false;
-        suggestions = _buildMockSuggestions(field, technology);
-      });
-    });
+    _scrollToBottom();
   }
 
-  List<_AiTopicSuggestion> _buildMockSuggestions(
-    String field,
-    String technology,
-  ) {
-    switch (field) {
-      case 'Ứng dụng di động':
-        return [
-          _AiTopicSuggestion(
-            title: 'Ứng dụng quản lý đăng ký đồ án môn học',
-            description:
-                'Ứng dụng hỗ trợ sinh viên đăng ký nhóm, lựa chọn và quản lý đề tài đồ án môn học.',
-            objective: 'Hỗ trợ quản lý quá trình đăng ký nhóm và đề tài.',
-            technology: technology.isEmpty
-                ? 'Flutter, ASP.NET Core, SQL Server'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Ứng dụng quản lý công việc nhóm sinh viên',
-            description:
-                'Ứng dụng giúp nhóm sinh viên phân công, theo dõi và cập nhật tiến độ công việc.',
-            objective: 'Hỗ trợ các thành viên phối hợp và theo dõi tiến độ.',
-            technology: technology.isEmpty
-                ? 'Flutter, ASP.NET Core, SQL Server'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Ứng dụng hỗ trợ học tập cá nhân hóa',
-            description:
-                'Ứng dụng hỗ trợ sinh viên lập kế hoạch học tập và theo dõi tiến độ học tập.',
-            objective: 'Giúp sinh viên quản lý kế hoạch học tập hiệu quả.',
-            technology: technology.isEmpty
-                ? 'Flutter, ASP.NET Core, SQL Server'
-                : technology,
-          ),
-        ];
+  Future<void> _showMultiSelectDialog({
+    required String title,
+    required List<String> options,
+    required Set<String> selected,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.72,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        children: options.map((option) {
+                          return CheckboxListTile(
+                            value: selected.contains(option),
+                            title: Text(option),
+                            onChanged: (value) {
+                              setModalState(() {
+                                if (value == true) {
+                                  selected.add(option);
+                                } else {
+                                  selected.remove(option);
+                                }
+                              });
+                              setState(() {});
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: const Text('Xác nhận'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-      case 'Web':
-        return [
-          _AiTopicSuggestion(
-            title: 'Hệ thống quản lý đồ án sinh viên',
-            description:
-                'Hệ thống web hỗ trợ quản lý sinh viên, nhóm, đề tài và tiến độ đồ án.',
-            objective: 'Quản lý tập trung quá trình thực hiện đồ án.',
-            technology: technology.isEmpty
-                ? 'ASP.NET Core, React, SQL Server'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Cổng thông tin quản lý công việc nhóm',
-            description:
-                'Nền tảng web hỗ trợ nhóm sinh viên phân công và theo dõi công việc.',
-            objective: 'Cải thiện việc phối hợp giữa các thành viên.',
-            technology: technology.isEmpty
-                ? 'ASP.NET Core, React, SQL Server'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Hệ thống quản lý đăng ký học phần',
-            description:
-                'Hệ thống hỗ trợ sinh viên xem học phần và thực hiện đăng ký trực tuyến.',
-            objective: 'Hỗ trợ quản lý quá trình đăng ký học phần.',
-            technology: technology.isEmpty
-                ? 'ASP.NET Core, React, SQL Server'
-                : technology,
-          ),
-        ];
+  Future<void> _showModuleSelector() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.75,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'Module học tập',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        children: _learningModules.entries.map((entry) {
+                          return ExpansionTile(
+                            title: Text(entry.key),
+                            children: entry.value.map((module) {
+                              return CheckboxListTile(
+                                value: _selectedModules.contains(module),
+                                title: Text(module),
+                                onChanged: (value) {
+                                  setModalState(() {
+                                    if (value == true) {
+                                      _selectedModules.add(module);
+                                    } else {
+                                      _selectedModules.remove(module);
+                                    }
+                                  });
+                                  setState(() {});
+                                },
+                              );
+                            }).toList(),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: const Text('Xác nhận'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-      case 'AI':
-        return [
-          _AiTopicSuggestion(
-            title: 'Hệ thống gợi ý đề tài bằng AI',
-            description:
-                'Hệ thống sử dụng AI để phân tích nhu cầu và đề xuất các đề tài phù hợp cho sinh viên.',
-            objective: 'Hỗ trợ sinh viên tìm kiếm ý tưởng đề tài.',
-            technology: technology.isEmpty
-                ? 'Flutter, ASP.NET Core, AI API'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Trợ lý AI hỗ trợ học tập',
-            description:
-                'Trợ lý AI hỗ trợ sinh viên tìm kiếm thông tin và giải đáp các câu hỏi học tập.',
-            objective: 'Hỗ trợ sinh viên trong quá trình tự học.',
-            technology: technology.isEmpty
-                ? 'ASP.NET Core, AI API, SQL Server'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Hệ thống phân tích và dự đoán kết quả học tập',
-            description:
-                'Ứng dụng phân tích dữ liệu học tập để hỗ trợ đánh giá kết quả của sinh viên.',
-            objective: 'Hỗ trợ theo dõi và phân tích kết quả học tập.',
-            technology: technology.isEmpty
-                ? 'Python, AI, SQL Server'
-                : technology,
-          ),
-        ];
+  Future<void> _showAdvancedOptions() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  MediaQuery.viewInsetsOf(context).bottom + 24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Tùy chỉnh đề xuất',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 20),
+                    const Text('Cấp độ kỹ thuật'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _levels.map((level) {
+                        return ChoiceChip(
+                          label: Text(level),
+                          selected: _selectedLevel == level,
+                          onSelected: (_) {
+                            setModalState(() => _selectedLevel = level);
+                            setState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Nền tảng'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _platforms.map((platform) {
+                        return ChoiceChip(
+                          label: Text(platform),
+                          selected: _selectedPlatform == platform,
+                          onSelected: (_) {
+                            setModalState(() => _selectedPlatform = platform);
+                            setState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _technologyController,
+                      decoration: const InputDecoration(
+                        labelText: 'Công nghệ mong muốn',
+                        hintText: 'Flutter, ASP.NET Core, Python...',
+                        prefixIcon: Icon(Icons.code),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        child: const Text('Lưu tùy chỉnh'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-      case 'IoT':
-        return [
-          _AiTopicSuggestion(
-            title: 'Hệ thống cảnh báo rò rỉ gas và cháy',
-            description:
-                'Hệ thống sử dụng cảm biến để phát hiện khí gas và nguy cơ cháy.',
-            objective: 'Phát hiện sớm các nguy cơ và đưa ra cảnh báo.',
-            technology: technology.isEmpty
-                ? 'ESP32, Sensors, MQTT'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Hệ thống giám sát phòng học thông minh',
-            description:
-                'Hệ thống thu thập dữ liệu môi trường và hiển thị trạng thái phòng học.',
-            objective: 'Theo dõi điều kiện môi trường trong phòng học.',
-            technology: technology.isEmpty
-                ? 'ESP32, Sensors, MQTT'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Hệ thống quản lý thiết bị IoT',
-            description:
-                'Ứng dụng quản lý và theo dõi trạng thái các thiết bị IoT.',
-            objective: 'Quản lý tập trung các thiết bị trong hệ thống.',
-            technology: technology.isEmpty
-                ? 'ESP32, MQTT, ASP.NET Core'
-                : technology,
-          ),
-        ];
+  Future<void> _showFeedbackDialog(AiChatMessageModel message) async {
+    const reasons = [
+      'Không đúng lĩnh vực',
+      'Không đúng mức độ',
+      'Không đúng nền tảng',
+      'Thiếu thông tin',
+      'Đề tài không thực tế',
+      'Khác',
+    ];
+    String? selectedReason;
+    final commentController = TextEditingController();
+    final result = await showDialog<(String, String?)>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Điều gì chưa phù hợp?'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ...reasons.map((reason) {
+                      return RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(reason),
+                        value: reason,
+                        groupValue: selectedReason,
+                        onChanged: (value) =>
+                            setDialogState(() => selectedReason = value),
+                      );
+                    }),
+                    if (selectedReason == 'Khác')
+                      TextField(
+                        controller: commentController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Mô tả thêm',
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Hủy'),
+                ),
+                FilledButton(
+                  onPressed: selectedReason == null
+                      ? null
+                      : () => Navigator.pop(
+                            dialogContext,
+                            (selectedReason!, commentController.text.trim()),
+                          ),
+                  child: const Text('Gửi nhận xét'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    commentController.dispose();
+    if (result == null || !mounted) return;
+    await _saveFeedback(
+      message,
+      helpful: false,
+      reason: result.$1,
+      comment: result.$2,
+    );
+  }
 
-      case 'Big Data':
-        return [
-          _AiTopicSuggestion(
-            title: 'Phân tích dữ liệu học tập sinh viên',
-            description:
-                'Phân tích dữ liệu học tập để tìm ra xu hướng và hỗ trợ quản lý đào tạo.',
-            objective: 'Khai thác dữ liệu phục vụ phân tích giáo dục.',
-            technology: technology.isEmpty
-                ? 'Python, Spark, SQL Server'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Hệ thống phân tích hành vi người dùng',
-            description:
-                'Phân tích dữ liệu hành vi để tìm ra các xu hướng sử dụng.',
-            objective: 'Hỗ trợ đưa ra các thông tin từ dữ liệu lớn.',
-            technology: technology.isEmpty
-                ? 'Python, Spark, MongoDB'
-                : technology,
-          ),
-          _AiTopicSuggestion(
-            title: 'Hệ thống trực quan hóa dữ liệu lớn',
-            description:
-                'Xây dựng hệ thống hiển thị và phân tích các tập dữ liệu lớn.',
-            objective: 'Hỗ trợ người dùng khai thác dữ liệu trực quan.',
-            technology: technology.isEmpty
-                ? 'Python, Spark, Power BI'
-                : technology,
-          ),
-        ];
+  Future<void> _saveFeedback(
+    AiChatMessageModel message, {
+    required bool helpful,
+    String? reason,
+    String? comment,
+  }) async {
+    if (message.request == null) return;
+    final index = _messages.indexWhere((item) => item.id == message.id);
+    if (index < 0 || _messages[index].helpful != null) return;
 
-      default:
-        return [
-          _AiTopicSuggestion(
-            title: 'Hệ thống quản lý dữ liệu sinh viên',
-            description:
-                'Hệ thống hỗ trợ quản lý và khai thác dữ liệu sinh viên.',
-            objective: 'Quản lý dữ liệu tập trung và hiệu quả.',
-            technology: technology.isEmpty
-                ? 'ASP.NET Core, SQL Server'
-                : technology,
-          ),
-        ];
+    setState(() {
+      _messages[index] = _messages[index].copyWith(
+        helpful: helpful,
+        feedbackReason: reason,
+      );
+    });
+    await _feedbackService.submit(
+      AiFeedbackModel(
+        conversationId: _conversationId,
+        messageId: message.id,
+        userMessage: message.request!.message,
+        aiResponse: message.text,
+        request: message.request!,
+        helpful: helpful,
+        feedbackReason: reason,
+        comment: comment?.isEmpty == true ? null : comment,
+        createdAt: DateTime.now(),
+      ),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cảm ơn bạn đã gửi phản hồi.')),
+      );
     }
   }
 
-  void _useSuggestion(_AiTopicSuggestion suggestion) {
+  void _useSuggestion(AiTopicRecommendationModel recommendation) {
+    final topic = recommendation.topic;
     Navigator.pop(context, {
-      'title': suggestion.title,
-      'description': suggestion.description,
-      'objective': suggestion.objective,
-      'scope': AppLocalizations.text(
-        'Sinh viên và giảng viên trong phạm vi môn học.',
-        en: 'Students and lecturers within the course scope.',
-      ),
-      'technology': suggestion.technology,
+      'title': topic.title,
+      'description': topic.description,
+      'objective': topic.objective,
+      'scope': topic.scope,
+      'technology': topic.technology,
       'source': 'AI đề xuất',
       'status': 'Chưa đăng ký',
     });
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          AppLocalizations.text(
-            'AI hỗ trợ đề xuất đề tài',
-            en: 'AI Topic Assistant',
-          ),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // =====================================================
-          // HEADER
-          // =====================================================
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primaryContainer,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.text(
-                          'Gợi ý đề tài bằng AI',
-                          en: 'AI Topic Suggestions',
-                        ),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        AppLocalizations.text(
-                          'Cung cấp thông tin để AI gợi ý các đề tài phù hợp.',
-                          en: 'Provide some information and AI will suggest suitable topics.',
-                        ),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // =====================================================
-          // FIELD
-          // =====================================================
-          Text(
-            AppLocalizations.text('Lĩnh vực quan tâm', en: 'Field of interest'),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-
-          const SizedBox(height: 10),
-
-          DropdownButtonFormField<String>(
-            value: selectedField,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.category_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              labelText: AppLocalizations.text(
-                'Chọn lĩnh vực',
-                en: 'Select a field',
-              ),
-            ),
-            items: fields.map((field) {
-              return DropdownMenuItem(
-                value: field,
-                child: Text(_fieldText(field)),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                selectedField = value;
-              });
-            },
-          ),
-
-          const SizedBox(height: 20),
-
-          // =====================================================
-          // TECHNOLOGY
-          // =====================================================
-          Text(
-            AppLocalizations.text(
-              'Công nghệ mong muốn',
-              en: 'Preferred technology',
-            ),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-
-          const SizedBox(height: 10),
-
-          TextField(
-            controller: technologyController,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.text('Công nghệ', en: 'Technology'),
-              hintText: AppLocalizations.text(
-                'Ví dụ: Flutter, ASP.NET Core, Python...',
-                en: 'Example: Flutter, ASP.NET Core, Python...',
-              ),
-              prefixIcon: const Icon(Icons.code),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // =====================================================
-          // LEVEL
-          // =====================================================
-          Text(
-            AppLocalizations.text('Mức độ khó', en: 'Difficulty level'),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-
-          const SizedBox(height: 10),
-
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: levels.map((level) {
-              final selected = selectedLevel == level;
-
-              return ChoiceChip(
-                label: Text(_levelText(level)),
-                selected: selected,
-                onSelected: (_) {
-                  setState(() {
-                    selectedLevel = level;
-                  });
-                },
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 20),
-
-          // =====================================================
-          // ADDITIONAL REQUIREMENT
-          // =====================================================
-          Text(
-            AppLocalizations.text(
-              'Yêu cầu thêm',
-              en: 'Additional requirements',
-            ),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-
-          const SizedBox(height: 10),
-
-          TextField(
-            controller: requirementController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.text(
-                'Mô tả mong muốn',
-                en: 'Describe your requirements',
-              ),
-              hintText: AppLocalizations.text(
-                'Ví dụ: muốn làm đề tài có AI, có tính thực tế...',
-                en: 'Example: a practical topic using AI...',
-              ),
-              prefixIcon: const Padding(
-                padding: EdgeInsets.only(bottom: 55),
-                child: Icon(Icons.edit_note_outlined),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // =====================================================
-          // GENERATE BUTTON
-          // =====================================================
-          SizedBox(
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: isGenerating ? null : _generateSuggestions,
-              icon: isGenerating
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.auto_awesome),
-              label: Text(
-                isGenerating
-                    ? AppLocalizations.text(
-                        'Đang tạo gợi ý...',
-                        en: 'Generating suggestions...',
-                      )
-                    : AppLocalizations.text(
-                        'GỢI Ý ĐỀ TÀI',
-                        en: 'GENERATE TOPICS',
-                      ),
-              ),
-            ),
-          ),
-
-          // =====================================================
-          // RESULTS
-          // =====================================================
-          if (suggestions.isNotEmpty) ...[
-            const SizedBox(height: 30),
-
-            Row(
-              children: [
-                const Icon(Icons.auto_awesome),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    AppLocalizations.text(
-                      'Đề tài AI gợi ý',
-                      en: 'AI Suggested Topics',
-                    ),
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            ...suggestions.asMap().entries.map((entry) {
-              final index = entry.key + 1;
-              final suggestion = entry.value;
-
-              return _buildSuggestionCard(context, index, suggestion);
-            }),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSuggestionCard(
-    BuildContext context,
-    int index,
-    _AiTopicSuggestion suggestion,
-  ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Theme.of(context).dividerColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '$index',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    suggestion.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            Text(
-              suggestion.description,
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color,
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            _infoRow(
-              Icons.flag_outlined,
-              AppLocalizations.text('Mục tiêu', en: 'Objective'),
-              suggestion.objective,
-            ),
-
-            const SizedBox(height: 10),
-
-            _infoRow(
-              Icons.code,
-              AppLocalizations.text('Công nghệ', en: 'Technology'),
-              suggestion.technology,
-            ),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  _showSuggestionDetail(suggestion);
-                },
-                icon: const Icon(Icons.visibility_outlined),
-                label: Text(
-                  AppLocalizations.text('Xem chi tiết', en: 'View details'),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _useSuggestion(suggestion);
-                },
-                icon: const Icon(Icons.edit_note),
-                label: Text(
-                  AppLocalizations.text(
-                    'Dùng đề tài này',
-                    en: 'Use this topic',
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: DefaultTextStyle.of(context).style,
-              children: [
-                TextSpan(
-                  text: '$label: ',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                TextSpan(text: value),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showSuggestionDetail(_AiTopicSuggestion suggestion) {
-    showModalBottomSheet(
+  void _showTopicDetail(AiTopicRecommendationModel recommendation) {
+    final topic = recommendation.topic;
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    suggestion.title,
-                    style: const TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(topic.title, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                _detailSection('Mô tả', topic.description),
+                _detailSection('Mục tiêu', topic.objective),
+                _detailSection('Phạm vi', topic.scope),
+                _detailSection('Công nghệ', topic.technology),
+                Text(
+                  'Điểm phù hợp: ${(recommendation.finalScore * 100).round()}%',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _useSuggestion(recommendation);
+                    },
+                    icon: const Icon(Icons.check),
+                    label: const Text('Dùng đề tài này'),
                   ),
-
-                  const SizedBox(height: 20),
-
-                  Text(
-                    AppLocalizations.text('Mô tả', en: 'Description'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  Text(suggestion.description),
-
-                  const SizedBox(height: 18),
-
-                  Text(
-                    AppLocalizations.text('Mục tiêu', en: 'Objective'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  Text(suggestion.objective),
-
-                  const SizedBox(height: 18),
-
-                  Text(
-                    AppLocalizations.text(
-                      'Công nghệ đề xuất',
-                      en: 'Suggested technology',
-                    ),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  Text(suggestion.technology),
-
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _useSuggestion(suggestion);
-                      },
-                      icon: const Icon(Icons.check),
-                      label: Text(
-                        AppLocalizations.text(
-                          'Dùng đề tài này',
-                          en: 'Use this topic',
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
       },
     );
   }
-}
 
-class _AiTopicSuggestion {
-  final String title;
-  final String description;
-  final String objective;
-  final String technology;
+  Widget _detailSection(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(value),
+        ],
+      ),
+    );
+  }
 
-  const _AiTopicSuggestion({
-    required this.title,
-    required this.description,
-    required this.objective,
-    required this.technology,
-  });
+  String _selectionSummary(Set<String> values, String empty) {
+    if (values.isEmpty) return empty;
+    if (values.length <= 2) return values.join(', ');
+    return '${values.take(2).join(', ')} +${values.length - 2}';
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  Future<void> _resetConversation() async {
+    setState(() {
+      _messages
+        ..clear()
+        ..add(
+          const AiChatMessageModel(
+            id: 0,
+            text:
+                'Xin chào! Mình có thể giúp bạn tìm đề tài phù hợp. Hãy chọn tiêu chí hoặc gửi yêu cầu bằng tin nhắn.',
+            isUser: false,
+          ),
+        );
+      _nextMessageId = 1;
+      _conversationId = DateTime.now().microsecondsSinceEpoch.toString();
+    });
+    _scrollToBottom();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.text('ProGroup AI', en: 'ProGroup AI')),
+        actions: [
+          IconButton(
+            onPressed: _resetConversation,
+            tooltip: 'Cuộc trò chuyện mới',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primaryContainer,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Trợ lý tìm và phát triển đề tài',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _showAdvancedOptions,
+                  tooltip: 'Cấp độ, nền tảng và công nghệ',
+                  color: Colors.white,
+                  icon: const Icon(Icons.tune),
+                ),
+              ],
+            ),
+          ),
+          _buildSelectors(),
+          _buildQuickActions(),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) => _buildMessage(_messages[index]),
+            ),
+          ),
+          if (_isTyping)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Đang xếp hạng đề tài...'),
+                ],
+              ),
+            ),
+          _buildInput(theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectors() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _selectorButton(
+                  icon: Icons.school_outlined,
+                  title: 'Module học tập',
+                  value: _selectionSummary(
+                    _selectedModules,
+                    'Chọn module',
+                  ),
+                  onTap: _showModuleSelector,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _selectorButton(
+                  icon: Icons.category_outlined,
+                  title: 'Lĩnh vực',
+                  value: _selectionSummary(_selectedFields, 'Chọn lĩnh vực'),
+                  onTap: () => _showMultiSelectDialog(
+                    title: 'Lĩnh vực ứng dụng',
+                    options: _applicationFields,
+                    selected: _selectedFields,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _selectorButton(
+            icon: Icons.flag_outlined,
+            title: 'Ưu tiên',
+            value: _selectionSummary(
+              _selectedPriorities,
+              'Chọn định hướng ưu tiên',
+            ),
+            onTap: () => _showMultiSelectDialog(
+              title: 'Định hướng ưu tiên',
+              options: _priorities,
+              selected: _selectedPriorities,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _selectorButton({
+    required IconData icon,
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        alignment: Alignment.centerLeft,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.expand_more, size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        scrollDirection: Axis.horizontal,
+        children: [
+          ActionChip(
+            avatar: const Icon(Icons.lightbulb_outline, size: 18),
+            label: const Text('Gợi ý đề tài'),
+            onPressed: () => _sendMessage(
+              'Hãy đề xuất 3 đề tài phù hợp với thông tin tôi đã chọn.',
+            ),
+          ),
+          const SizedBox(width: 8),
+          ActionChip(
+            avatar: const Icon(Icons.analytics_outlined, size: 18),
+            label: const Text('Phân tích đề tài'),
+            onPressed: () => _sendMessage(
+              'Hãy phân tích hướng đề tài phù hợp với tôi.',
+            ),
+          ),
+          const SizedBox(width: 8),
+          ActionChip(
+            avatar: const Icon(Icons.account_tree_outlined, size: 18),
+            label: const Text('Chức năng'),
+            onPressed: () => _sendMessage(
+              'Hãy gợi ý chức năng chính cho đề tài phù hợp.',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInput(ThemeData theme) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _sendMessage(),
+                decoration: InputDecoration(
+                  hintText: 'Nhập yêu cầu cho AI...',
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filled(
+              onPressed: _isTyping ? null : () => _sendMessage(),
+              tooltip: 'Gửi',
+              icon: const Icon(Icons.send),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessage(AiChatMessageModel message) {
+    final theme = Theme.of(context);
+    final isUser = message.isUser;
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 520),
+        width: isUser ? null : double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isUser
+              ? theme.colorScheme.primary
+              : theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(14),
+            topRight: const Radius.circular(14),
+            bottomLeft: Radius.circular(isUser ? 14 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 14),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message.text,
+              style: TextStyle(
+                color: isUser ? theme.colorScheme.onPrimary : null,
+                height: 1.4,
+              ),
+            ),
+            if (message.recommendations.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              for (var index = 0;
+                  index < message.recommendations.length;
+                  index++)
+                _buildRecommendationCard(
+                  message.recommendations[index],
+                  index + 1,
+                ),
+            ],
+            if (!isUser && message.request != null) ...[
+              const Divider(height: 20),
+              _buildFeedback(message),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendationCard(
+    AiTopicRecommendationModel recommendation,
+    int rank,
+  ) {
+    final topic = recommendation.topic;
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 13,
+                child: Text('$rank', style: theme.textTheme.labelSmall),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  topic.title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Text('${(recommendation.finalScore * 100).round()}%'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(topic.description),
+          const SizedBox(height: 6),
+          Text(
+            'Công nghệ: ${topic.technology}',
+            style: theme.textTheme.bodySmall,
+          ),
+          Text(
+            'Điểm tiêu chí ${(recommendation.weightedScore * 100).round()}% '
+            '• Văn bản ${(recommendation.cosineSimilarity * 100).round()}%',
+            style: theme.textTheme.labelSmall,
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton.icon(
+                onPressed: () => _showTopicDetail(recommendation),
+                icon: const Icon(Icons.visibility_outlined, size: 18),
+                label: const Text('Chi tiết'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () => _useSuggestion(recommendation),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Dùng đề tài'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedback(AiChatMessageModel message) {
+    if (message.helpful != null) {
+      return Row(
+        children: [
+          Icon(
+            message.helpful! ? Icons.thumb_up_alt : Icons.thumb_down_alt,
+            size: 17,
+            color: message.helpful! ? Colors.green : Colors.orange,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              message.helpful!
+                  ? 'Cảm ơn bạn, phản hồi đã được ghi nhận.'
+                  : 'Đã ghi nhận: ${message.feedbackReason}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Câu trả lời này có hữu ích không?',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        IconButton(
+          onPressed: () => _saveFeedback(message, helpful: true),
+          tooltip: 'Hữu ích',
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.thumb_up_alt_outlined, size: 19),
+        ),
+        IconButton(
+          onPressed: () => _showFeedbackDialog(message),
+          tooltip: 'Chưa phù hợp',
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.thumb_down_alt_outlined, size: 19),
+        ),
+      ],
+    );
+  }
 }

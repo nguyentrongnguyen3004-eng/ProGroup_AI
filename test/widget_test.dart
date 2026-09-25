@@ -222,7 +222,7 @@ void main() {
     'student manual and AI proposals reach lecturer review and decisions',
     (tester) async {
       const manualTitle = 'Phase 8 manual proposal verification';
-      const aiTitle = 'Phân tích dữ liệu học tập sinh viên';
+      var aiTitle = '';
       final unreadBefore = MockLecturerNotifications.instance.unreadCount;
 
       await _openLogin(tester);
@@ -262,29 +262,11 @@ void main() {
       await tester.tap(find.text('AI hỗ trợ đề xuất'));
       await tester.pumpAndSettle();
       expect(find.byType(AiTopicScreen), findsOneWidget);
-      final fieldSelector = find.byType(DropdownButtonFormField<String>);
-      await tester.ensureVisible(fieldSelector);
-      await tester.tap(fieldSelector);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Big Data').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Big Data'), findsOneWidget);
-      final generateButton = find.ancestor(
-        of: find.text('GỢI Ý ĐỀ TÀI'),
-        matching: find.byType(ElevatedButton),
+      await tester.enterText(
+        find.byType(TextField).last,
+        'Tôi muốn phân tích dữ liệu học tập bằng Big Data',
       );
-      await tester.scrollUntilVisible(
-        generateButton,
-        300,
-        scrollable: find
-            .descendant(
-              of: find.byType(AiTopicScreen),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(generateButton.first);
+      await tester.tap(find.byTooltip('Gửi'));
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
       final aiResultsScroll = find
@@ -293,13 +275,7 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
-      await tester.scrollUntilVisible(
-        find.text(aiTitle),
-        300,
-        scrollable: aiResultsScroll,
-      );
-      expect(find.text(aiTitle), findsOneWidget);
-      final useAiTopic = find.text('Dùng đề tài này').first;
+      final useAiTopic = find.text('Dùng đề tài').first;
       await tester.scrollUntilVisible(
         useAiTopic,
         300,
@@ -311,8 +287,9 @@ void main() {
       expect(find.byType(AiTopicScreen), findsNothing);
       expect(find.byType(TopicScreen), findsOneWidget);
 
-      final aiProposal = MockLecturerTopicProposals.instance.proposals
-          .firstWhere((proposal) => proposal.title == aiTitle);
+        final aiProposal = MockLecturerTopicProposals.instance.proposals
+          .lastWhere((proposal) => proposal.source == 'AI đề xuất');
+        aiTitle = aiProposal.title;
       expect(aiProposal.courseId, 1);
       expect(aiProposal.source, 'AI đề xuất');
       expect(aiProposal.status, 'Chờ duyệt');
