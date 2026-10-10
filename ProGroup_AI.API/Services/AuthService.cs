@@ -59,7 +59,7 @@ public class AuthService : IAuthService
             return new LoginResponse
             {
                 Success = false,
-                Message = "Tài khoản đã bị khóa hoặc không hoạt động."
+                Message = "Tên đăng nhập hoặc mật khẩu không chính xác."
             };
         }
 
@@ -68,7 +68,7 @@ public class AuthService : IAuthService
             return new LoginResponse
             {
                 Success = false,
-                Message = "Tài khoản chưa được thiết lập mật khẩu."
+                Message = "Tên đăng nhập hoặc mật khẩu không chính xác."
             };
         }
 
@@ -95,16 +95,14 @@ public class AuthService : IAuthService
             };
         }
 
-        var token = _jwtService.GenerateToken(user);
-
-        var expiresAt = DateTime.UtcNow.AddMinutes(120);
+        var generatedToken = _jwtService.GenerateToken(user);
 
         return new LoginResponse
         {
             Success = true,
             Message = "Đăng nhập thành công.",
-            Token = token,
-            ExpiresAt = expiresAt,
+            Token = generatedToken.Token,
+            ExpiresAt = generatedToken.ExpiresAt,
 
             User = new UserInfoResponse
             {

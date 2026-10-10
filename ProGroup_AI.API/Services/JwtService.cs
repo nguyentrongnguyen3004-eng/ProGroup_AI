@@ -15,7 +15,7 @@ public class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public string GenerateToken(NguoiDung user)
+    public JwtTokenResult GenerateToken(NguoiDung user)
     {
         var jwtKey = _configuration["Jwt:Key"];
 
@@ -70,7 +70,17 @@ public class JwtService : IJwtService
             SecurityAlgorithms.HmacSha256
         );
 
-        var expires = DateTime.UtcNow.AddMinutes(expireMinutes);
+        if (expireMinutes <= 0)
+        {
+            throw new InvalidOperationException(
+                "Jwt:ExpireMinutes phải lớn hơn 0."
+            );
+        }
+
+        var expiresAt = DateTimeOffset.UtcNow
+            .AddMinutes(expireMinutes)
+            .ToUnixTimeSeconds();
+        var expires = DateTimeOffset.FromUnixTimeSeconds(expiresAt).UtcDateTime;
 
         var token = new JwtSecurityToken(
             issuer: issuer,
@@ -80,6 +90,9 @@ public class JwtService : IJwtService
             signingCredentials: credentials
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new JwtTokenResult(
+            new JwtSecurityTokenHandler().WriteToken(token),
+            expires
+        );
     }
 }

@@ -4,5 +4,7 @@ namespace ProGroup_AI.API.Services;
 
 public interface IJwtService
 {
-    string GenerateToken(NguoiDung user);
+    JwtTokenResult GenerateToken(NguoiDung user);
 }
+
+public sealed record JwtTokenResult(string Token, DateTime ExpiresAt);

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj": {}
+    "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI_Backend\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj": {}
   },
   "projects": {
-    "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj": {
+    "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI_Backend\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj",
+        "projectUniqueName": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI_Backend\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj",
         "projectName": "ProGroup_AI.API",
-        "projectPath": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj",
+        "projectPath": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI_Backend\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj",
         "packagesPath": "C:\\Users\\ACER\\.nuget\\packages\\",
-        "outputPath": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI\\ProGroup_AI.API\\obj\\",
+        "outputPath": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI_Backend\\ProGroup_AI\\ProGroup_AI.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -83,7 +83,7 @@
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
-              "version": "[10.2.3, )"
+              "version": "[10.3.0, )"
             }
           },
           "imports": [
@@ -105,7 +105,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.400/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

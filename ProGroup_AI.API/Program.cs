@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ProGroup_AI.API.Data;
 using ProGroup_AI.API.Services;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ========================================
 
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
 
 
 // ========================================
@@ -19,7 +21,30 @@ builder.Services.AddControllers();
 // ========================================
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ProGroup_AI.API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Nhập access token JWT."
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 
 
 // ========================================
@@ -46,8 +71,30 @@ if (string.IsNullOrWhiteSpace(jwtKey))
     );
 }
 
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key phải có tối thiểu 32 byte để ký token bằng HS256."
+    );
+}
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
+var jwtExpireMinutes = builder.Configuration.GetValue<int?>("Jwt:ExpireMinutes") ?? 120;
+
+if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException(
+        "Jwt:Issuer và Jwt:Audience phải được cấu hình."
+    );
+}
+
+if (jwtExpireMinutes <= 0)
+{
+    throw new InvalidOperationException(
+        "Jwt:ExpireMinutes phải lớn hơn 0."
+    );
+}
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -78,7 +125,14 @@ builder.Services
 // Authorization
 // ========================================
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("ADMIN"));
+    options.AddPolicy("StudentOnly", policy => policy.RequireRole("SINHVIEN"));
+    options.AddPolicy("LecturerOnly", policy => policy.RequireRole("GIANGVIEN"));
+    options.AddPolicy("FacultyStaffOnly", policy => policy.RequireRole("GIAOVUKHOA"));
+    options.AddPolicy("AcademicOfficeOnly", policy => policy.RequireRole("PHONGDAOTAO"));
+});
 
 
 // ========================================
@@ -111,6 +165,7 @@ if (app.Environment.IsDevelopment())
 // HTTPS
 // ========================================
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 

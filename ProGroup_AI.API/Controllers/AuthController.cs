@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using ProGroup_AI.API.Data;
 using ProGroup_AI.API.DTOs.Auth;
 using ProGroup_AI.API.Services;
 
@@ -9,10 +13,12 @@ namespace ProGroup_AI.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly ApplicationDbContext _context;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, ApplicationDbContext context)
     {
         _authService = authService;
+        _context = context;
     }
 
     [HttpPost("login")]
@@ -27,5 +33,36 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> Me()
+    {
+        var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idValue, out var userId)) return Unauthorized();
+
+        var user = await _context.NguoiDungs
+            .AsNoTracking()
+            .Include(x => x.VaiTro)
+            .Include(x => x.SinhVien)
+            .Include(x => x.GiangVien)
+            .FirstOrDefaultAsync(x => x.NguoiDungId == userId && x.TrangThai);
+
+        if (user is null) return NotFound(new { message = "Không tìm thấy tài khoản." });
+
+        return Ok(new UserInfoResponse
+        {
+            NguoiDungId = user.NguoiDungId,
+            TenDangNhap = user.TenDangNhap,
+            HoTen = user.HoTen,
+            Email = user.Email,
+            MaVaiTro = user.VaiTro?.MaVaiTro ?? string.Empty,
+            TenVaiTro = user.VaiTro?.TenVaiTro ?? string.Empty,
+            SinhVienId = user.SinhVien?.SinhVienId,
+            MSSV = user.SinhVien?.MSSV,
+            GiangVienId = user.GiangVien?.GiangVienId,
+            MaGiangVien = user.GiangVien?.MaGiangVien
+        });
     }
 }
