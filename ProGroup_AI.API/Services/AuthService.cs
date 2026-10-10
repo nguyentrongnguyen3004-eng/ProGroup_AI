@@ -38,6 +38,7 @@ public class AuthService : IAuthService
         }
 
         var user = await _context.NguoiDungs
+            .AsNoTracking()
             .Include(x => x.VaiTro)
             .Include(x => x.SinhVien)
             .Include(x => x.GiangVien)

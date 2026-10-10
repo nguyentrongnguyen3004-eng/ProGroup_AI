@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +17,13 @@ public sealed class GroupsController : ControllerBase
     private readonly ApplicationDbContext _db;
     public GroupsController(ApplicationDbContext db) => _db = db;
 
+    [Authorize(Policy = "StudentOnly")]
     [HttpGet("mine")]
     public async Task<IActionResult> Mine()
     {
-        var studentId = await CurrentStudentId();
-        if (studentId is null) return Forbid();
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var studentId = studentAccess.StudentId!.Value;
         var ids = await _db.NhomDoAns.AsNoTracking()
             .Where(g => g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia"))
             .Select(g => g.NhomId).ToListAsync();
@@ -37,9 +40,33 @@ public sealed class GroupsController : ControllerBase
     {
         var group = await LoadGroup(id);
         if (group is null) return NotFound();
-        var studentId = await CurrentStudentId();
-        var staff = User.IsInRole("ADMIN") || User.IsInRole("GIANGVIEN") || User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA");
-        if (!staff && (studentId is null || (group.TruongNhomId != studentId && !group.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")))) return Forbid();
+        var isAdmin = User.IsInRole("ADMIN");
+        var isLecturer = User.IsInRole("GIANGVIEN");
+        var isOfficeStaff = User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA");
+        var staffCanView = isAdmin;
+
+        if (isLecturer && group.DotDangKy is not null &&
+            int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            staffCanView = await _db.PhanCongGiangViens.AsNoTracking().AnyAsync(x =>
+                x.LopHocPhanId == group.DotDangKy.LopHocPhanId && x.TrangThai &&
+                x.GiangVien != null && x.GiangVien.NguoiDungId == userId);
+        }
+
+        // The current schema has no faculty/office scope mapping for these roles.
+        if (isOfficeStaff && !isAdmin) return Forbid();
+
+        int? studentId = null;
+        if (!staffCanView && !isLecturer)
+        {
+            var studentAccess = await ResolveCurrentStudent();
+            if (studentAccess.Error is not null) return studentAccess.Error;
+            studentId = studentAccess.StudentId;
+        }
+        if (!staffCanView && !isLecturer &&
+            group.TruongNhomId != studentId &&
+            !group.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")) return Forbid();
+        if (isLecturer && !staffCanView) return Forbid();
         return Ok(ToResponse(group));
     }
 
@@ -47,18 +74,25 @@ public sealed class GroupsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateGroupRequest request)
     {
-        var studentId = await CurrentStudentId();
-        if (studentId is null) return Forbid();
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var studentId = studentAccess.StudentId!.Value;
+        var groupName = request.TenNhom.Trim();
+        if (groupName.Length == 0) return BadRequest(new { message = "Tên nhóm không được để trống." });
+        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var period = await _db.DotDangKyDoAns.Include(x => x.LopHocPhan).FirstOrDefaultAsync(x => x.DotDangKyId == request.DotDangKyId);
         if (period is null) return NotFound(new { message = "Đợt đăng ký không tồn tại." });
         if (!IsOpen(period)) return Conflict(new { message = "Đợt đăng ký đồ án hiện không mở." });
-        if (!await IsEnrolled(studentId.Value, period.LopHocPhanId)) return Conflict(new { message = "Sinh viên chưa thuộc lớp học phần của đợt này." });
-        if (await HasGroupInPeriod(studentId.Value, period.DotDangKyId)) return Conflict(new { message = "Sinh viên đã thuộc một nhóm trong đợt này." });
+        if (!await IsEnrolled(studentId, period.LopHocPhanId)) return Conflict(new { message = "Sinh viên chưa thuộc lớp học phần của đợt này." });
+        if (await HasGroupInPeriod(studentId, period.DotDangKyId)) return Conflict(new { message = "Sinh viên đã thuộc một nhóm trong đợt này." });
+        if (await _db.NhomDoAns.AnyAsync(x => x.DotDangKyId == period.DotDangKyId && x.TenNhom == groupName))
+            return Conflict(new { message = "Tên nhóm đã được sử dụng trong đợt này." });
 
-        var group = new NhomDoAn { DotDangKyId = period.DotDangKyId, TenNhom = request.TenNhom.Trim(), TruongNhomId = studentId.Value };
-        group.ThanhVienNhoms.Add(new ThanhVienNhom { SinhVienId = studentId.Value, VaiTro = "Trưởng nhóm", TrangThai = "Đã tham gia" });
+        var group = new NhomDoAn { DotDangKyId = period.DotDangKyId, TenNhom = groupName, TruongNhomId = studentId };
+        group.ThanhVienNhoms.Add(new ThanhVienNhom { SinhVienId = studentId, VaiTro = "Trưởng nhóm", TrangThai = "Đã tham gia" });
         _db.NhomDoAns.Add(group);
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return CreatedAtAction(nameof(GetById), new { id = group.NhomId }, new { group.NhomId, group.TenNhom });
     }
 
@@ -66,8 +100,10 @@ public sealed class GroupsController : ControllerBase
     [HttpPost("{id:int}/members")]
     public async Task<IActionResult> AddMember(int id, [FromBody] AddGroupMemberRequest request)
     {
-        var leaderId = await CurrentStudentId();
-        if (leaderId is null) return Forbid();
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var leaderId = studentAccess.StudentId!.Value;
+        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var group = await _db.NhomDoAns.Include(x => x.DotDangKy).FirstOrDefaultAsync(x => x.NhomId == id);
         if (group is null) return NotFound();
         if (group.TruongNhomId != leaderId) return Forbid();
@@ -77,14 +113,19 @@ public sealed class GroupsController : ControllerBase
         if (student is null) return NotFound(new { message = "Không tìm thấy sinh viên." });
         if (!await IsEnrolled(student.SinhVienId, group.DotDangKy.LopHocPhanId)) return Conflict(new { message = "Sinh viên chưa thuộc lớp học phần của đợt này." });
         if (await HasGroupInPeriod(student.SinhVienId, group.DotDangKyId)) return Conflict(new { message = "Sinh viên đã thuộc một nhóm trong đợt này." });
-        var memberCount = await _db.ThanhVienNhoms.CountAsync(x => x.NhomId == id && x.TrangThai == "Đã tham gia");
-        if (memberCount == 0) memberCount = 1; // Include the leader when legacy data has no leader membership row.
+        var activeStudentIds = await _db.ThanhVienNhoms
+            .Where(x => x.NhomId == id && x.TrangThai == "Đã tham gia")
+            .Select(x => x.SinhVienId)
+            .ToListAsync();
+        var memberCount = activeStudentIds.Count;
+        if (!activeStudentIds.Contains(group.TruongNhomId)) memberCount++;
         if (memberCount >= group.DotDangKy.MaxMembers) return Conflict(new { message = "Nhóm đã đủ số lượng thành viên tối đa." });
 
         var former = await _db.ThanhVienNhoms.FirstOrDefaultAsync(x => x.NhomId == id && x.SinhVienId == student.SinhVienId);
         if (former is null) _db.ThanhVienNhoms.Add(new ThanhVienNhom { NhomId = id, SinhVienId = student.SinhVienId, VaiTro = "Thành viên", TrangThai = "Đã tham gia" });
         else { former.TrangThai = "Đã tham gia"; former.NgayThamGia = DateTime.Now; }
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return NoContent();
     }
 
@@ -92,8 +133,9 @@ public sealed class GroupsController : ControllerBase
     [HttpDelete("{id:int}/members/{studentId:int}")]
     public async Task<IActionResult> RemoveMember(int id, int studentId)
     {
-        var leaderId = await CurrentStudentId();
-        if (leaderId is null) return Forbid();
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var leaderId = studentAccess.StudentId!.Value;
         var group = await _db.NhomDoAns.FirstOrDefaultAsync(x => x.NhomId == id);
         if (group is null) return NotFound();
         if (group.TruongNhomId != leaderId) return Forbid();
@@ -132,15 +174,37 @@ public sealed class GroupsController : ControllerBase
         };
     }
 
-    private async Task<int?> CurrentStudentId()
+    private async Task<(int? StudentId, IActionResult? Error)> ResolveCurrentStudent()
     {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return null;
-        return await _db.SinhViens.Where(x => x.NguoiDungId == userId).Select(x => (int?)x.SinhVienId).FirstOrDefaultAsync();
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return (null, Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "JWT thiếu claim định danh người dùng hợp lệ."
+            }));
+
+        var studentId = await _db.SinhViens
+            .Where(x => x.NguoiDungId == userId)
+            .Select(x => (int?)x.SinhVienId)
+            .FirstOrDefaultAsync();
+        if (studentId is null)
+        {
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status403Forbidden,
+                Title = "Tài khoản chưa có hồ sơ sinh viên.",
+                Detail = "Liên hệ quản trị viên để liên kết tài khoản với hồ sơ sinh viên."
+            };
+            problem.Extensions["code"] = "student_profile_missing";
+            return (null, StatusCode(StatusCodes.Status403Forbidden, problem));
+        }
+
+        return (studentId, null);
     }
 
     private Task<bool> IsEnrolled(int studentId, int classId) => _db.SinhVienLopHocPhans.AnyAsync(x => x.SinhVienId == studentId && x.LopHocPhanId == classId && x.TrangThai);
 
-    private Task<bool> HasGroupInPeriod(int studentId, int periodId) => _db.NhomDoAns.AnyAsync(g => g.DotDangKyId == periodId &&
+    private Task<bool> HasGroupInPeriod(int studentId, int periodId) => _db.NhomDoAns.AnyAsync(g => g.DotDangKyId == periodId && g.TrangThai != "Đã hủy" &&
         (g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")));
 
     private static bool IsOpen(DotDangKyDoAn period) => period.TrangThai == "Đang mở" && DateTime.Now >= period.NgayBatDau && DateTime.Now <= period.NgayKetThuc;

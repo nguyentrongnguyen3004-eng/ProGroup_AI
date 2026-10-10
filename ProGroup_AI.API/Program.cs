@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -113,6 +114,9 @@ builder.Services
 
             ValidateAudience = true,
             ValidAudience = jwtAudience,
+
+            NameClaimType = ClaimTypes.Name,
+            RoleClaimType = ClaimTypes.Role,
 
             ValidateLifetime = true,
 

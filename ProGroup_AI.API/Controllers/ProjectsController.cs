@@ -42,7 +42,17 @@ public sealed class ProjectsController : ControllerBase
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
         var studentId = await _db.SinhViens.Where(x => x.NguoiDungId == userId)
             .Select(x => (int?)x.SinhVienId).FirstOrDefaultAsync();
-        if (studentId is null) return Forbid();
+        if (studentId is null)
+        {
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status403Forbidden,
+                Title = "Tài khoản chưa có hồ sơ sinh viên.",
+                Detail = "Liên hệ quản trị viên để liên kết tài khoản với hồ sơ sinh viên."
+            };
+            problem.Extensions["code"] = "student_profile_missing";
+            return StatusCode(StatusCodes.Status403Forbidden, problem);
+        }
 
         // Serialize checks and changes so two groups cannot claim the same topic simultaneously.
         await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);

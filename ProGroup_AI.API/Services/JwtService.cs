@@ -31,7 +31,11 @@ public class JwtService : IJwtService
 
         var expireMinutes = _configuration.GetValue<int?>("Jwt:ExpireMinutes") ?? 120;
 
-        var roleCode = user.VaiTro?.MaVaiTro ?? string.Empty;
+        var roleCode = user.VaiTro?.MaVaiTro;
+        if (string.IsNullOrWhiteSpace(roleCode))
+        {
+            throw new InvalidOperationException("Tài khoản chưa được gán vai trò hợp lệ.");
+        }
 
         var claims = new List<Claim>
         {

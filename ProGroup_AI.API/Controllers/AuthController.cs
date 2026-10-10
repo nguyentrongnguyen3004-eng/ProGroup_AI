@@ -25,6 +25,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login(
         [FromBody] LoginRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.TenDangNhap) || string.IsNullOrWhiteSpace(request.MatKhau))
+        {
+            return BadRequest(new
+            {
+                message = "Tên đăng nhập và mật khẩu là bắt buộc."
+            });
+        }
+
         var result = await _authService.LoginAsync(request);
 
         if (!result.Success)

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProGroup_AI.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+17d9336349d4b5c383916442f99d59d946dde596")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c86d3393787f51da3f0545a93496b84c334b536d")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProGroup_AI.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProGroup_AI.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

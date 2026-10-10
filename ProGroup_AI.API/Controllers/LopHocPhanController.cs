@@ -43,7 +43,9 @@ public sealed class LopHocPhanController : ControllerBase
     public async Task<ActionResult<LopHocPhanResponse>> GetById(int id)
     {
         var row = await _db.LopHocPhans.AsNoTracking()
-            .Where(x => x.LopHocPhanId == id)
+            .Where(x => x.LopHocPhanId == id && x.TrangThai &&
+                x.HocPhan != null && x.HocPhan.TrangThai &&
+                x.HocKy != null && x.HocKy.TrangThai)
             .Select(x => new LopHocPhanResponse
             {
                 LopHocPhanId = x.LopHocPhanId,
