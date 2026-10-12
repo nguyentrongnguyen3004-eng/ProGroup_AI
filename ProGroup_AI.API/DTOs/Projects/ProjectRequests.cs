@@ -11,6 +11,28 @@ public sealed class RegisterProjectRequest
     public int DeTaiId { get; set; }
 }
 
+public sealed class CreateProjectRequest
+{
+    [Range(1, int.MaxValue)]
+    public int DotDangKyId { get; set; }
+    [Required]
+    public string TenDeTai { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
+    public string? MucTieu { get; set; }
+    public string? PhamVi { get; set; }
+    public string? CongNgheDuKien { get; set; }
+}
+
+public sealed class UpdateProjectRequest
+{
+    [Required]
+    public string TenDeTai { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
+    public string? MucTieu { get; set; }
+    public string? PhamVi { get; set; }
+    public string? CongNgheDuKien { get; set; }
+}
+
 public sealed class ProjectResponse
 {
     public int DeTaiId { get; set; }
@@ -23,4 +45,6 @@ public sealed class ProjectResponse
     public string NguonDeTai { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
     public string TrangThaiDuyet { get; set; } = string.Empty;
+    public int? GiangVienId { get; set; }
+    public string? GiangVienTen { get; set; }
 }

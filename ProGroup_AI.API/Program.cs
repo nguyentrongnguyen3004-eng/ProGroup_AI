@@ -148,6 +148,20 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 
 // ========================================
+// CORS
+// ========================================
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// ========================================
 // Build
 // ========================================
 
@@ -171,6 +185,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+
+
+// ========================================
+// CORS
+// ========================================
+
+app.UseCors("AllowAll");
 
 
 // ========================================
@@ -199,3 +220,4 @@ app.MapControllers();
 // ========================================
 
 app.Run();
+

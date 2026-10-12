@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "5IMqz4GPOT4=",
+  "dgSpecHash": "pR4YV+ygcg0=",
   "success": true,
-  "projectFilePath": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI_Backend\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj",
+  "projectFilePath": "D:\\TRONGNGUYEN_HK7\\PhatTrienUngDungDiDong\\ProGroup_AI\\ProGroup_AI_Backend\\ProGroup_AI\\ProGroup_AI.API\\ProGroup_AI.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ACER\\.nuget\\packages\\azure.core\\1.50.0\\azure.core.1.50.0.nupkg.sha512",
     "C:\\Users\\ACER\\.nuget\\packages\\azure.identity\\1.17.1\\azure.identity.1.17.1.nupkg.sha512",
