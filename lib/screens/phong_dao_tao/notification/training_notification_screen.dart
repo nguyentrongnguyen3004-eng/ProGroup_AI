@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_training_notifications.dart';
 import '../../../models/training_notification_model.dart';
+import '../../../services/notification_service.dart';
 
 class TrainingNotificationScreen extends StatelessWidget {
   const TrainingNotificationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final notifications = MockTrainingNotifications.instance;
+    final notifications = NotificationService.instance;
     return AnimatedBuilder(
       animation: notifications,
       builder: (context, _) {
-        final items = notifications.notifications;
+        final items = notifications.notifications.map((m) => TrainingNotificationModel(
+          id: m['id'] is int ? m['id'] as int : int.tryParse(m['id'].toString()) ?? 0,
+          type: (m['type'] ?? 'Hệ thống').toString(),
+          title: (m['title'] ?? '').toString(),
+          content: (m['content'] ?? m['message'] ?? '').toString(),
+          time: (m['time'] ?? m['createdAt'] ?? '').toString(),
+          icon: Icons.notifications_outlined,
+          isRead: m['isRead'] == true || m['read'] == true,
+        )).toList();
         return Scaffold(
           appBar: AppBar(
             title: Text(_text(context, 'Thông báo', 'Notifications')),

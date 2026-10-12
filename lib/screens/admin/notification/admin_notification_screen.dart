@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_admin_data.dart';
+import '../../../services/admin_data_service.dart';
 import '../../admin/admin_helpers.dart';
 
 class AdminNotificationScreen extends StatelessWidget {
@@ -8,9 +8,9 @@ class AdminNotificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: MockAdminData.instance,
+    animation: AdminDataService.instance,
     builder: (context, _) {
-      final data = MockAdminData.instance;
+      final data = AdminDataService.instance;
       return Scaffold(
         appBar: AppBar(
           title: Text(adminText('Thông báo', 'Notifications')),

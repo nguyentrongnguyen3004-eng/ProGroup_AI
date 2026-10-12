@@ -18,4 +18,30 @@ class UserModel {
     this.mssv,
     this.avatarUrl,
   });
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'] ?? 0,
+      username: json['username'] ?? '',
+      fullName: json['fullName'] ?? '',
+      email: json['email'] ?? '',
+      role: json['role'] ?? '',
+      roleName: json['roleName'] ?? '',
+      mssv: json['mssv'],
+      avatarUrl: json['avatarUrl'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'fullName': fullName,
+      'email': email,
+      'role': role,
+      'roleName': roleName,
+      'mssv': mssv,
+      'avatarUrl': avatarUrl,
+    };
+  }
 }

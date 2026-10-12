@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_groups.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_user.dart';
+import 'package:progroup_ai_frontend/services/group_service.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
+import 'package:progroup_ai_frontend/models/user_model.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/widgets/group_card.dart';
 
@@ -15,17 +16,38 @@ class GroupScreen extends StatefulWidget {
 }
 
 class _GroupScreenState extends State<GroupScreen> {
-  List<GroupModel> get myGroups {
-    final studentName = MockUser.student.fullName;
+  List<GroupModel> myGroupsList = [];
+  UserModel? currentUser;
+  bool isLoading = true;
 
-    return MockGroups.groups
-        .where((group) => group.members.contains(studentName))
-        .toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final user = await AuthService().getCurrentUser();
+      final groups = await GroupService().getMyGroups();
+      if (mounted) {
+        setState(() {
+          currentUser = user;
+          myGroupsList = groups;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() { isLoading = false; });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final groups = myGroups;
+    
+    if (isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final groups = myGroupsList;
+
 
     return Scaffold(
       appBar: AppBar(

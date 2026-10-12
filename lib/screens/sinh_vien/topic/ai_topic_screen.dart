@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_topics.dart';
+import 'package:progroup_ai_frontend/models/topic_model.dart';
+import 'package:progroup_ai_frontend/services/topic_service.dart';
 import 'package:progroup_ai_frontend/models/ai_chat_message_model.dart';
 import 'package:progroup_ai_frontend/models/ai_feedback_model.dart';
 import 'package:progroup_ai_frontend/models/ai_topic_recommendation_model.dart';
@@ -161,11 +162,14 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
     _scrollToBottom();
 
     await Future<void>.delayed(const Duration(milliseconds: 350));
-    if (!mounted) return;
+    List<TopicModel> topics = [];
+    try {
+      topics = await TopicService().getLecturerTopics();
+    } catch (_) {}
 
     final recommendations = widget.recommendationService.recommend(
       request: request,
-      topics: MockTopics.topics,
+      topics: topics,
       limit: 3,
     );
     final response = recommendations.isEmpty

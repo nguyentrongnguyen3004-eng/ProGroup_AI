@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_governance_data.dart';
+import '../../../services/governance_data_service.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../widgets/governance/governance_widgets.dart';
 import '../main/governance_add_form_screen.dart';
@@ -23,7 +23,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {
@@ -231,7 +231,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
   Widget _lecturerCard(
     BuildContext context,
     LecturerModel lecturer,
-    MockGovernanceData data,
+    GovernanceDataService data,
   ) {
     final courseCount = data.courses
         .where((course) => course.lecturer == lecturer.fullName)
@@ -274,7 +274,7 @@ class GovernanceLecturerDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     final courses = data.courses
         .where((course) => course.lecturer == lecturer.fullName)
         .toList();
@@ -399,7 +399,7 @@ class GovernanceLecturerDetailScreen extends StatelessWidget {
     );
     if (confirmed != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    MockGovernanceData.instance.removeLecturer(lecturer.id);
+    GovernanceDataService.instance.removeLecturer(lecturer.id);
     Navigator.pop(context);
     messenger.showSnackBar(
       const SnackBar(content: Text('Đã xóa giảng viên thành công.')),

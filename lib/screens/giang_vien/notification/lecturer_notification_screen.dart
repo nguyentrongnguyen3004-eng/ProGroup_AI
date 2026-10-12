@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_lecturer_notifications.dart';
+import '../../../services/notification_service.dart';
 
 class LecturerNotificationScreen extends StatelessWidget {
   const LecturerNotificationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final notifications = MockLecturerNotifications.instance;
+    final notifications = NotificationService.instance;
 
     return AnimatedBuilder(
       animation: notifications,
@@ -54,9 +54,9 @@ class LecturerNotificationScreen extends StatelessWidget {
                     final icon = item['icon'];
                     final id = item['id'];
                     final title = item['title'] as String? ?? '';
-                    final content = item['content'] as String? ?? '';
-                    final time = item['time'] as String? ?? '';
-                    final isRead = item['isRead'] == true;
+                    final content = (item['content'] ?? item['message'] ?? '') as String;
+                    final time = (item['time'] ?? item['createdAt'] ?? '') as String;
+                    final isRead = item['isRead'] == true || item['read'] == true;
 
                     return Card(
                       clipBehavior: Clip.antiAlias,
@@ -70,9 +70,7 @@ class LecturerNotificationScreen extends StatelessWidget {
                                   : 0.78,
                             ),
                       child: InkWell(
-                        onTap: id is int
-                            ? () => notifications.markAsRead(id)
-                            : null,
+                        onTap: () => notifications.markAsRead(id),
                         child: Padding(
                           padding: const EdgeInsets.all(4),
                           child: ListTile(

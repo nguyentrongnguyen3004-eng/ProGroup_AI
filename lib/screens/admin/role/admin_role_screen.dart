@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_admin_data.dart';
+import '../../../services/admin_data_service.dart';
 import '../../admin/admin_helpers.dart';
 
 class AdminRoleScreen extends StatelessWidget {
@@ -23,12 +23,12 @@ class AdminRoleScreen extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           adminText(
-            'Bảng quyền mock để tra cứu trong ứng dụng.',
-            'Read-only mock permissions for in-app reference.',
+            'Bảng quyền hạn tra cứu trong ứng dụng.',
+            'Permission reference matrix in the system.',
           ),
         ),
         const SizedBox(height: 12),
-        for (final role in MockAdminData.roles)
+        for (final role in AdminDataService.roles)
           Card(
             child: ExpansionTile(
               leading: Icon(
@@ -37,11 +37,11 @@ class AdminRoleScreen extends StatelessWidget {
               ),
               title: Text(adminRoleText(role)),
               subtitle: Text(
-                '${MockAdminData.instance.accounts.where((account) => account.role == role).length} ${adminText('tài khoản', 'accounts')}',
+                '${AdminDataService.instance.accounts.where((account) => account.role == role).length} ${adminText('tài khoản', 'accounts')}',
               ),
               children: [
                 for (final permission
-                    in MockAdminData.permissions[role] ?? const <String>[])
+                    in AdminDataService.permissions[role] ?? const <String>[])
                   ListTile(
                     dense: true,
                     leading: const Icon(Icons.check_circle_outline),

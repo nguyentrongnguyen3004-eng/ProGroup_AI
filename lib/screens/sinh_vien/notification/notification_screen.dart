@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_notifications.dart';
+import 'package:progroup_ai_frontend/services/notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -16,11 +16,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
   static const List<String> _filterTypes = ['', 'Nhóm', 'Đề tài', 'Hệ thống'];
 
   @override
+  void initState() {
+    super.initState();
+    NotificationService.instance.loadNotifications();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: MockNotifications.instance,
+      animation: NotificationService.instance,
       builder: (context, _) {
-        final notifications = MockNotifications.instance.notifications;
+        final notifications = NotificationService.instance.notifications;
         final filters = [
           AppLocalizations.text('Tất cả', en: 'All'),
           AppLocalizations.text('Nhóm', en: 'Groups'),
@@ -49,9 +55,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   'Đánh dấu đã đọc',
                   en: 'Mark as read',
                 ),
-                onPressed: MockNotifications.instance.unreadCount > 0
+                onPressed: NotificationService.instance.unreadCount > 0
                     ? () {
-                        MockNotifications.instance.markAllAsRead();
+                        NotificationService.instance.markAllAsRead();
                       }
                     : null,
                 icon: const Icon(Icons.done_all),
@@ -61,9 +67,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
           body: Column(
             children: [
-              // ==================================================
-              // FILTER
-              // ==================================================
               SizedBox(
                 height: 55,
                 child: ListView.separated(
@@ -89,9 +92,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
               const SizedBox(height: 4),
 
-              // ==================================================
-              // LIST
-              // ==================================================
               Expanded(
                 child: filtered.isEmpty
                     ? _NotificationEmptyState(
@@ -105,39 +105,29 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         itemBuilder: (context, index) {
                           final item = filtered[index];
 
-                          final unread = item['unread'] as bool;
-
-                          final id = item['id'] as int;
+                          final unread = item['isRead'] == false && item['read'] != true;
+                          final id = item['id'];
 
                           return Card(
                             child: ListTile(
                               contentPadding: const EdgeInsets.all(14),
-
-                              // ==================================
-                              // ICON
-                              // ==================================
                               leading: CircleAvatar(
                                 backgroundColor: unread
-                                    ? Theme.of(context).colorScheme.primary
-                                          .withValues(alpha: 0.1)
+                                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                                     : Colors.grey.withValues(alpha: 0.1),
                                 child: Icon(
-                                  item['icon'] as IconData,
+                                  Icons.notifications_outlined,
                                   color: unread
                                       ? Theme.of(context).colorScheme.primary
                                       : Colors.grey,
                                 ),
                               ),
-
-                              // ==================================
-                              // TITLE
-                              // ==================================
                               title: Row(
                                 children: [
                                   Expanded(
                                     child: Text(
                                       _localizedMessage(
-                                        item['title'] as String,
+                                        (item['title'] ?? '') as String,
                                       ),
                                       style: TextStyle(
                                         fontWeight: unread
@@ -146,7 +136,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                       ),
                                     ),
                                   ),
-
                                   if (unread)
                                     Container(
                                       width: 8,
@@ -158,10 +147,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                     ),
                                 ],
                               ),
-
-                              // ==================================
-                              // CONTENT
-                              // ==================================
                               subtitle: Padding(
                                 padding: const EdgeInsets.only(top: 6),
                                 child: Column(
@@ -169,12 +154,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   children: [
                                     Text(
                                       _localizedMessage(
-                                        item['content'] as String,
+                                        (item['content'] ?? item['message'] ?? '') as String,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      _localizedMessage(item['time'] as String),
+                                      _localizedMessage(
+                                        (item['time'] ?? item['createdAt'] ?? '') as String,
+                                      ),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Theme.of(context)
@@ -186,12 +173,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   ],
                                 ),
                               ),
-
-                              // ==================================
-                              // READ
-                              // ==================================
                               onTap: () {
-                                MockNotifications.instance.markAsRead(id);
+                                NotificationService.instance.markAsRead(id);
                               },
                             ),
                           );

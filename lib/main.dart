@@ -9,8 +9,6 @@ import 'models/group_model.dart';
 import 'models/topic_model.dart';
 import 'models/user_model.dart';
 
-import 'package:progroup_ai_frontend/data/mock/mock_courses.dart';
-
 import 'screens/common/auth/forgot_password/forgot_password_screen.dart';
 import 'screens/common/auth/login/login_screen.dart';
 import 'screens/common/auth/otp/otp_screen.dart';
@@ -162,8 +160,14 @@ class ProGroupApp extends StatelessWidget {
               case AppRoutes.topicDetail:
                 final topic = settings.arguments as TopicModel;
 
-                final course = MockCourses.courses.firstWhere(
-                  (course) => course.id == topic.courseId,
+                final course = CourseModel(
+                  id: topic.courseId,
+                  code: 'HP',
+                  name: 'Lớp học phần',
+                  classCode: 'HP-01',
+                  semester: 'HK1',
+                  lecturer: 'Giảng viên',
+                  status: 'Đang mở',
                 );
 
                 return MaterialPageRoute(

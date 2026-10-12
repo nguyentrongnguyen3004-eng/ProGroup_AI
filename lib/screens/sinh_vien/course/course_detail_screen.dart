@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
+import 'package:progroup_ai_frontend/services/course_service.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/course_group_screen.dart';
 
 class CourseDetailScreen extends StatelessWidget {
@@ -160,44 +161,71 @@ class CourseDetailScreen extends StatelessWidget {
   // ============================================================
 
   Widget _buildRegistrationInfo(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              AppLocalizations.text(
-                'Thông tin đăng ký',
-                en: 'Registration Information',
-              ),
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: CourseService().getRegistrationPeriod(course.id),
+      builder: (context, snapshot) {
+        final period = snapshot.data;
+        String groupSize = '3 - 5 sinh viên';
+        String regDates = '01/09/2026 - 30/11/2026';
+        String topicDeadline = '30/11/2026';
+
+        if (period != null) {
+          final min = period['minMembers'] ?? 3;
+          final max = period['maxMembers'] ?? 5;
+          groupSize = '$min - $max sinh viên';
+
+          if (period['ngayBatDau'] != null && period['ngayKetThuc'] != null) {
+            try {
+              final start = DateTime.parse(period['ngayBatDau'].toString());
+              final end = DateTime.parse(period['ngayKetThuc'].toString());
+              regDates =
+                  '${start.day.toString().padLeft(2, '0')}/${start.month.toString().padLeft(2, '0')}/${start.year} - ${end.day.toString().padLeft(2, '0')}/${end.month.toString().padLeft(2, '0')}/${end.year}';
+              topicDeadline =
+                  '${end.day.toString().padLeft(2, '0')}/${end.month.toString().padLeft(2, '0')}/${end.year}';
+            } catch (_) {}
+          }
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.text(
+                    'Thông tin đăng ký',
+                    en: 'Registration Information',
+                  ),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 15),
+                _registrationRow(
+                  context,
+                  Icons.groups_outlined,
+                  'Số thành viên nhóm',
+                  'Group size',
+                  groupSize,
+                ),
+                _registrationRow(
+                  context,
+                  Icons.event_available_outlined,
+                  'Đăng ký nhóm',
+                  'Group registration',
+                  regDates,
+                ),
+                _registrationRow(
+                  context,
+                  Icons.lightbulb_outline,
+                  'Hạn đăng ký đề tài',
+                  'Topic deadline',
+                  topicDeadline,
+                ),
+              ],
             ),
-            const SizedBox(height: 15),
-            _registrationRow(
-              context,
-              Icons.groups_outlined,
-              'Số thành viên nhóm',
-              'Group size',
-              '3 - 5 sinh viên',
-            ),
-            _registrationRow(
-              context,
-              Icons.event_available_outlined,
-              'Đăng ký nhóm',
-              'Group registration',
-              '01/09/2026 - 15/09/2026',
-            ),
-            _registrationRow(
-              context,
-              Icons.lightbulb_outline,
-              'Hạn đăng ký đề tài',
-              'Topic deadline',
-              '20/09/2026',
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

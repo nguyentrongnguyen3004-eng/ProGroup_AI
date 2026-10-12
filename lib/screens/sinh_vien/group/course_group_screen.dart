@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_groups.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_user.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/create_group_screen.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
+import 'package:progroup_ai_frontend/services/group_service.dart';
 
 class CourseGroupScreen extends StatefulWidget {
   final CourseModel course;
@@ -19,27 +19,58 @@ class CourseGroupScreen extends StatefulWidget {
 
 class _CourseGroupScreenState extends State<CourseGroupScreen> {
   CourseModel get course => widget.course;
+  List<GroupModel> _courseGroups = [];
+  bool _isLoading = true;
+  String? _currentUserName;
 
-  List<GroupModel> get courseGroups {
-    return MockGroups.groups
-        .where((group) => group.courseId == course.id)
-        .toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
   }
 
-  GroupModel? get currentGroup {
-    final studentName = MockUser.student.fullName;
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await AuthService().getCurrentUser();
+      _currentUserName = user?.fullName ?? '';
 
-    for (final group in courseGroups) {
-      if (group.members.contains(studentName)) {
+      final groups = await GroupService().getGroupsByCourse(course.id);
+      if (mounted) {
+        setState(() {
+          _courseGroups = groups;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  List<GroupModel> get courseGroups => _courseGroups;
+
+  GroupModel? get currentGroup {
+    if (_currentUserName == null || _currentUserName!.isEmpty) return null;
+    for (final group in _courseGroups) {
+      if (group.members.contains(_currentUserName) || group.leader == _currentUserName) {
         return group;
       }
     }
-
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(AppLocalizations.text('Nhóm lớp học phần', en: 'Course Groups')),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     final groups = courseGroups;
     final myGroup = currentGroup;
 
@@ -83,7 +114,7 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() {});
+    await _loadData();
   }
 
   Widget _buildCourseHeader(BuildContext context) {
@@ -435,7 +466,7 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
   }
 
   void _joinGroup(GroupModel group) {
-    final studentName = MockUser.student.fullName;
+    final studentName = _currentUserName ?? '';
 
     if (group.members.contains(studentName)) {
       return;

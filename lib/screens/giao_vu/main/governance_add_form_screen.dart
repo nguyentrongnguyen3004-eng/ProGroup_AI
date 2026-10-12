@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_governance_data.dart';
+import '../../../services/governance_data_service.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
 
@@ -43,7 +43,7 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
   bool get _isEdit => widget.existingData != null;
 
   List<String> get _statusOptions {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     final values = _isStudent
         ? data.students.map((item) => item.status)
         : data.lecturerStatuses.values;
@@ -65,7 +65,7 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
   @override
   void initState() {
     super.initState();
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     if (_isStudent) {
       final existing = _existingStudent;
       _codeController.text = existing?.studentCode ?? '';
@@ -106,7 +106,7 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
   void _save() {
     if (!_formKey.currentState!.validate()) return;
 
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     final code = _codeController.text.trim();
     final duplicate = _isStudent
         ? data.students.any(

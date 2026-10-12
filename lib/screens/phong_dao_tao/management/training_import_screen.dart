@@ -9,8 +9,8 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_training_data.dart';
-import '../../../data/mock/mock_training_notifications.dart';
+import '../../../services/notification_service.dart';
+import '../../../services/training_data_service.dart';
 import '../../../models/course_model.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
@@ -733,7 +733,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
       return;
     }
 
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     final existingCodes = _existingCodes(data);
     final seenCodes = <String>{};
     final valid = <_ImportRow>[];
@@ -804,7 +804,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
     });
   }
 
-  Set<String> _existingCodes(MockTrainingData data) => switch (_kind) {
+  Set<String> _existingCodes(TrainingDataService data) => switch (_kind) {
     TrainingDataKind.students =>
       data.students.map((item) => item.studentCode.toLowerCase()).toSet(),
     TrainingDataKind.lecturers =>
@@ -817,7 +817,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
 
   void _validateRow(
     List<String> cells,
-    MockTrainingData data,
+    TrainingDataService data,
     Set<String> existingCodes,
     Set<String> seenCodes,
     List<String> issues,
@@ -951,7 +951,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     switch (_kind) {
       case TrainingDataKind.students:
         final firstId = data.nextStudentId;
@@ -1025,15 +1025,14 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
             : _text(context, 'Hoàn thành một phần', 'Partially completed'),
       ),
     );
-    MockTrainingNotifications.instance.addNotification(
+    NotificationService.instance.addNotification(
       type: _text(context, 'Import dữ liệu', 'Data import'),
       title: _text(context, 'Import dữ liệu thành công', 'Import completed'),
-      content: _text(
+      message: _text(
         context,
         'Đã import $count $kindLabel.',
         'Imported $count $kindLabel.',
       ),
-      icon: Icons.file_download_done_outlined,
     );
     _showMessage(
       _text(
@@ -1045,7 +1044,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
     setState(_clearPreview);
   }
 
-  String _lecturerName(MockTrainingData data, String lecturerCode) {
+  String _lecturerName(TrainingDataService data, String lecturerCode) {
     if (lecturerCode.isEmpty) return '';
     return data.lecturers
         .firstWhere(
@@ -1172,7 +1171,7 @@ class TrainingImportHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) => Scaffold(

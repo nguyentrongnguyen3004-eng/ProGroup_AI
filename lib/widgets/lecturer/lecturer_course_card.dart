@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-
-import '../../models/lecturer_course_model.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../models/course_model.dart';
 
 class LecturerCourseCard extends StatelessWidget {
-  final LecturerCourseModel course;
-  final VoidCallback? onTap;
+  final CourseModel course;
+  final VoidCallback onTap;
 
-  const LecturerCourseCard({super.key, required this.course, this.onTap});
+  const LecturerCourseCard({
+    super.key,
+    required this.course,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,136 +18,146 @@ class LecturerCourseCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer.withValues(alpha: 0.3),
+              ),
+              child: Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: colors.primaryContainer,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Icon(
-                      Icons.school_outlined,
-                      color: colors.onPrimaryContainer,
+                      Icons.class_,
+                      color: colors.onPrimary,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           course.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: colors.onSurface,
-                            fontSize: 17,
+                          style: const TextStyle(
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${course.code} • ${course.classCode}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: colors.primary,
-                            fontWeight: FontWeight.w600,
+                            color: colors.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (onTap != null)
-                    Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_month_outlined,
-                    size: 17,
-                    color: colors.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.secondaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     child: Text(
                       course.semester,
                       style: TextStyle(
-                        color: colors.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
+                        color: colors.onSecondaryContainer,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Row(
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _Info(
-                    icon: Icons.people_outline,
-                    value: '${course.studentCount}',
-                    label: 'Sinh viên',
+                  _StatItem(
+                    icon: Icons.people,
+                    label: AppLocalizations.text('Sinh viên', en: 'Students'),
+                    value: '40',
+                    color: colors.primary,
                   ),
-                  _Info(
-                    icon: Icons.groups_outlined,
-                    value: '${course.groupCount}',
-                    label: 'Nhóm',
+                  _StatItem(
+                    icon: Icons.groups,
+                    label: AppLocalizations.text('Nhóm', en: 'Groups'),
+                    value: '--',
+                    color: colors.secondary,
                   ),
-                  _Info(
-                    icon: Icons.lightbulb_outline,
-                    value: '${course.topicCount}',
-                    label: 'Đề tài',
+                  _StatItem(
+                    icon: Icons.topic,
+                    label: AppLocalizations.text('Đề tài', en: 'Topics'),
+                    value: '--',
+                    color: colors.tertiary,
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _Info extends StatelessWidget {
+class _StatItem extends StatelessWidget {
   final IconData icon;
-  final String value;
   final String label;
+  final String value;
+  final Color color;
 
-  const _Info({required this.icon, required this.value, required this.label});
+  const _StatItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Expanded(
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: colors.onSurfaceVariant),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                label,
-                style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
-              ),
-            ],
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
+        ),
+      ],
     );
   }
 }

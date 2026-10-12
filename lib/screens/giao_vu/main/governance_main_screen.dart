@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../data/mock/mock_governance_notifications.dart';
+import '../../../services/notification_service.dart';
 import '../home/governance_overview_screen.dart';
 import '../notification/governance_notification_screen.dart';
 import '../profile/governance_profile_screen.dart';
@@ -23,7 +23,7 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
   ];
   @override
   Widget build(BuildContext context) {
-    final notices = MockGovernanceNotifications.instance;
+    final notices = NotificationService.instance;
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: AnimatedBuilder(

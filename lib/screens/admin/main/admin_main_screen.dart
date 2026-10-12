@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_admin_data.dart';
+import '../../../services/admin_data_service.dart';
 import '../../../models/user_model.dart';
 import '../activity/admin_activity_log_screen.dart';
 import '../data/admin_data_management_screen.dart';
@@ -26,7 +26,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   @override
   void initState() {
     super.initState();
-    MockAdminData.instance.recordActivity(
+    AdminDataService.instance.recordActivity(
       action: 'Đăng nhập',
       target: widget.user.username,
       description: 'Tài khoản Admin đăng nhập thành công.',
@@ -37,7 +37,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockAdminData.instance;
+    final data = AdminDataService.instance;
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_governance_notifications.dart';
+import '../../../services/notification_service.dart';
 
 class GovernanceNotificationScreen extends StatelessWidget {
   const GovernanceNotificationScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final mock = MockGovernanceNotifications.instance;
+    final service = NotificationService.instance;
     return AnimatedBuilder(
-      animation: mock,
+      animation: service,
       builder: (context, _) {
-        final items = mock.notifications;
+        final items = service.notifications;
         final colors = Theme.of(context).colorScheme;
         return Scaffold(
           appBar: AppBar(
@@ -23,7 +23,7 @@ class GovernanceNotificationScreen extends StatelessWidget {
                   'Đánh dấu tất cả đã đọc',
                   'Mark all as read',
                 ),
-                onPressed: mock.unreadCount == 0 ? null : mock.markAllAsRead,
+                onPressed: service.unreadCount == 0 ? null : service.markAllAsRead,
                 icon: const Icon(Icons.done_all),
               ),
             ],
@@ -89,7 +89,7 @@ class GovernanceNotificationScreen extends StatelessWidget {
                             ),
                       child: InkWell(
                         onTap: () {
-                          mock.markAsRead(item['id'] as int);
+                          service.markAsRead(item['id'] as int);
                           showDialog<void>(
                             context: context,
                             builder: (context) => AlertDialog(
@@ -101,11 +101,11 @@ class GovernanceNotificationScreen extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['type'] as String),
+                                  Text((item['type'] ?? 'Thông báo').toString()),
                                   const SizedBox(height: 8),
                                   Text(content),
                                   const SizedBox(height: 12),
-                                  Text(item['time'] as String),
+                                  Text((item['time'] ?? item['createdAt'] ?? '').toString()),
                                 ],
                               ),
                               actions: [
@@ -177,7 +177,7 @@ class GovernanceNotificationScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  item['time'] as String,
+                                  (item['time'] ?? item['createdAt'] ?? '').toString(),
                                   style: TextStyle(
                                     color: colors.onSurfaceVariant,
                                     fontSize: 11,

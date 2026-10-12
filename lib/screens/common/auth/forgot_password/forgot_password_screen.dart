@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import '../../../../core/routes/app_routes.dart';
-import '../../../../services/mock_service.dart';
+import '../../../../services/auth_service.dart';
 import '../../../../widgets/app_button.dart';
 import '../../../../widgets/app_text_field.dart';
 
@@ -17,7 +17,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final emailController = TextEditingController();
 
-  final service = MockService();
+  final service = AuthService();
 
   bool loading = false;
 

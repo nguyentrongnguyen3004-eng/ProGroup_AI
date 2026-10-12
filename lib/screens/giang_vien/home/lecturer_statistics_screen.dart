@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_groups.dart';
-import '../../../data/mock/mock_lecturer_topic_proposals.dart';
-import '../../../data/mock/mock_lecturer_topic_registrations.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
+import '../../../models/course_model.dart';
+import '../../../models/group_model.dart';
+import '../../../models/topic_model.dart';
+import '../../../services/course_service.dart';
+import '../../../services/group_service.dart';
+import '../../../services/topic_service.dart';
 import '../../../widgets/lecturer/lecturer_stat_card.dart';
 
 class LecturerStatisticsScreen extends StatefulWidget {
@@ -19,87 +20,113 @@ class LecturerStatisticsScreen extends StatefulWidget {
 
 class _LecturerStatisticsScreenState extends State<LecturerStatisticsScreen> {
   int? _courseId;
+  bool _isLoading = true;
+  List<CourseModel> _courses = [];
+  List<GroupModel> _groups = [];
+  List<TopicModel> _topics = [];
+  List<Map<String, dynamic>> _registrations = [];
 
   @override
   void initState() {
     super.initState();
     _courseId = widget.initialCourseId;
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    setState(() => _isLoading = true);
+    try {
+      final courses = await CourseService().getMyClasses();
+      final topics = await TopicService().getLecturerTopics();
+      final registrations = await TopicService().getTopicRegistrations();
+
+      List<GroupModel> allGroups = [];
+      for (final c in courses) {
+        try {
+          final gList = await GroupService().getGroupsByCourse(c.id);
+          allGroups.addAll(gList);
+        } catch (_) {}
+      }
+
+      if (mounted) {
+        setState(() {
+          _courses = courses;
+          _topics = topics;
+          _registrations = registrations;
+          _groups = allGroups;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final courses = MockLecturerCourses.courses;
-    final selected = _courseId == null
-        ? courses
-        : courses.where((course) => course.courseId == _courseId).toList();
-    final ids = selected.map((course) => course.courseId).toSet();
-    final groups = MockLecturerGroups.groups
-        .where((group) => ids.contains(group.courseId))
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Thống kê nâng cao')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final selectedCourses = _courseId == null
+        ? _courses
+        : _courses.where((c) => c.id == _courseId).toList();
+    final selectedCourseIds = selectedCourses.map((c) => c.id).toSet();
+
+    final filteredGroups = _groups
+        .where((g) => _courseId == null || selectedCourseIds.contains(g.courseId))
         .toList();
-    final topics = MockLecturerTopics.topics
-        .where((topic) => ids.contains(topic.courseId))
+    final filteredTopics = _topics
+        .where((t) => _courseId == null || selectedCourseIds.contains(t.courseId))
         .toList();
-    final groupIds = groups.map((group) => group.id).toSet();
-    final topicIds = topics.map((topic) => topic.id).toSet();
-    final registrations = MockLecturerTopicRegistrations.getAll()
-        .where(
-          (item) =>
-              groupIds.contains(item.groupId) &&
-              topicIds.contains(item.topicId),
-        )
-        .toList();
-    final groupsRegistered = registrations
-        .map((item) => item.groupId)
-        .toSet()
+
+    final pendingCount = _registrations
+        .where((r) => (r['trangThai'] ?? '').toString().trim().toLowerCase() == 'chờ duyệt')
         .length;
-    final openTopics = topics
-        .where(
-          (topic) =>
-              topic.status.contains('Đang hoạt động') ||
-              topic.status.contains('Đang mở'),
-        )
+    final approvedCount = _registrations
+        .where((r) => (r['trangThai'] ?? '').toString().trim().toLowerCase() == 'đã duyệt')
         .length;
+    final rejectedCount = _registrations
+        .where((r) => (r['trangThai'] ?? '').toString().trim().toLowerCase() == 'đã từ chối')
+        .length;
+
     final stats = <String, int>{
-      'Sinh viên': selected.fold<int>(
-        0,
-        (sum, course) => sum + course.studentCount,
-      ),
-      'Nhóm': groups.length,
-      'Nhóm có đăng ký đề tài': groupsRegistered,
-      'Nhóm chưa đăng ký': groups.length - groupsRegistered,
-      'Đề tài đang mở': openTopics,
-      'Đề tài đã đăng ký': registrations.length,
-      'Đăng ký chờ duyệt': registrations
-          .where((item) => item.status == 'Chờ duyệt')
-          .length,
-      'Đăng ký đã duyệt': registrations
-          .where((item) => item.status == 'Đã duyệt')
-          .length,
-      'Đăng ký bị từ chối': registrations
-          .where((item) => item.status == 'Từ chối')
-          .length,
-      'Đề xuất sinh viên': MockLecturerTopicProposals.instance.proposals
-          .where((item) => ids.contains(item.courseId))
-          .length,
+      'Lớp học phần': selectedCourses.length,
+      'Nhóm': filteredGroups.length,
+      'Đề tài': filteredTopics.length,
+      'Đăng ký chờ duyệt': pendingCount,
+      'Đăng ký đã duyệt': approvedCount,
+      'Đăng ký bị từ chối': rejectedCount,
     };
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thống kê nâng cao')),
+      appBar: AppBar(
+        title: const Text('Thống kê nâng cao'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchStats,
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<int?>(
-            initialValue: _courseId,
+            value: _courseId,
             decoration: const InputDecoration(labelText: 'Phạm vi học phần'),
             items: [
               const DropdownMenuItem<int?>(
                 value: null,
                 child: Text('Tất cả học phần'),
               ),
-              ...courses.map(
+              ..._courses.map(
                 (course) => DropdownMenuItem<int?>(
-                  value: course.courseId,
-                  child: Text(course.name + ' • ' + course.classCode),
+                  value: course.id,
+                  child: Text('${course.code} • ${course.name}'),
                 ),
               ),
             ],
@@ -123,30 +150,6 @@ class _LecturerStatisticsScreenState extends State<LecturerStatisticsScreen> {
                 ),
             ],
           ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Tỷ lệ nhóm gửi đăng ký đề tài'),
-                  const SizedBox(height: 10),
-                  LinearProgressIndicator(
-                    value: groups.isEmpty
-                        ? 0
-                        : groupsRegistered / groups.length,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    groupsRegistered.toString() +
-                        ' / ' +
-                        groups.length.toString() +
-                        ' nhóm',
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -154,7 +157,7 @@ class _LecturerStatisticsScreenState extends State<LecturerStatisticsScreen> {
 }
 
 IconData _statIcon(String label) {
-  if (label.contains('Sinh viên')) return Icons.people_outline;
+  if (label.contains('Lớp')) return Icons.school_outlined;
   if (label.contains('Nhóm')) return Icons.groups_outlined;
   if (label.contains('Đề tài')) return Icons.lightbulb_outline;
   if (label.contains('chờ')) return Icons.pending_actions_outlined;

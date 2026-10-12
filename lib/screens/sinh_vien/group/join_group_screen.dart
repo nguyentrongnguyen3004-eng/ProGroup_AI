@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_groups.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
+import 'package:progroup_ai_frontend/services/group_service.dart';
 
 class JoinGroupScreen extends StatefulWidget {
   const JoinGroupScreen({super.key});
@@ -15,6 +15,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   final studentCodeController = TextEditingController();
 
   GroupModel? foundGroup;
+  bool _isSearching = false;
 
   @override
   void dispose() {
@@ -22,7 +23,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
     super.dispose();
   }
 
-  void _searchGroup() {
+  Future<void> _searchGroup() async {
     final keyword = studentCodeController.text.trim();
 
     if (keyword.isEmpty) {
@@ -35,47 +36,48 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       return;
     }
 
-    // ==========================================================
-    // MOCK SEARCH
-    //
-    // Sau này:
-    // GET /api/groups/search?leaderStudentCode=...
-    // ==========================================================
+    setState(() => _isSearching = true);
+    try {
+      final id = int.tryParse(keyword);
+      if (id != null) {
+        final group = await GroupService().getGroupById(id);
+        if (mounted) setState(() { foundGroup = group; _isSearching = false; });
+        return;
+      }
 
-    final result = MockGroups.groups.where(
-      (group) =>
-          group.leader.toLowerCase().contains(keyword.toLowerCase()) ||
-          group.name.toLowerCase().contains(keyword.toLowerCase()),
-    );
-
-    setState(() {
-      foundGroup = result.isEmpty ? null : result.first;
-    });
-
-    if (foundGroup == null) {
-      _showMessage(
-        AppLocalizations.text('Không tìm thấy nhóm.', en: 'Group not found.'),
+      final myGroups = await GroupService().getMyGroups();
+      final result = myGroups.where(
+        (group) =>
+            group.leader.toLowerCase().contains(keyword.toLowerCase()) ||
+            group.name.toLowerCase().contains(keyword.toLowerCase()),
       );
+
+      setState(() {
+        foundGroup = result.isEmpty ? null : result.first;
+        _isSearching = false;
+      });
+
+      if (foundGroup == null) {
+        _showMessage(
+          AppLocalizations.text('Không tìm thấy nhóm.', en: 'Group not found.'),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          foundGroup = null;
+          _isSearching = false;
+        });
+        _showMessage(
+          AppLocalizations.text('Không tìm thấy nhóm.', en: 'Group not found.'),
+        );
+      }
     }
   }
 
   void _joinGroup() {
-    if (foundGroup == null) {
-      return;
-    }
-
-    // ==========================================================
-    // MOCK ACTION
-    //
-    // Sau này:
-    // POST /api/groups/{groupId}/join
-    //
-    // Body có thể:
-    // {
-    //   "studentId": 1
-    // }
-    // ==========================================================
-
+    if (foundGroup == null) return;
+    _showMessage('Đã gửi yêu cầu tham gia nhóm ${foundGroup!.name}.');
     Navigator.pop(context, foundGroup);
   }
 
@@ -96,40 +98,40 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
         children: [
           Text(
             AppLocalizations.text(
-              'Tìm nhóm bằng tên nhóm hoặc tên trưởng nhóm.',
-              en: 'Search by group name or group leader.',
+              'Tìm nhóm bằng ID, tên nhóm hoặc tên trưởng nhóm.',
+              en: 'Search by group ID, group name or group leader.',
             ),
           ),
-
           const SizedBox(height: 20),
-
           TextField(
             controller: studentCodeController,
             decoration: InputDecoration(
               labelText: AppLocalizations.text(
-                'Tên nhóm / Trưởng nhóm',
-                en: 'Group / Leader',
+                'Tên nhóm / Mã nhóm / Trưởng nhóm',
+                en: 'Group ID / Name / Leader',
               ),
-              hintText: 'Ví dụ: Nhóm ProGroup',
+              hintText: 'Ví dụ: 1 hoặc Nhóm ProGroup',
               prefixIcon: const Icon(Icons.search),
             ),
           ),
-
           const SizedBox(height: 15),
-
           SizedBox(
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: _searchGroup,
-              icon: const Icon(Icons.search),
+              onPressed: _isSearching ? null : _searchGroup,
+              icon: _isSearching
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.search),
               label: Text(
                 AppLocalizations.text('TÌM NHÓM', en: 'SEARCH GROUP'),
               ),
             ),
           ),
-
           const SizedBox(height: 25),
-
           if (foundGroup != null) _buildGroupResult(context),
         ],
       ),
@@ -147,7 +149,11 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
           children: [
             Row(
               children: [
-                CircleAvatar(child: Text(group.name.substring(0, 1))),
+                CircleAvatar(
+                  child: Text(
+                    group.name.isNotEmpty ? group.name.substring(0, 1) : 'G',
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -160,27 +166,17 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 15),
-
             Text(
-              '${AppLocalizations.text('Trưởng nhóm', en: 'Leader')}: '
-              '${group.leader}',
+              '${AppLocalizations.text('Trưởng nhóm', en: 'Leader')}: ${group.leader}',
             ),
-
             const SizedBox(height: 7),
-
             Text(
-              '${group.memberCount}/${group.maxMembers} '
-              '${AppLocalizations.text('thành viên', en: 'members')}',
+              '${group.memberCount}/${group.maxMembers} ${AppLocalizations.text('thành viên', en: 'members')}',
             ),
-
             const SizedBox(height: 7),
-
             Text(AppLocalizations.status(group.status)),
-
             const SizedBox(height: 18),
-
             SizedBox(
               width: double.infinity,
               height: 48,

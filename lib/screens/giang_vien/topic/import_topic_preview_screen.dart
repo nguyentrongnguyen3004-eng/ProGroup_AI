@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_notifications.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
 import '../../../models/topic_model.dart';
+import '../../../services/topic_service.dart';
 
 class TopicImportPreviewRow {
   final int rowNumber;
@@ -92,77 +90,42 @@ class _ImportTopicPreviewScreenState extends State<ImportTopicPreviewScreen> {
         return;
       }
 
-      final assignedCourseIds = MockLecturerCourses.courses
-          .map((course) => course.courseId)
-          .toSet();
-
-      final validStatuses = MockLecturerTopics.topics
-          .map((topic) => topic.status.trim())
-          .where((status) => status.isNotEmpty)
-          .toSet();
-
-      final usedIds = MockLecturerTopics.topics
-          .map((topic) => topic.id)
-          .toSet();
-
-      var importedCount = 0;
-
-      var errorCount = widget.rows.length - validRows.length;
+      int importedCount = 0;
+      int errorCount = 0;
 
       for (final row in validRows) {
         final topic = row.topic!;
-
-        final isInAssignedCourse = assignedCourseIds.contains(topic.courseId);
-
-        final isInRequestedCourse =
-            widget.courseScopeId == null ||
-            widget.courseScopeId == topic.courseId;
-
-        final isValidStatus =
-            validStatuses.isEmpty ||
-            validStatuses.contains(topic.status.trim());
-
-        final hasDuplicateId = usedIds.contains(topic.id);
-
-        if (!isInAssignedCourse ||
-            !isInRequestedCourse ||
-            !isValidStatus ||
-            hasDuplicateId) {
+        try {
+          await TopicService().createTopic({
+            'dotDangKyId': topic.courseId,
+            'tenDeTai': topic.title,
+            'moTa': topic.description,
+            'mucTieu': topic.objective,
+            'phamVi': topic.scope,
+            'congNgheDuKien': topic.technology,
+          });
+          importedCount++;
+        } catch (_) {
           errorCount++;
-          continue;
         }
-
-        MockLecturerTopics.add(topic);
-
-        usedIds.add(topic.id);
-
-        importedCount++;
       }
 
       if (importedCount == 0) {
         _reportImportFailure(
-          'Không còn dòng hợp lệ để import. Hãy kiểm tra lại dữ liệu.',
+          'Không thể lưu đề tài nào. Vui lòng kiểm tra lại kết nối hoặc định dạng file.',
         );
         return;
       }
-
-      MockLecturerNotifications.instance.addNotification(
-        type: 'Import',
-        icon: Icons.upload_file_outlined,
-        title: 'Import đề tài thành công',
-        content:
-            'Đã import $importedCount đề tài, '
-            '$errorCount dòng lỗi từ file ${widget.fileName}.',
-      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Đã import $importedCount đề tài, '
+            'Đã import $importedCount đề tài thành công, '
             '$errorCount dòng lỗi.',
           ),
+          backgroundColor: Colors.green,
         ),
       );
 
@@ -180,13 +143,6 @@ class _ImportTopicPreviewScreenState extends State<ImportTopicPreviewScreen> {
     }
 
     _failureReported = true;
-
-    MockLecturerNotifications.instance.addNotification(
-      type: 'Import',
-      icon: Icons.error_outline,
-      title: 'Import đề tài không thành công',
-      content: message,
-    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_governance_data.dart';
+import '../../../services/governance_data_service.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../widgets/governance/governance_widgets.dart';
 import '../main/governance_add_form_screen.dart';
@@ -23,7 +23,7 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {
@@ -413,7 +413,7 @@ class GovernanceStudentDetailScreen extends StatelessWidget {
     );
     if (confirmed != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    MockGovernanceData.instance.removeStudent(student.id);
+    GovernanceDataService.instance.removeStudent(student.id);
     Navigator.pop(context);
     messenger.showSnackBar(
       const SnackBar(content: Text('Đã xóa sinh viên thành công.')),

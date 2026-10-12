@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
-import '../../../data/mock/mock_lecturer.dart';
+import '../../../services/lecturer_service.dart';
 
 class LecturerProfileScreen extends StatefulWidget {
   const LecturerProfileScreen({super.key});
@@ -17,14 +17,20 @@ class LecturerProfileScreen extends StatefulWidget {
 
 class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
   @override
+  void initState() {
+    super.initState();
+    LecturerService.instance.loadProfile();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: Listenable.merge([
         AppSettings.instance,
-        MockLecturer.instance,
+        LecturerService.instance,
       ]),
       builder: (context, _) {
-        final lecturer = MockLecturer.current;
+        final lecturer = LecturerService.instance.current;
         final settings = AppSettings.instance;
 
         return Scaffold(
@@ -567,7 +573,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
                 onTap: () {
                   Navigator.pop(sheetContext);
 
-                  MockLecturer.updateAvatar('');
+                  LecturerService.instance.updateAvatar('');
 
                   _showMessage(
                     AppLocalizations.text(
@@ -694,7 +700,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         return;
       }
 
-      MockLecturer.updateAvatar(
+      LecturerService.instance.updateAvatar(
         'data:$mime;base64,${base64Encode(bytes)}',
       );
 
@@ -971,7 +977,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
       return;
     }
 
-    MockLecturer.updateEmail(newEmail);
+    LecturerService.instance.updateEmail(newEmail);
 
     _showMessage(
       AppLocalizations.text(

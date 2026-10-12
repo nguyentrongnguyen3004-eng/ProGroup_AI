@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_admin_data.dart';
+import '../../../services/admin_data_service.dart';
 import '../../admin/admin_helpers.dart';
 import 'admin_user_form_screen.dart';
 
@@ -15,7 +15,7 @@ class AdminUserDetailScreen extends StatelessWidget {
   final int currentAdminId;
 
   Future<void> _delete(BuildContext context) async {
-    final account = MockAdminData.instance.accountById(accountId);
+    final account = AdminDataService.instance.accountById(accountId);
     if (account == null || accountId == currentAdminId) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -40,7 +40,7 @@ class AdminUserDetailScreen extends StatelessWidget {
       ),
     );
     if (confirmed != true) return;
-    if (MockAdminData.instance.deleteAccount(
+    if (AdminDataService.instance.deleteAccount(
       accountId,
       currentAdminId: currentAdminId,
     )) {
@@ -49,7 +49,7 @@ class AdminUserDetailScreen extends StatelessWidget {
   }
 
   Future<void> _toggleLock(BuildContext context, bool locked) async {
-    final account = MockAdminData.instance.accountById(accountId);
+    final account = AdminDataService.instance.accountById(accountId);
     if (account == null || accountId == currentAdminId) return;
     if (locked) {
       final confirmed = await showDialog<bool>(
@@ -73,7 +73,7 @@ class AdminUserDetailScreen extends StatelessWidget {
       );
       if (confirmed != true) return;
     }
-    final changed = MockAdminData.instance.setAccountLocked(
+    final changed = AdminDataService.instance.setAccountLocked(
       accountId,
       locked: locked,
       currentAdminId: currentAdminId,
@@ -89,9 +89,9 @@ class AdminUserDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: MockAdminData.instance,
+    animation: AdminDataService.instance,
     builder: (context, _) {
-      final account = MockAdminData.instance.accountById(accountId);
+      final account = AdminDataService.instance.accountById(accountId);
       if (account == null) {
         return Scaffold(
           appBar: AppBar(),
@@ -103,7 +103,7 @@ class AdminUserDetailScreen extends StatelessWidget {
         );
       }
       final isSelf = accountId == currentAdminId;
-      final isLocked = account.status == MockAdminData.lockedStatus;
+      final isLocked = account.status == AdminDataService.lockedStatus;
       return Scaffold(
         appBar: AppBar(
           title: Text(adminText('Chi tiết người dùng', 'User details')),
@@ -154,7 +154,7 @@ class AdminUserDetailScreen extends StatelessWidget {
                   ),
                   _InfoTile(
                     label: adminText('Hoạt động', 'Activity'),
-                    value: MockAdminData.instance.activities
+                    value: AdminDataService.instance.activities
                         .where((item) => item.target == account.fullName)
                         .length
                         .toString(),

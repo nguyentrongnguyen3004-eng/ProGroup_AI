@@ -39,22 +39,7 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
       return;
     }
 
-    // ==========================================================
-    // MOCK ACTION
-    //
-    // Sau này:
-    // POST /api/topics/proposals
-    //
-    // Body:
-    // {
-    //   "title": "...",
-    //   "description": "...",
-    //   "objective": "...",
-    //   "scope": "...",
-    //   "technology": "..."
-    // }
-    // ==========================================================
-
+    // Proposal action
     final result = {
       'title': title,
       'description': descriptionController.text.trim(),

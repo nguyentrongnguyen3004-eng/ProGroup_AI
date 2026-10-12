@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_governance_data.dart';
-import '../../../data/mock/mock_lecturer_groups.dart';
-import '../../../data/mock/mock_lecturer_topic_registrations.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
 import '../../../models/course_model.dart';
+import '../../../services/governance_data_service.dart';
+import '../../../services/group_service.dart';
+import '../../../services/topic_service.dart';
 import '../../../widgets/governance/governance_widgets.dart';
 
 class GovernanceRegistrationOverviewScreen extends StatelessWidget {
@@ -13,12 +12,12 @@ class GovernanceRegistrationOverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {
-        final groups = MockLecturerGroups.groups;
-        final registrations = MockLecturerTopicRegistrations.registrations;
+        final groups = GroupService.groups;
+        final registrations = TopicService.registrations;
         final approved = registrations.where(_isApproved).length;
         final pending = registrations.where(_isPending).length;
         return Scaffold(
@@ -53,7 +52,7 @@ class GovernanceRegistrationOverviewScreen extends StatelessWidget {
                   ),
                   GovernanceStatCard(
                     title: 'Đề tài',
-                    value: '${MockLecturerTopics.topics.length}',
+                    value: '${TopicService.topics.length}',
                     icon: Icons.lightbulb_outline,
                   ),
                   GovernanceStatCard(

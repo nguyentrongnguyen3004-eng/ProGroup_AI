@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_notifications.dart';
+import 'package:progroup_ai_frontend/services/notification_service.dart';
 
 class AppBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -16,9 +16,9 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: MockNotifications.instance,
+      animation: NotificationService.instance,
       builder: (context, _) {
-        final unreadCount = MockNotifications.instance.unreadCount;
+        final unreadCount = NotificationService.instance.unreadCount;
 
         return NavigationBar(
           selectedIndex: currentIndex,

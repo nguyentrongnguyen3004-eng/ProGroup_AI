@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_governance_data.dart';
-import '../../../data/mock/mock_lecturer_groups.dart';
-import '../../../data/mock/mock_lecturer_topic_registrations.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
+import '../../../services/governance_data_service.dart';
+import '../../../services/group_service.dart';
+import '../../../services/topic_service.dart';
 import '../../../widgets/governance/governance_widgets.dart';
 import '../registration/governance_registration_overview_screen.dart';
 import '../tools/governance_assignment_screen.dart';
@@ -15,11 +14,11 @@ class GovernanceOverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {
-        final registrations = MockLecturerTopicRegistrations.registrations;
+        final registrations = TopicService.registrations;
         final pending = registrations.where(_isPending).length;
         return Scaffold(
           appBar: AppBar(title: const Text('Giáo vụ khoa')),
@@ -66,13 +65,13 @@ class GovernanceOverviewScreen extends StatelessWidget {
                   ),
                   GovernanceStatCard(
                     title: 'Nhóm',
-                    value: '${MockLecturerGroups.groups.length}',
+                    value: '${GroupService.groups.length}',
                     icon: Icons.groups_outlined,
                     color: AppTheme.warningColor,
                   ),
                   GovernanceStatCard(
                     title: 'Đề tài',
-                    value: '${MockLecturerTopics.topics.length}',
+                    value: '${TopicService.topics.length}',
                     icon: Icons.lightbulb_outline,
                   ),
                   GovernanceStatCard(

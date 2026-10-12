@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_lecturer_notifications.dart';
+import '../../../services/notification_service.dart';
 import '../../../widgets/lecturer/lecturer_bottom_nav.dart';
 import '../course/lecturer_course_screen.dart';
 import '../group/lecturer_group_screen.dart';
@@ -51,7 +51,7 @@ class _LecturerMainScreenState extends State<LecturerMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final notifications = MockLecturerNotifications.instance;
+    final notifications = NotificationService.instance;
 
     return AnimatedBuilder(
       animation: notifications,

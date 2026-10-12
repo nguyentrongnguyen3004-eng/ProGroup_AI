@@ -1,418 +1,270 @@
 import 'package:flutter/material.dart';
-
-import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_groups.dart';
-import '../../../data/mock/mock_lecturer_topic_registrations.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
-import '../../../models/group_model.dart';
-import '../../../models/lecturer_course_model.dart';
-import '../../../models/topic_registration_model.dart';
-import 'topic_registration_detail_screen.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../services/topic_service.dart';
 
 class TopicRegistrationScreen extends StatefulWidget {
   const TopicRegistrationScreen({super.key});
 
   @override
-  State<TopicRegistrationScreen> createState() =>
-      _TopicRegistrationScreenState();
+  State<TopicRegistrationScreen> createState() => _TopicRegistrationScreenState();
 }
 
 class _TopicRegistrationScreenState extends State<TopicRegistrationScreen> {
-  static const _statuses = ['Chờ duyệt', 'Đã duyệt', 'Từ chối'];
-  List<TopicRegistrationModel> _registrations = [];
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _registrations = [];
   String _selectedStatus = 'Tất cả';
-  String _query = '';
 
   @override
   void initState() {
     super.initState();
-    _reload();
+    _fetchRegistrations();
   }
 
-  void _reload() {
-    final assignedIds = MockLecturerCourses.courses
-        .map((course) => course.courseId)
-        .toSet();
-    final groups = <int, GroupModel>{
-      for (final group in MockLecturerGroups.groups) group.id: group,
-    };
-    final items = MockLecturerTopicRegistrations.getAll().where((registration) {
-      final group = groups[registration.groupId];
-      return group != null && assignedIds.contains(group.courseId);
-    }).toList()..sort((a, b) => b.registeredAt.compareTo(a.registeredAt));
-
-    if (mounted) {
-      setState(() => _registrations = items);
-    } else {
-      _registrations = items;
-    }
-  }
-
-  LecturerCourseModel? _courseFor(GroupModel? group) {
-    if (group == null) return null;
-    for (final course in MockLecturerCourses.courses) {
-      if (course.courseId == group.courseId) return course;
-    }
-    return null;
-  }
-
-  List<TopicRegistrationModel> get _filtered {
-    final query = _query.trim().toLowerCase();
-    return _registrations.where((registration) {
-      if (_selectedStatus != 'Tất cả' &&
-          registration.status.trim() != _selectedStatus) {
-        return false;
+  Future<void> _fetchRegistrations() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await TopicService().getTopicRegistrations();
+      if (mounted) {
+        setState(() {
+          _registrations = data;
+          _isLoading = false;
+        });
       }
-      if (query.isEmpty) return true;
-      final group = MockLecturerGroups.getById(registration.groupId);
-      final topic = MockLecturerTopics.getById(registration.topicId);
-      final course = _courseFor(group);
-      final matchingTopic =
-          group != null && topic != null && topic.courseId == group.courseId;
-      final searchable = [
-        group?.name ?? '',
-        group?.leader ?? '',
-        matchingTopic ? topic.title : '',
-        course?.name ?? '',
-        course?.code ?? '',
-        course?.classCode ?? '',
-        course?.semester ?? '',
-      ];
-      return searchable.any((value) => value.toLowerCase().contains(query));
-    }).toList();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
   }
 
-  int _countFor(String status) => status == 'Tất cả'
-      ? _registrations.length
-      : _registrations.where((item) => item.status.trim() == status).length;
+  Future<void> _handleDecision(int id, bool approve) async {
+    final noteController = TextEditingController();
+    final actionName = approve ? 'Duyệt' : 'Từ chối';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('\ đăng ký đề tài'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bạn có chắc chắn muốn \ đăng ký này không?'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: noteController,
+              decoration: const InputDecoration(
+                labelText: 'Ghi chú / Nhận xét',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: approve ? Colors.green : Colors.red,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(actionName),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await TopicService().decideRegistration(
+          id,
+          approve: approve,
+          note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+        );
+        _fetchRegistrations();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Đã \ thành công!'),
+            backgroundColor: approve ? Colors.green : Colors.orange,
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ));
+        }
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> get _filteredRegistrations {
+    if (_selectedStatus == 'Tất cả') return _registrations;
+    return _registrations.where((r) => r['trangThai'] == _selectedStatus).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final items = _filtered;
+    final items = _filteredRegistrations;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Quản lý đăng ký đề tài')),
+      appBar: AppBar(
+        title: Text(AppLocalizations.text('Duyệt Đăng Ký Đề Tài', en: 'Topic Registrations')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchRegistrations,
+          ),
+        ],
+      ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            child: TextField(
-              onChanged: (value) => setState(() => _query = value),
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Tìm nhóm, đề tài hoặc lớp học phần',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Xóa tìm kiếm',
-                        onPressed: () => setState(() => _query = ''),
-                        icon: const Icon(Icons.close),
-                      ),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 48,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              children: [
-                _filterChip('Tất cả'),
-                for (final status in _statuses) _filterChip(status),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Trong các học phần được phân công',
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${items.length} kết quả',
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildFilterChips(colors),
           Expanded(
-            child: items.isEmpty
-                ? _emptyState(context)
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    itemCount: items.length,
-                    separatorBuilder: (_, index) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) =>
-                        _registrationCard(context, items[index]),
-                  ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : items.isEmpty
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.text('Chưa có yêu cầu đăng ký nào.', en: 'No registration requests.'),
+                          style: TextStyle(color: colors.onSurfaceVariant),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          final id = item['dangKyDeTaiId'] as int;
+                          final status = item['trangThai'] as String? ?? '';
+                          final isPending = status == 'Chờ duyệt';
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          item['deTaiTen'] ?? 'Đề tài',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusColor(status).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: _getStatusColor(status)),
+                                        ),
+                                        child: Text(
+                                          status,
+                                          style: TextStyle(
+                                            color: _getStatusColor(status),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Nhóm: ${item['nhomTen']} (Trưởng nhóm: ${item['truongNhomTen']})',
+                                    style: TextStyle(color: colors.onSurfaceVariant),
+                                  ),
+                                  Text(
+                                    'Lớp: ${item['lopHocPhanTen']}',
+                                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+                                  ),
+                                  if (item['ghiChu'] != null && (item['ghiChu'] as String).isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Ghi chú: ${item['ghiChu']}',
+                                      style: TextStyle(fontStyle: FontStyle.italic, color: colors.outline),
+                                    ),
+                                  ],
+                                  if (isPending) ...[
+                                    const Divider(height: 24),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(foregroundColor: colors.error),
+                                          onPressed: () => _handleDecision(id, false),
+                                          icon: const Icon(Icons.close, size: 18),
+                                          label: const Text('Từ chối'),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        FilledButton.icon(
+                                          style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                                          onPressed: () => _handleDecision(id, true),
+                                          icon: const Icon(Icons.check, size: 18),
+                                          label: const Text('Duyệt'),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
     );
   }
 
-  Widget _filterChip(String status) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: FilterChip(
-      selected: _selectedStatus == status,
-      showCheckmark: false,
-      label: Text('$status (${_countFor(status)})'),
-      onSelected: (_) => setState(() => _selectedStatus = status),
-    ),
-  );
-
-  Widget _registrationCard(
-    BuildContext context,
-    TopicRegistrationModel registration,
-  ) {
-    final colors = Theme.of(context).colorScheme;
-    final group = MockLecturerGroups.getById(registration.groupId);
-    final topic = MockLecturerTopics.getById(registration.topicId);
-    final course = _courseFor(group);
-    if (group == null || topic == null || course == null) {
-      final problem = group == null
-          ? 'Không tìm thấy nhóm; không xác định được học phần.'
-          : topic == null
-          ? 'Không tìm thấy đề tài #${registration.topicId}.'
-          : course == null
-          ? 'Không tìm thấy học phần được phân công.'
-          : 'Đề tài không thuộc cùng học phần với nhóm.';
-      return Card(
-        child: ListTile(
-          onTap: () => _openDetails(context, registration),
-          leading: Icon(Icons.warning_amber_rounded, color: colors.error),
-          title: Text(group?.name ?? 'Đăng ký #${registration.id}'),
-          subtitle: Text(
-            [
-              if (course != null)
-                '${course.code} • ${course.classCode} • ${course.semester}',
-              problem,
-              'Đăng ký: ${_formatDate(registration.registeredAt)}',
-            ].join('\n'),
-            style: TextStyle(color: colors.error),
-          ),
-          trailing: _StatusBadge(
-            label: registration.status,
-            color: _statusColor(registration.status),
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _openDetails(context, registration),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    backgroundColor: colors.primaryContainer,
-                    child: Icon(
-                      Icons.groups_outlined,
-                      color: colors.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          group.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: colors.onSurface,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${course.code} • ${course.classCode} • ${course.semester}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _StatusBadge(
-                    label: registration.status,
-                    color: _statusColor(registration.status),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                topic.courseId == group.courseId
-                    ? topic.title
-                    : 'Đề tài không thuộc học phần của nhóm.',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: topic.courseId == group.courseId
-                      ? colors.onSurface
-                      : colors.error,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 14,
-                runSpacing: 6,
-                children: [
-                  _Metadata(icon: Icons.person_outline, label: group.leader),
-                  _Metadata(
-                    icon: Icons.people_outline,
-                    label: '${group.memberCount} thành viên',
-                  ),
-                  _Metadata(
-                    icon: Icons.schedule_outlined,
-                    label: _formatDate(registration.registeredAt),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openDetails(
-    BuildContext context,
-    TopicRegistrationModel registration,
-  ) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) =>
-            TopicRegistrationDetailScreen(registration: registration),
-      ),
-    );
-    if (mounted) _reload();
-  }
-
-  Widget _emptyState(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final hasFilter = _selectedStatus != 'Tất cả' || _query.trim().isNotEmpty;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasFilter ? Icons.search_off_outlined : Icons.assignment_outlined,
-              size: 42,
-              color: colors.onSurfaceVariant,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              hasFilter
-                  ? 'Không có đăng ký phù hợp với bộ lọc.'
-                  : 'Chưa có đăng ký đề tài phù hợp trong học phần được phân công.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: colors.onSurfaceVariant),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Metadata extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _Metadata({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 15, color: colors.onSurfaceVariant),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _StatusBadge({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+  Widget _buildFilterChips(ColorScheme colors) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 112),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: Color.lerp(color, colors.surface, 0.88),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: ['Tất cả', 'Chờ duyệt', 'Đã duyệt', 'Đã từ chối'].map((st) {
+            final isSelected = _selectedStatus == st;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(st),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected) setState(() => _selectedStatus = st);
+                },
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
   }
-}
 
-Color _statusColor(String status) {
-  switch (status.trim()) {
-    case 'Chờ duyệt':
-      return AppTheme.warningColor;
-    case 'Đã duyệt':
-      return AppTheme.successColor;
-    case 'Từ chối':
-      return AppTheme.dangerColor;
-    default:
-      return AppTheme.grayColor;
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Đã duyệt':
+        return Colors.green;
+      case 'Chờ duyệt':
+        return Colors.orange;
+      case 'Đã từ chối':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
-}
-
-String _formatDate(DateTime date) {
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  return '$day/$month/${date.year}';
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_admin_data.dart';
-import '../../../data/mock/mock_groups.dart';
-import '../../../data/mock/mock_governance_data.dart';
-import '../../../data/mock/mock_training_data.dart';
+import '../../../services/admin_data_service.dart';
+import '../../../services/governance_data_service.dart';
+import '../../../services/group_service.dart';
+import '../../../services/training_data_service.dart';
 import '../../admin/admin_helpers.dart';
 import 'admin_data_detail_screen.dart';
 
@@ -22,12 +22,12 @@ class AdminDataManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: Listenable.merge([
-      MockAdminData.instance,
-      MockTrainingData.instance,
-      MockGovernanceData.instance,
+      AdminDataService.instance,
+      TrainingDataService.instance,
+      GovernanceDataService.instance,
     ]),
     builder: (context, _) {
-      final training = MockTrainingData.instance;
+      final training = TrainingDataService.instance;
       final items = [
         (
           AdminDataType.students,
@@ -56,13 +56,13 @@ class AdminDataManagementScreen extends StatelessWidget {
         (
           AdminDataType.groups,
           adminText('Nhóm/đồ án', 'Groups/projects'),
-          MockGroups.groups.length,
+          GroupService.groups.length,
           Icons.groups_outlined,
         ),
         (
           AdminDataType.accounts,
           adminText('Tài khoản', 'Accounts'),
-          MockAdminData.instance.accounts.length,
+          AdminDataService.instance.accounts.length,
           Icons.people_outline,
         ),
       ];

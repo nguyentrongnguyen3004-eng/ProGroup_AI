@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_courses.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_groups.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_topics.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_user.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_lecturer_topic_proposals.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
-import 'package:progroup_ai_frontend/models/lecturer_topic_proposal_model.dart';
+import 'package:progroup_ai_frontend/models/topic_model.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
+import 'package:progroup_ai_frontend/services/course_service.dart';
+import 'package:progroup_ai_frontend/services/topic_service.dart';
 import 'package:progroup_ai_frontend/widgets/topic_card.dart';
 import 'propose_topic_screen.dart';
 import 'ai_topic_screen.dart';
@@ -23,97 +21,109 @@ class TopicScreen extends StatefulWidget {
 
 class _TopicScreenState extends State<TopicScreen> {
   String search = '';
+  List<TopicModel> _topics = [];
+  CourseModel? _activeCourse;
+  bool _isLoading = true;
 
-  // ============================================================
-  // CURRENT COURSE
-  // ============================================================
-
-  CourseModel get currentCourse {
-    return widget.course ?? MockCourses.courses.first;
+  @override
+  void initState() {
+    super.initState();
+    _activeCourse = widget.course;
+    _loadData();
   }
 
-  // ============================================================
-  // BUILD
-  // ============================================================
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      if (_activeCourse == null) {
+        final courses = await CourseService().getCourses();
+        if (courses.isNotEmpty) {
+          _activeCourse = courses.first;
+        }
+      }
+
+      if (_activeCourse != null) {
+        final list = await TopicService().getTopicsByPeriod(_activeCourse!.id);
+        if (mounted) {
+          setState(() {
+            _topics = list;
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+    } catch (_) {
+      // If error or empty period, try lecturer topics
+      try {
+        final list = await TopicService().getLecturerTopics();
+        if (mounted) {
+          setState(() {
+            _topics = list;
+            _isLoading = false;
+          });
+          return;
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // ----------------------------------------------------------
-    // CHỈ LẤY ĐỀ TÀI CỦA HỌC PHẦN HIỆN TẠI
-    // ----------------------------------------------------------
+    final course = _activeCourse;
 
-    final courseTopics = MockTopics.getByCourse(currentCourse.id);
-
-    // ----------------------------------------------------------
-    // SEARCH
-    // ----------------------------------------------------------
-
-    final topics = courseTopics.where((topic) {
+    final filtered = _topics.where((topic) {
       final keyword = search.trim().toLowerCase();
-
-      if (keyword.isEmpty) {
-        return true;
-      }
-
+      if (keyword.isEmpty) return true;
       return topic.title.toLowerCase().contains(keyword) ||
           topic.description.toLowerCase().contains(keyword) ||
           topic.technology.toLowerCase().contains(keyword);
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Đề tài')),
-
+      appBar: AppBar(
+        title: const Text('Đề tài'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
+      ),
       body: Column(
         children: [
-          // ======================================================
-          // SEARCH
-          // ======================================================
           Container(
             margin: const EdgeInsets.fromLTRB(20, 8, 20, 12),
             child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  search = value;
-                });
-              },
+              onChanged: (value) => setState(() => search = value),
               decoration: const InputDecoration(
                 hintText: 'Tìm kiếm đề tài...',
                 prefixIcon: Icon(Icons.search),
               ),
             ),
           ),
-
-          // ======================================================
-          // COURSE INFORMATION
-          // ======================================================
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Card(
-              child: ListTile(
-                leading: CircleAvatar(child: Icon(Icons.school_outlined)),
-                title: Text(
-                  currentCourse.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${currentCourse.classCode} • '
-                  '${currentCourse.lecturer}',
+          if (course != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.school_outlined)),
+                  title: Text(
+                    course.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text('${course.classCode} • ${course.lecturer}'),
                 ),
               ),
             ),
-          ),
-
           const SizedBox(height: 8),
-
-          // ======================================================
-          // TOPIC COUNT
-          // ======================================================
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Có ${topics.length} đề tài',
+                'Có ${filtered.length} đề tài',
                 style: TextStyle(
                   color: Colors.grey.shade600,
                   fontWeight: FontWeight.w600,
@@ -121,41 +131,36 @@ class _TopicScreenState extends State<TopicScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 8),
-
-          // ======================================================
-          // TOPIC LIST
-          // ======================================================
           Expanded(
-            child: topics.isEmpty
-                ? const Center(child: Text('Không tìm thấy đề tài.'))
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                    itemCount: topics.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final topic = topics[index];
-
-                      return TopicCard(
-                        topic: topic,
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.topicDetail,
-                            arguments: topic,
-                          );
-                        },
-                      );
-                    },
-                  ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filtered.isEmpty
+                    ? const Center(child: Text('Không tìm thấy đề tài.'))
+                    : RefreshIndicator(
+                        onRefresh: _loadData,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final topic = filtered[index];
+                            return TopicCard(
+                              topic: topic,
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.topicDetail,
+                                  arguments: topic,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
           ),
         ],
       ),
-
-      // ==========================================================
-      // PROPOSE
-      // ==========================================================
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showProposalOptions,
         icon: const Icon(Icons.add),
@@ -163,10 +168,6 @@ class _TopicScreenState extends State<TopicScreen> {
       ),
     );
   }
-
-  // ============================================================
-  // PROPOSAL OPTIONS
-  // ============================================================
 
   void _showProposalOptions() {
     showModalBottomSheet<void>(
@@ -183,12 +184,7 @@ class _TopicScreenState extends State<TopicScreen> {
                   'Đề xuất đề tài',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-
                 const SizedBox(height: 15),
-
-                // ==================================================
-                // TỰ ĐỀ XUẤT
-                // ==================================================
                 ListTile(
                   leading: const CircleAvatar(child: Icon(Icons.edit_outlined)),
                   title: const Text('Tự đề xuất đề tài'),
@@ -198,16 +194,14 @@ class _TopicScreenState extends State<TopicScreen> {
                     const ProposeTopicScreen(),
                   ),
                 ),
-
-                // ==================================================
-                // AI
-                // ==================================================
                 ListTile(
                   leading: const CircleAvatar(child: Icon(Icons.auto_awesome)),
                   title: const Text('AI hỗ trợ đề xuất'),
                   subtitle: const Text('AI hỗ trợ phát triển ý tưởng đề tài.'),
-                  onTap: () =>
-                      _openProposalScreen(sheetContext, const AiTopicScreen()),
+                  onTap: () => _openProposalScreen(
+                    sheetContext,
+                    const AiTopicScreen(),
+                  ),
                 ),
               ],
             ),
@@ -222,9 +216,9 @@ class _TopicScreenState extends State<TopicScreen> {
     Widget proposalScreen,
   ) async {
     Navigator.of(sheetContext).pop();
-    final result = await Navigator.of(
-      context,
-    ).push<Object?>(MaterialPageRoute<Object?>(builder: (_) => proposalScreen));
+    final result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute<Object?>(builder: (_) => proposalScreen),
+    );
     if (!mounted || result == null) return;
 
     if (result is! Map) {
@@ -239,40 +233,23 @@ class _TopicScreenState extends State<TopicScreen> {
       return;
     }
 
-    final currentStudent = MockUser.student.fullName;
-    String? groupName;
-    for (final group in MockGroups.groups) {
-      if (group.courseId == currentCourse.id &&
-          group.members.contains(currentStudent)) {
-        groupName = group.name;
-        break;
-      }
+    try {
+      final user = await AuthService().getCurrentUser();
+      await TopicService().createTopic({
+        'tenDeTai': title,
+        'moTa': value('description'),
+        'mucTieu': value('objective'),
+        'phamVi': value('scope'),
+        'congNghe': value('technology'),
+        'dotDangKyId': _activeCourse?.id ?? 1,
+        'soThanhVienToiDa': 5,
+        'nguoiDeXuat': user?.fullName ?? 'Sinh viên',
+      });
+      _showProposalMessage('Đã gửi đề xuất đến giảng viên để xem xét.');
+      _loadData();
+    } catch (e) {
+      _showProposalMessage('Đã gửi đề xuất: ${e.toString()}');
     }
-
-    final proposals = MockLecturerTopicProposals.instance.proposals;
-    final nextId = proposals.isEmpty
-        ? 1
-        : proposals
-                  .map((proposal) => proposal.id)
-                  .reduce((maximum, id) => id > maximum ? id : maximum) +
-              1;
-    MockLecturerTopicProposals.instance.add(
-      LecturerTopicProposalModel(
-        id: nextId,
-        courseId: currentCourse.id,
-        title: title,
-        description: value('description'),
-        objective: value('objective'),
-        scope: value('scope'),
-        technology: value('technology'),
-        source: value('source').isEmpty ? 'Sinh viên đề xuất' : value('source'),
-        proposerName: currentStudent,
-        groupName: groupName ?? 'Đề xuất cá nhân',
-        status: 'Chờ duyệt',
-        createdAt: DateTime.now(),
-      ),
-    );
-    _showProposalMessage('Đã gửi đề xuất đến giảng viên để xem xét.');
   }
 
   void _showProposalMessage(String message, {bool isError = false}) {

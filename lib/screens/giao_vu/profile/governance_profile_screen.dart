@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
-import '../../../data/mock/mock_governance_data.dart';
+import '../../../services/governance_data_service.dart';
 import '../../../models/governance_profile_model.dart';
 
 class GovernanceProfileScreen extends StatefulWidget {
@@ -23,10 +23,10 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
     return AnimatedBuilder(
       animation: Listenable.merge([
         AppSettings.instance,
-        MockGovernanceData.instance,
+        GovernanceDataService.instance,
       ]),
       builder: (context, _) {
-        final governance = MockGovernanceData.current;
+        final governance = GovernanceDataService.current;
         final settings = AppSettings.instance;
 
         return Scaffold(
@@ -491,7 +491,7 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
                 onTap: () {
                   Navigator.pop(sheetContext);
 
-                  MockGovernanceData.updateAvatar('');
+                  GovernanceDataService.updateAvatar('');
 
                   _showMessage(
                     AppLocalizations.text(
@@ -601,7 +601,7 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
         return;
       }
 
-      MockGovernanceData.updateAvatar(
+      GovernanceDataService.updateAvatar(
         'data:$mime;base64,${base64Encode(bytes)}',
       );
 
@@ -814,7 +814,7 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
       return;
     }
 
-    MockGovernanceData.updateEmail(newEmail);
+    GovernanceDataService.updateEmail(newEmail);
 
     _showMessage(
       AppLocalizations.text(

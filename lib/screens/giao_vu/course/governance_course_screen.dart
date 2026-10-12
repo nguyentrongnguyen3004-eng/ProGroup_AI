@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_governance_data.dart';
+import '../../../services/governance_data_service.dart';
 import '../../../models/course_model.dart';
 import '../../../widgets/governance/governance_widgets.dart';
 
@@ -18,7 +18,7 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {
@@ -64,7 +64,7 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
   Widget _courseCard(
     BuildContext context,
     CourseModel course,
-    MockGovernanceData data,
+    GovernanceDataService data,
   ) {
     final studentCount = data.students
         .where((student) => student.classCode == course.classCode)
@@ -107,7 +107,7 @@ class GovernanceCourseDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     final course = data.courses.firstWhere((item) => item.id == courseId);
     final students = data.students
         .where((student) => student.classCode == course.classCode)
@@ -159,7 +159,7 @@ class GovernanceCourseDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (students.isEmpty)
-            const Text('Chưa có sinh viên trong mock roster của lớp này.')
+            const Text('Chưa có sinh viên trong danh sách của lớp này.')
           else
             ...students.map(
               (student) => Card(

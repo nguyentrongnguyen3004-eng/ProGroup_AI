@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_training_data.dart';
+import '../../../services/training_data_service.dart';
 import '../../../models/course_model.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
@@ -46,7 +46,7 @@ class _TrainingDataManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {
@@ -227,7 +227,7 @@ class _TrainingDataManagementScreenState
     );
   }
 
-  List<Object> _filteredRecords(MockTrainingData data) {
+  List<Object> _filteredRecords(TrainingDataService data) {
     final query = _query.trim().toLowerCase();
     final activeStatus = _filterStatuses(data).contains(_statusFilter)
         ? _statusFilter
@@ -283,14 +283,14 @@ class _TrainingDataManagementScreenState
     };
   }
 
-  int _totalCount(MockTrainingData data) => switch (_kind) {
+  int _totalCount(TrainingDataService data) => switch (_kind) {
     TrainingDataKind.students => data.students.length,
     TrainingDataKind.lecturers => data.lecturers.length,
     TrainingDataKind.courseClasses => data.courseClasses.length,
     TrainingDataKind.subjects => data.subjects.length,
   };
 
-  List<String> _filterStatuses(MockTrainingData data) => switch (_kind) {
+  List<String> _filterStatuses(TrainingDataService data) => switch (_kind) {
     TrainingDataKind.students =>
       data.students.map((item) => item.status).toSet().toList()..sort(),
     TrainingDataKind.lecturers =>
@@ -301,7 +301,7 @@ class _TrainingDataManagementScreenState
       data.subjects.map((item) => item.status).toSet().toList()..sort(),
   };
 
-  List<String> _filterSemesters(MockTrainingData data) =>
+  List<String> _filterSemesters(TrainingDataService data) =>
       data.courseClasses
           .map((item) => item.semester)
           .where((semester) => semester.trim().isNotEmpty)
@@ -433,7 +433,7 @@ class _TrainingDataManagementScreenState
     TrainingDataKind.subjects => _text(context, 'Thêm học phần', 'Add course'),
   };
 
-  Widget _recordTile(BuildContext context, Object item, MockTrainingData data) {
+  Widget _recordTile(BuildContext context, Object item, TrainingDataService data) {
     if (item is GovernanceStudentModel) {
       return _RecordCard(
         icon: Icons.person_outline,
@@ -626,7 +626,7 @@ class _TrainingDataManagementScreenState
   }
 
   Future<void> _assignLecturer(BuildContext context, CourseModel course) async {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     String selected = course.lecturer;
     final assigned = await showDialog<String>(
       context: context,
@@ -759,7 +759,7 @@ class _TrainingDataManagementScreenState
   }
 
   Future<void> _deleteRecord(BuildContext context, Object record) async {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     final subjectClassCount = record is TrainingSubjectModel
         ? data.courseClasses.where((item) => item.code == record.code).length
         : 0;

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_courses.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_topic_registrations.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_topics.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_user.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
+import 'package:progroup_ai_frontend/services/course_service.dart';
+import 'package:progroup_ai_frontend/services/topic_service.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/models/topic_registration_model.dart';
+import 'invitation_management_screen.dart';
+import 'join_request_screen.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   final GroupModel group;
@@ -20,41 +21,78 @@ class GroupDetailScreen extends StatefulWidget {
 }
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
+  String currentUserName = '';
+  CourseModel? _groupCourse;
+  TopicRegistrationModel? _topicRegistration;
+  String _topicTitle = '';
+
+  Future<void> _loadData() async {
+    final user = await AuthService().getCurrentUser();
+    CourseModel? course;
+    try {
+      final courses = await CourseService().getCourses();
+      for (final c in courses) {
+        if (c.id == widget.group.courseId) {
+          course = c;
+          break;
+        }
+      }
+      if (course == null && courses.isNotEmpty) course = courses.first;
+    } catch (_) {}
+
+    TopicRegistrationModel? reg;
+    String tTitle = '';
+    try {
+      final regs = await TopicService().getTopicRegistrations();
+      for (final r in regs) {
+        if ((r['nhomId'] ?? r['groupId']) == widget.group.id) {
+          reg = TopicRegistrationModel(
+            id: r['dangKyId'] ?? r['id'] ?? 1,
+            groupId: widget.group.id,
+            topicId: r['deTaiId'] ?? r['topicId'] ?? 1,
+            status: r['trangThai'] ?? 'Chờ duyệt',
+            registeredAt: DateTime.tryParse(r['ngayDangKy']?.toString() ?? '') ?? DateTime.now(),
+          );
+          tTitle = (r['tenDeTai'] ?? r['topicTitle'] ?? 'Đề tài đồ án').toString();
+          break;
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        currentUserName = user?.fullName ?? '';
+        _groupCourse = course;
+        _topicRegistration = reg;
+        _topicTitle = tTitle;
+      });
+    }
+  }
+
   late String groupName;
 
   @override
   void initState() {
     super.initState();
-
     groupName = widget.group.name;
+    _loadData();
   }
 
   bool get isLeader {
-    return widget.group.leader == MockUser.student.fullName;
+    return currentUserName.isNotEmpty && widget.group.leader == currentUserName;
   }
 
   TopicRegistrationModel? get topicRegistration {
-    return MockTopicRegistrations.getByGroupId(widget.group.id);
+    return _topicRegistration;
   }
 
   String _getTopicTitle(int topicId) {
-    for (final topic in MockTopics.topics) {
-      if (topic.id == topicId && topic.courseId == widget.group.courseId) {
-        return topic.title;
-      }
-    }
-
-    return AppLocalizations.text(
-      'Không tìm thấy đề tài trong học phần này.',
-      en: 'Topic not found in this course.',
-    );
+    if (_topicTitle.isNotEmpty) return _topicTitle;
+    return 'Đề tài đồ án #$topicId';
   }
 
   CourseModel? _courseForGroup() {
-    for (final course in MockCourses.courses) {
-      if (course.id == widget.group.courseId) return course;
-    }
-    return null;
+    return _groupCourse;
   }
 
   void _openCourseTopics() {
@@ -272,10 +310,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      _showMessage(
-                        AppLocalizations.text(
-                          'Màn hình quản lý lời mời đang ở chế độ demo.',
-                          en: 'Invitation management is currently in demo mode.',
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => InvitationManagementScreen(
+                            groupId: group.id,
+                            groupName: groupName,
+                          ),
                         ),
                       );
                     },
@@ -293,10 +334,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      _showMessage(
-                        AppLocalizations.text(
-                          'Chưa có yêu cầu tham gia mới.',
-                          en: 'There are no new join requests.',
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => JoinRequestScreen(
+                            groupId: group.id,
+                            groupName: groupName,
+                          ),
                         ),
                       );
                     },

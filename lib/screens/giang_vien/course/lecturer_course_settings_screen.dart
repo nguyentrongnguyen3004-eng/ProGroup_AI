@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_notifications.dart';
 import '../../../models/lecturer_course_model.dart';
 
 class LecturerCourseSettingsScreen extends StatefulWidget {
@@ -79,14 +77,6 @@ class _LecturerCourseSettingsScreenState
       minMembers: int.parse(_minController.text.trim()),
       maxMembers: int.parse(_maxController.text.trim()),
     );
-    MockLecturerCourses.update(updated);
-    MockLecturerNotifications.instance.addNotification(
-      type: 'Cấu hình',
-      icon: Icons.settings_outlined,
-      title: 'Đã cập nhật cấu hình học phần',
-      content:
-          'Lịch đăng ký và quy mô nhóm của ' + updated.classCode + ' đã đổi.',
-    );
     _message('Đã lưu cấu hình lớp học phần.');
     Navigator.of(context).pop(updated);
   }
@@ -99,9 +89,7 @@ class _LecturerCourseSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final current =
-        MockLecturerCourses.getByCourseId(widget.course.courseId) ??
-        widget.course;
+    final current = widget.course;
     return Scaffold(
       appBar: AppBar(title: const Text('Cấu hình lớp học phần')),
       body: Form(

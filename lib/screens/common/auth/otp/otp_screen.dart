@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-import 'package:progroup_ai_frontend/services/mock_service.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
 import 'package:progroup_ai_frontend/widgets/app_button.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -18,7 +18,7 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> {
   final otpController = TextEditingController();
 
-  final service = MockService();
+  final service = AuthService();
 
   bool loading = false;
 

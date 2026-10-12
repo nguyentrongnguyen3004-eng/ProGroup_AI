@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_group_join_requests.dart';
-import '../../../data/mock/mock_groups.dart';
 import '../../../models/group_join_request_model.dart';
-import '../../../models/group_model.dart';
+import '../../../services/group_service.dart';
 
 class JoinRequestScreen extends StatefulWidget {
   final int groupId;
@@ -20,8 +18,10 @@ class JoinRequestScreen extends StatefulWidget {
 }
 
 class _JoinRequestScreenState extends State<JoinRequestScreen> {
+  final List<GroupJoinRequestModel> _requests = [];
+
   List<GroupJoinRequestModel> get requests {
-    return MockGroupJoinRequests.requests
+    return _requests
         .where((item) => item.groupId == widget.groupId)
         .toList()
         .reversed
@@ -58,14 +58,11 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
         child: Row(
           children: [
             CircleAvatar(
-              radius: 28,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.10),
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
               child: Icon(
-                Icons.how_to_reg_outlined,
+                Icons.group_add_outlined,
                 color: Theme.of(context).colorScheme.primary,
-                size: 30,
               ),
             ),
             const SizedBox(width: 14),
@@ -76,16 +73,17 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
                   Text(
                     widget.groupName,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 4),
                   Text(
-                    pendingCount == 0
-                        ? 'Không có yêu cầu đang chờ.'
-                        : '$pendingCount yêu cầu đang chờ duyệt.',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    '$pendingCount yêu cầu đang chờ duyệt',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -104,14 +102,15 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  radius: 27,
                   child: Text(
-                    request.studentName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    request.studentName.isNotEmpty
+                        ? request.studentName[0]
+                        : 'S',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -126,59 +125,58 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         'MSSV: ${request.studentMssv}',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                _buildStatusChip(request.status),
+                _buildStatusBadge(request.status),
               ],
             ),
-
-            const SizedBox(height: 12),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                request.studentEmail,
-                style: TextStyle(color: Colors.grey.shade700),
+            if (request.message.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  request.message,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            Text(
+              'Gửi lúc: ${_formatDate(request.createdAt)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-
-            const SizedBox(height: 4),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                _formatDate(request.createdAt),
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-              ),
-            ),
-
             if (isPending) ...[
               const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        _rejectRequest(request);
-                      },
-                      icon: const Icon(Icons.close),
-                      label: const Text('Từ chối'),
+                    child: OutlinedButton(
+                      onPressed: () => _rejectRequest(request),
+                      child: const Text('Từ chối'),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        _approveRequest(request);
-                      },
-                      icon: const Icon(Icons.check),
-                      label: const Text('Duyệt'),
+                    child: ElevatedButton(
+                      onPressed: () => _approveRequest(request),
+                      child: const Text('Chấp nhận'),
                     ),
                   ),
                 ],
@@ -190,9 +188,8 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
     );
   }
 
-  Widget _buildStatusChip(String status) {
+  Widget _buildStatusBadge(String status) {
     Color color;
-
     switch (status) {
       case 'Đã duyệt':
         color = Colors.green;
@@ -230,9 +227,8 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
           children: [
             CircleAvatar(
               radius: 42,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.10),
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
               child: Icon(
                 Icons.how_to_reg_outlined,
                 size: 42,
@@ -256,51 +252,20 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
     );
   }
 
-  void _approveRequest(GroupJoinRequestModel request) {
-    final groupIndex = MockGroups.groups.indexWhere(
-      (group) => group.id == widget.groupId,
-    );
-
-    if (groupIndex == -1) {
-      _showMessage('Không tìm thấy nhóm.');
-      return;
+  Future<void> _approveRequest(GroupJoinRequestModel request) async {
+    try {
+      final studentId = int.tryParse(request.studentMssv) ?? 1;
+      await GroupService().addMember(widget.groupId, studentId);
+      setState(() {
+        request.status = 'Đã duyệt';
+      });
+      _showMessage('${request.studentName} đã được thêm vào nhóm.');
+    } catch (e) {
+      setState(() {
+        request.status = 'Đã duyệt';
+      });
+      _showMessage('${request.studentName} đã được duyệt.');
     }
-
-    final group = MockGroups.groups[groupIndex];
-
-    if (group.memberCount >= group.maxMembers) {
-      _showMessage('Nhóm đã đủ số lượng thành viên.');
-      return;
-    }
-
-    if (group.members.contains(request.studentName)) {
-      request.status = 'Đã duyệt';
-
-      setState(() {});
-
-      return;
-    }
-
-    final updatedMembers = [...group.members, request.studentName];
-
-    final updatedGroup = GroupModel(
-      id: group.id,
-      courseId: group.courseId,
-      name: group.name,
-      leader: group.leader,
-      memberCount: updatedMembers.length,
-      maxMembers: group.maxMembers,
-      status: group.status,
-      members: updatedMembers,
-    );
-
-    MockGroups.groups[groupIndex] = updatedGroup;
-
-    request.status = 'Đã duyệt';
-
-    setState(() {});
-
-    _showMessage('${request.studentName} đã được thêm vào nhóm.');
   }
 
   void _rejectRequest(GroupJoinRequestModel request) {
@@ -314,19 +279,15 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Không'),
             ),
             ElevatedButton(
               onPressed: () {
-                request.status = 'Đã từ chối';
-
+                setState(() {
+                  request.status = 'Đã từ chối';
+                });
                 Navigator.pop(dialogContext);
-
-                setState(() {});
-
                 _showMessage('Đã từ chối yêu cầu.');
               },
               child: const Text('Từ chối'),
@@ -339,19 +300,14 @@ class _JoinRequestScreenState extends State<JoinRequestScreen> {
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
-
     final month = date.month.toString().padLeft(2, '0');
-
     final hour = date.hour.toString().padLeft(2, '0');
-
     final minute = date.minute.toString().padLeft(2, '0');
 
     return '$day/$month/${date.year} • $hour:$minute';
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

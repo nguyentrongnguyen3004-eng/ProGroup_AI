@@ -1,372 +1,193 @@
-import 'package:flutter/material.dart';
-
+﻿import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
-import '../../../models/course_model.dart';
-import '../../../models/lecturer_course_model.dart';
 import '../../../models/topic_model.dart';
 import 'edit_topic_screen.dart';
 
 class LecturerTopicDetailScreen extends StatefulWidget {
-  final CourseModel? course;
   final TopicModel topic;
 
   const LecturerTopicDetailScreen({
     super.key,
-    this.course,
     required this.topic,
   });
 
   @override
-  State<LecturerTopicDetailScreen> createState() =>
-      _LecturerTopicDetailScreenState();
+  State<LecturerTopicDetailScreen> createState() => _LecturerTopicDetailScreenState();
 }
 
 class _LecturerTopicDetailScreenState extends State<LecturerTopicDetailScreen> {
-  LecturerCourseModel? _courseForTopic(TopicModel topic) {
-    for (final course in MockLecturerCourses.courses) {
-      if (course.courseId == topic.courseId) return course;
-    }
-    return null;
-  }
+  late TopicModel _topic;
 
-  Future<void> _editTopic(TopicModel topic) async {
-    final result = await Navigator.push<TopicModel>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EditTopicScreen(course: widget.course, topic: topic),
-      ),
-    );
-
-    if (result != null && mounted) {
-      setState(() {});
-    }
-  }
-
-  Future<void> _changeStatus(int topicId, String status) async {
-    if (MockLecturerTopics.getById(topicId) == null) return;
-
-    MockLecturerTopics.updateStatus(topicId, status);
-    final updated = MockLecturerTopics.getById(topicId);
-    if (updated == null) return;
-
-    if (!mounted) return;
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.text(
-            'Đã cập nhật trạng thái đề tài.',
-            en: 'Topic status updated.',
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<String> _availableStatuses(TopicModel topic) {
-    final statuses = MockLecturerTopics.topics
-        .map((item) => item.status.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-    if (!statuses.contains(topic.status)) statuses.add(topic.status);
-    return statuses;
-  }
-
-  void _showStatusOptions(TopicModel topic) {
-    final statuses = _availableStatuses(topic);
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final status in statuses)
-                ListTile(
-                  leading: Icon(
-                    _statusIcon(status),
-                    color: _statusColor(context, status),
-                  ),
-                  title: Text(AppLocalizations.status(status)),
-                  trailing: status == topic.status
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _changeStatus(topic.id, status);
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Color _statusColor(BuildContext context, String status) {
-    final value = status.trim().toLowerCase();
-    if (value.contains('chờ') || value.contains('pending')) {
-      return AppTheme.warningColor;
-    }
-    if (value.contains('khóa') ||
-        value.contains('từ chối') ||
-        value.contains('locked') ||
-        value.contains('rejected')) {
-      return AppTheme.dangerColor;
-    }
-    if (value.contains('hoạt động') ||
-        value.contains('active') ||
-        value.contains('approved')) {
-      return AppTheme.successColor;
-    }
-    return Theme.of(context).colorScheme.primary;
-  }
-
-  IconData _statusIcon(String status) {
-    final value = status.toLowerCase();
-    if (value.contains('chờ') || value.contains('pending')) {
-      return Icons.hourglass_empty;
-    }
-    if (value.contains('khóa') || value.contains('locked')) {
-      return Icons.lock_outline;
-    }
-    if (value.contains('từ chối') || value.contains('rejected')) {
-      return Icons.cancel_outlined;
-    }
-    return Icons.check_circle_outline;
+  @override
+  void initState() {
+    super.initState();
+    _topic = widget.topic;
   }
 
   @override
   Widget build(BuildContext context) {
-    final topic = MockLecturerTopics.getById(widget.topic.id);
     final colors = Theme.of(context).colorScheme;
-
-    if (topic == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            AppLocalizations.text('Chi tiết đề tài', en: 'Topic details'),
-          ),
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              AppLocalizations.text(
-                'Đề tài không còn tồn tại.',
-                en: 'This topic is no longer available.',
-              ),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: colors.onSurfaceVariant),
-            ),
-          ),
-        ),
-      );
-    }
-
-    final course = _courseForTopic(topic);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          AppLocalizations.text('Chi tiết đề tài', en: 'Topic details'),
-        ),
+        title: Text(AppLocalizations.text('Chi Tiết Đề Tài', en: 'Topic Details')),
         actions: [
           IconButton(
-            onPressed: () => _editTopic(topic),
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: AppLocalizations.text('Chỉnh sửa', en: 'Edit'),
+            icon: const Icon(Icons.edit),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditTopicScreen(topic: _topic),
+                ),
+              );
+              if (result == true && mounted) {
+                Navigator.pop(context, true);
+              }
+            },
           ),
         ],
       ),
-      body: ListView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        children: [
-          _TopicHeader(
-            topic: topic,
-            statusColor: _statusColor(context, topic.status),
-          ),
-          const SizedBox(height: 16),
-          _TopicSection(
-            title: AppLocalizations.text('Lớp học phần', en: 'Course'),
-            icon: Icons.school_outlined,
-            child: course == null
-                ? Text(
-                    AppLocalizations.text(
-                      'Không tìm thấy lớp học phần được phân công.',
-                      en: 'The assigned course could not be found.',
-                    ),
-                    style: TextStyle(color: colors.onSurfaceVariant),
-                  )
-                : Text(
-                    '${course.name}\n${course.code} • ${course.classCode} • ${course.semester}',
-                    style: TextStyle(
-                      color: colors.onSurface,
-                      fontWeight: FontWeight.w600,
-                      height: 1.5,
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 16),
-          _TopicSection(
-            title: AppLocalizations.text('Mô tả', en: 'Description'),
-            icon: Icons.description_outlined,
-            child: _TopicText(topic.description, emptyLabel: 'Chưa có mô tả.'),
-          ),
-          const SizedBox(height: 16),
-          _TopicSection(
-            title: AppLocalizations.text('Mục tiêu', en: 'Objective'),
-            icon: Icons.flag_outlined,
-            child: _TopicText(topic.objective, emptyLabel: 'Chưa có mục tiêu.'),
-          ),
-          const SizedBox(height: 16),
-          _TopicSection(
-            title: AppLocalizations.text('Phạm vi', en: 'Scope'),
-            icon: Icons.crop_free_outlined,
-            child: _TopicText(topic.scope, emptyLabel: 'Chưa có phạm vi.'),
-          ),
-          const SizedBox(height: 16),
-          _TopicSection(
-            title: AppLocalizations.text('Công nghệ', en: 'Technology'),
-            icon: Icons.code_outlined,
-            child: _TopicText(
-              topic.technology,
-              emptyLabel: 'Chưa khai báo công nghệ.',
-            ),
-          ),
-          const SizedBox(height: 16),
-          _TopicSection(
-            title: AppLocalizations.text('Nguồn đề tài', en: 'Source'),
-            icon: Icons.source_outlined,
-            child: Text(
-              topic.source.trim().isEmpty
-                  ? AppLocalizations.text('Chưa có nguồn.', en: 'No source.')
-                  : AppLocalizations.source(topic.source),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _TopicSection(
-            title: AppLocalizations.text('Trạng thái', en: 'Status'),
-            icon: Icons.sync_outlined,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    AppLocalizations.status(topic.status),
-                    style: TextStyle(
-                      color: _statusColor(context, topic.status),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () => _showStatusOptions(topic),
-                  icon: const Icon(Icons.edit_outlined),
-                  label: Text(AppLocalizations.text('Thay đổi', en: 'Change')),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TopicHeader extends StatelessWidget {
-  final TopicModel topic;
-  final Color statusColor;
-
-  const _TopicHeader({required this.topic, required this.statusColor});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.primary,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            topic.title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _HeaderTag(
-                text: AppLocalizations.status(topic.status),
-                accentColor: statusColor,
-              ),
-              if (topic.technology.trim().isNotEmpty)
-                _HeaderTag(text: topic.technology),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderTag extends StatelessWidget {
-  final String text;
-  final Color? accentColor;
-
-  const _HeaderTag({required this.text, this.accentColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-        border: accentColor == null
-            ? null
-            : Border.all(color: accentColor!, width: 1),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(colors),
+            const SizedBox(height: 24),
+            _buildInfoCard(colors),
+            const SizedBox(height: 24),
+            _buildStatusCard(colors),
+          ],
         ),
       ),
     );
   }
-}
 
-class _TopicSection extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Widget child;
+  Widget _buildHeader(ColorScheme colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                _topic.title,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getStatusColor(_topic.status).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _getStatusColor(_topic.status),
+                ),
+              ),
+              child: Text(
+                _topic.status,
+                style: TextStyle(
+                  color: _getStatusColor(_topic.status),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Mã ĐT: ${_topic.id}',
+          style: TextStyle(
+            color: colors.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
 
-  const _TopicSection({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+  Widget _buildInfoCard(ColorScheme colors) {
     return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoSection(
+              AppLocalizations.text('Mô tả', en: 'Description'),
+              _topic.description,
+              Icons.description,
+              colors,
+            ),
+            const Divider(height: 32),
+            _buildInfoSection(
+              AppLocalizations.text('Mục tiêu', en: 'Objectives'),
+              _topic.objective,
+              Icons.track_changes,
+              colors,
+            ),
+            const Divider(height: 32),
+            _buildInfoSection(
+              AppLocalizations.text('Phạm vi', en: 'Scope'),
+              _topic.scope,
+              Icons.center_focus_strong,
+              colors,
+            ),
+            const Divider(height: 32),
+            _buildInfoSection(
+              AppLocalizations.text('Công nghệ dự kiến', en: 'Expected Technologies'),
+              _topic.technology,
+              Icons.computer,
+              colors,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(String title, String content, IconData icon, ColorScheme colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20, color: colors.primary),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          content,
+          style: TextStyle(
+            color: colors.onSurfaceVariant,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusCard(ColorScheme colors) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -374,40 +195,67 @@ class _TopicSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 21, color: colors.primary),
+                Icon(Icons.info_outline, size: 20, color: colors.secondary),
                 const SizedBox(width: 8),
                 Text(
-                  title,
-                  style: TextStyle(
-                    color: colors.onSurface,
+                  AppLocalizations.text('Thông tin bổ sung', en: 'Additional Information'),
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            child,
+            const SizedBox(height: 16),
+            _buildDetailRow(
+              AppLocalizations.text('Nguồn đề tài', en: 'Source'),
+              _topic.source,
+              colors,
+            ),
           ],
         ),
       ),
     );
   }
-}
 
-class _TopicText extends StatelessWidget {
-  final String value;
-  final String emptyLabel;
-
-  const _TopicText(this.value, {required this.emptyLabel});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      value.trim().isEmpty
-          ? AppLocalizations.text(emptyLabel, en: emptyLabel)
-          : value,
-      style: const TextStyle(height: 1.5),
+  Widget _buildDetailRow(String label, String value, ColorScheme colors) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Đã duyệt':
+      case 'Đã đăng ký':
+        return Colors.green;
+      case 'Chờ duyệt':
+        return Colors.orange;
+      case 'Chưa sử dụng':
+        return Colors.blue;
+      case 'Từ chối':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

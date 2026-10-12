@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_group_invitations.dart';
 import '../../../models/group_invitation_model.dart';
+import '../../../services/group_service.dart';
 
 class InvitationManagementScreen extends StatefulWidget {
   final int groupId;
@@ -20,8 +20,10 @@ class InvitationManagementScreen extends StatefulWidget {
 
 class _InvitationManagementScreenState
     extends State<InvitationManagementScreen> {
+  final List<GroupInvitationModel> _invitations = [];
+
   List<GroupInvitationModel> get invitations {
-    return MockGroupInvitations.invitations
+    return _invitations
         .where((item) => item.groupId == widget.groupId)
         .toList()
         .reversed
@@ -117,11 +119,12 @@ class _InvitationManagementScreenState
                 CircleAvatar(
                   radius: 25,
                   child: Text(
-                    invitation.inviteeName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    invitation.inviteeName.isNotEmpty
+                        ? invitation.inviteeName.substring(0, 1).toUpperCase()
+                        : 'S',
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,8 +132,8 @@ class _InvitationManagementScreenState
                       Text(
                         invitation.inviteeName,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -141,66 +144,47 @@ class _InvitationManagementScreenState
                     ],
                   ),
                 ),
-                _buildStatusChip(invitation.status),
+                _buildStatusBadge(invitation.status),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Người mời: ${invitation.inviter}',
-                style: TextStyle(color: Colors.grey.shade700),
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                _formatDate(invitation.createdAt),
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-              ),
-            ),
-
-            if (isPending) ...[
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        _cancelInvitation(invitation);
-                      },
-                      child: const Text('Hủy lời mời'),
+            const Divider(),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatDate(invitation.createdAt),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                if (isPending)
+                  TextButton.icon(
+                    onPressed: () {
+                      _cancelInvitation(invitation);
+                    },
+                    icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                    label: const Text(
+                      'Hủy lời mời',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  )
+                else if (isAccepted)
+                  const Text(
+                    'Đã vào nhóm',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
-            ],
-
-            if (isAccepted) ...[
-              const SizedBox(height: 10),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Sinh viên đã chấp nhận lời mời.',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusChip(String status) {
+  Widget _buildStatusBadge(String status) {
     Color color;
 
     switch (status) {
@@ -243,23 +227,22 @@ class _InvitationManagementScreenState
           children: [
             CircleAvatar(
               radius: 42,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.10),
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
               child: Icon(
-                Icons.mark_email_unread_outlined,
+                Icons.mail_outline,
                 size: 42,
                 color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 18),
             const Text(
-              'Chưa có lời mời',
+              'Chưa có lời mời nào',
               style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'Bạn có thể mời sinh viên bằng MSSV.',
+              'Nhấn "Mời thành viên" để mời bạn bè vào nhóm đồ án của bạn.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade600),
             ),
@@ -271,14 +254,13 @@ class _InvitationManagementScreenState
 
   void _showInviteDialog() {
     final nameController = TextEditingController();
-
     final mssvController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Mời thành viên'),
+          title: const Text('Mời thành viên mới'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -286,17 +268,16 @@ class _InvitationManagementScreenState
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Họ và tên',
-                  hintText: 'Nguyễn Văn A',
+                  hintText: 'Nhập họ tên sinh viên',
                   prefixIcon: Icon(Icons.person_outline),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               TextField(
                 controller: mssvController,
-                keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'MSSV',
-                  hintText: '22110010',
+                  labelText: 'Mã số sinh viên',
+                  hintText: 'Nhập MSSV',
                   prefixIcon: Icon(Icons.badge_outlined),
                 ),
               ),
@@ -304,22 +285,16 @@ class _InvitationManagementScreenState
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final name = nameController.text.trim();
-
                 final mssv = mssvController.text.trim();
+                if (name.isEmpty || mssv.isEmpty) return;
 
-                if (name.isEmpty || mssv.isEmpty) {
-                  return;
-                }
-
-                final exists = MockGroupInvitations.invitations.any(
+                final exists = _invitations.any(
                   (item) =>
                       item.groupId == widget.groupId &&
                       item.inviteeMssv == mssv &&
@@ -328,29 +303,33 @@ class _InvitationManagementScreenState
 
                 if (exists) {
                   Navigator.pop(dialogContext);
-
                   _showMessage('Sinh viên này đã có lời mời đang chờ.');
-
                   return;
                 }
 
-                MockGroupInvitations.add(
-                  GroupInvitationModel(
-                    id: MockGroupInvitations.generateId(),
-                    groupId: widget.groupId,
-                    groupName: widget.groupName,
-                    inviter: 'Nguyễn Văn An',
-                    inviteeName: name,
-                    inviteeMssv: mssv,
-                    status: 'Chờ xử lý',
-                    createdAt: DateTime.now(),
-                  ),
-                );
+                try {
+                  final studentId = int.tryParse(mssv) ?? 0;
+                  if (studentId > 0) {
+                    await GroupService().addMember(widget.groupId, studentId);
+                  }
+                } catch (_) {}
+
+                setState(() {
+                  _invitations.add(
+                    GroupInvitationModel(
+                      id: DateTime.now().millisecondsSinceEpoch,
+                      groupId: widget.groupId,
+                      groupName: widget.groupName,
+                      inviter: 'Trưởng nhóm',
+                      inviteeName: name,
+                      inviteeMssv: mssv,
+                      status: 'Chờ xử lý',
+                      createdAt: DateTime.now(),
+                    ),
+                  );
+                });
 
                 Navigator.pop(dialogContext);
-
-                setState(() {});
-
                 _showMessage('Đã gửi lời mời đến $name.');
               },
               child: const Text('Gửi lời mời'),
@@ -372,19 +351,15 @@ class _InvitationManagementScreenState
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Không'),
             ),
             ElevatedButton(
               onPressed: () {
-                invitation.status = 'Đã hủy';
-
+                setState(() {
+                  invitation.status = 'Đã hủy';
+                });
                 Navigator.pop(dialogContext);
-
-                setState(() {});
-
                 _showMessage('Đã hủy lời mời.');
               },
               child: const Text('Hủy lời mời'),
@@ -397,19 +372,14 @@ class _InvitationManagementScreenState
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
-
     final month = date.month.toString().padLeft(2, '0');
-
     final hour = date.hour.toString().padLeft(2, '0');
-
     final minute = date.minute.toString().padLeft(2, '0');
 
     return '$day/$month/${date.year} • $hour:$minute';
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

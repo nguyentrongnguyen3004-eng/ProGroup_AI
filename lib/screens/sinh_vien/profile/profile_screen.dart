@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
 import 'package:progroup_ai_frontend/core/settings/app_settings.dart';
-import 'package:progroup_ai_frontend/data/mock/mock_user.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
+import 'package:progroup_ai_frontend/models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,7 +13,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final user = MockUser.student;
+  UserModel? user;
 
   late String email;
   String avatarMode = 'default';
@@ -22,11 +21,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    email = user.email;
+    email = '';
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final u = await AuthService().getCurrentUser();
+    if (u != null) {
+      setState(() {
+        user = u;
+        email = u.email;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (user == null) return Scaffold(body: Center(child: CircularProgressIndicator()));
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {
@@ -94,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ).colorScheme.primary.withValues(alpha: 0.1),
               child: avatarMode == 'default'
                   ? Text(
-                      user.fullName.substring(0, 1),
+                      user!.fullName.substring(0, 1),
                       style: TextStyle(
                         fontSize: 34,
                         fontWeight: FontWeight.bold,
@@ -127,14 +138,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SizedBox(height: 14),
 
         Text(
-          user.fullName,
+          user!.fullName,
           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
 
         SizedBox(height: 4),
 
         Text(
-          'MSSV: ${user.mssv ?? user.username}',
+          'MSSV: ${user!.mssv ?? user!.username}',
           style: TextStyle(color: Colors.grey.shade600),
         ),
       ],
@@ -156,7 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ListTile(
             leading: const Icon(Icons.credit_card_outlined),
             title: Text(AppLocalizations.text('MSSV', en: 'Student ID')),
-            subtitle: Text(user.mssv ?? user.username),
+            subtitle: Text(user!.mssv ?? user!.username),
           ),
 
           const Divider(height: 1),
@@ -174,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ListTile(
             leading: const Icon(Icons.account_circle_outlined),
             title: Text(AppLocalizations.text('Vai trò', en: 'Role')),
-            subtitle: Text(user.roleName),
+            subtitle: Text(user!.roleName),
           ),
         ],
       ),
@@ -660,7 +671,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       showDragHandle: true,
       builder: (context) {
-        return AnimatedBuilder(
+        if (user == null) return Scaffold(body: Center(child: CircularProgressIndicator()));
+    return AnimatedBuilder(
           animation: AppSettings.instance,
           builder: (context, _) {
             return SafeArea(
@@ -747,3 +759,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
+
+
+
+

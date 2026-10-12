@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
-import '../../../data/mock/mock_training_data.dart';
+import '../../../services/training_data_service.dart';
 import '../../../models/training_profile_model.dart';
 
 class TrainingProfileScreen extends StatefulWidget {
@@ -19,7 +19,7 @@ class TrainingProfileScreen extends StatefulWidget {
 class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
   @override
   Widget build(BuildContext context) {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     final settings = AppSettings.instance;
     return AnimatedBuilder(
       animation: Listenable.merge([data, settings]),
@@ -305,7 +305,7 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
     );
     if (!mounted) return;
     if (action == 'remove') {
-      MockTrainingData.instance.updateAvatar('');
+      TrainingDataService.instance.updateAvatar('');
       _showMessage(
         _text(context, 'Đã xóa ảnh đại diện.', 'Profile image removed.'),
       );
@@ -395,7 +395,7 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
         ),
       );
       if (confirmed != true || !mounted) return;
-      MockTrainingData.instance.updateAvatar(
+      TrainingDataService.instance.updateAvatar(
         'data:$mime;base64,${base64Encode(bytes)}',
       );
       _showMessage(
@@ -482,7 +482,7 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
           ),
         );
         if (confirmed != true || !mounted) return;
-        MockTrainingData.instance.updateEmail(email);
+        TrainingDataService.instance.updateEmail(email);
         _showMessage(_text(context, 'Đã cập nhật email.', 'Email updated.'));
       } else if (verified == false && mounted) {
         _showMessage(

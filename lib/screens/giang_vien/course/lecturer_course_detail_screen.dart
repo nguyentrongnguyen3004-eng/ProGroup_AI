@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_groups.dart';
-import '../../../data/mock/mock_lecturer_topic_registrations.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
 import '../../../models/group_model.dart';
 import '../../../models/lecturer_course_model.dart';
 import '../../../models/topic_model.dart';
+import '../../../services/group_service.dart';
+import '../../../services/topic_service.dart';
 import '../../../widgets/lecturer/lecturer_group_card.dart';
-import '../home/lecturer_statistics_screen.dart';
-import 'lecturer_course_settings_screen.dart';
 import '../group/lecturer_group_detail_screen.dart';
 import '../group/lecturer_group_screen.dart';
 import '../topic/lecturer_topic_screen.dart';
+import 'lecturer_course_settings_screen.dart';
 
 class LecturerCourseDetailScreen extends StatefulWidget {
   final LecturerCourseModel course;
@@ -26,27 +23,56 @@ class LecturerCourseDetailScreen extends StatefulWidget {
 
 class _LecturerCourseDetailScreenState
     extends State<LecturerCourseDetailScreen> {
-  LecturerCourseModel get course =>
-      MockLecturerCourses.getByCourseId(widget.course.courseId) ??
-      widget.course;
+  late LecturerCourseModel course;
+  List<GroupModel> _groups = [];
+  List<TopicModel> _topics = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    course = widget.course;
+    _loadCourseData();
+  }
+
+  Future<void> _loadCourseData() async {
+    setState(() => _isLoading = true);
+    try {
+      final groups = await GroupService().getGroupsByCourse(course.courseId);
+      final topics = await TopicService().getLecturerTopics(dotDangKyId: course.courseId);
+      if (mounted) {
+        setState(() {
+          _groups = groups;
+          _topics = topics;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final groups = MockLecturerGroups.getByCourse(course.courseId);
-    final topics = MockLecturerTopics.getByCourse(course.courseId);
-    final groupIds = groups.map((group) => group.id).toSet();
-    final topicIds = topics.map((topic) => topic.id).toSet();
-    final registrations = MockLecturerTopicRegistrations.getAll()
-        .where(
-          (item) =>
-              groupIds.contains(item.groupId) &&
-              topicIds.contains(item.topicId),
-        )
-        .toList();
     final colors = Theme.of(context).colorScheme;
 
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Chi tiết lớp học phần')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết lớp học phần')),
+      appBar: AppBar(
+        title: const Text('Chi tiết lớp học phần'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadCourseData,
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -99,13 +125,9 @@ class _LecturerCourseDetailScreenState
               child: Column(
                 children: [
                   _Info(label: 'Học kỳ', value: course.semester),
-                  _Info(label: 'Sinh viên', value: '${course.studentCount}'),
-                  _Info(label: 'Nhóm', value: '${groups.length}'),
-                  _Info(label: 'Đề tài', value: '${topics.length}'),
-                  _Info(
-                    label: 'Đăng ký đề tài',
-                    value: '${registrations.length}',
-                  ),
+                  _Info(label: 'Sinh viên tối đa', value: '${course.studentCount}'),
+                  _Info(label: 'Nhóm', value: '${_groups.length}'),
+                  _Info(label: 'Đề tài', value: '${_topics.length}'),
                   _Info(
                     label: 'Số thành viên mỗi nhóm',
                     value: '${course.minMembers} - ${course.maxMembers}',
@@ -129,16 +151,12 @@ class _LecturerCourseDetailScreenState
                   _Info(
                     label: 'Lập nhóm',
                     value:
-                        course.groupRegistrationStart +
-                        ' – ' +
-                        course.groupRegistrationEnd,
+                        '${course.groupRegistrationStart} – ${course.groupRegistrationEnd}',
                   ),
                   _Info(
                     label: 'Đăng ký đề tài',
                     value:
-                        course.topicRegistrationStart +
-                        ' – ' +
-                        course.topicRegistrationEnd,
+                        '${course.topicRegistrationStart} – ${course.topicRegistrationEnd}',
                   ),
                   const SizedBox(height: 4),
                   OutlinedButton.icon(
@@ -150,23 +168,12 @@ class _LecturerCourseDetailScreenState
                               LecturerCourseSettingsScreen(course: course),
                         ),
                       );
-                      if (updated != null && mounted) setState(() {});
+                      if (updated != null && mounted) {
+                        setState(() => course = updated);
+                      }
                     },
                     icon: const Icon(Icons.tune_outlined),
                     label: const Text('Cấu hình thời gian và quy mô nhóm'),
-                  ),
-                  const SizedBox(height: 4),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LecturerStatisticsScreen(
-                          initialCourseId: course.courseId,
-                        ),
-                      ),
-                    ),
-                    icon: const Icon(Icons.analytics_outlined),
-                    label: const Text('Thống kê học phần'),
                   ),
                 ],
               ),
@@ -175,26 +182,24 @@ class _LecturerCourseDetailScreenState
           const SizedBox(height: 20),
           _SectionHeading(
             title: 'Nhóm của học phần',
-            trailing: Text('${groups.length}'),
+            trailing: Text('${_groups.length}'),
           ),
           const SizedBox(height: 8),
-          if (groups.isEmpty)
+          if (_groups.isEmpty)
             const _EmptyCard(message: 'Học phần chưa có nhóm.')
           else
-            ...groups
+            ..._groups
                 .take(3)
                 .map(
                   (group) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: LecturerGroupCard(
                       group: group,
-                      minMembers: course.minMembers,
-                      maxMembers: course.maxMembers,
                       onTap: () => _openGroup(context, group),
                     ),
                   ),
                 ),
-          if (groups.isNotEmpty)
+          if (_groups.isNotEmpty)
             SizedBox(
               height: 48,
               child: OutlinedButton.icon(
@@ -213,13 +218,13 @@ class _LecturerCourseDetailScreenState
           const SizedBox(height: 20),
           _SectionHeading(
             title: 'Đề tài của học phần',
-            trailing: Text('${topics.length}'),
+            trailing: Text('${_topics.length}'),
           ),
           const SizedBox(height: 8),
-          if (topics.isEmpty)
+          if (_topics.isEmpty)
             const _EmptyCard(message: 'Học phần chưa có đề tài.')
           else
-            ...topics.map(
+            ..._topics.map(
               (topic) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _TopicPreview(topic: topic),
@@ -233,8 +238,7 @@ class _LecturerCourseDetailScreenState
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        LecturerTopicScreen(lecturerCourseId: course.courseId),
+                    builder: (_) => const LecturerTopicScreen(),
                   ),
                 );
               },
@@ -251,7 +255,7 @@ class _LecturerCourseDetailScreenState
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LecturerGroupDetailScreen(course: course, group: group),
+        builder: (_) => LecturerGroupDetailScreen(group: group),
       ),
     );
   }
@@ -265,27 +269,13 @@ class _Info extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 13),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: colors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: colors.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -300,24 +290,14 @@ class _SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              color: colors.onSurface,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        if (trailing != null)
-          DefaultTextStyle(
-            style: TextStyle(color: colors.onSurfaceVariant),
-            child: trailing!,
-          ),
+        if (trailing != null) trailing!,
       ],
     );
   }
@@ -333,10 +313,10 @@ class _EmptyCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Text(
-          message,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+        child: Center(
+          child: Text(
+            message,
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       ),
@@ -351,21 +331,24 @@ class _TopicPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: colors.primaryContainer,
-          child: Icon(
-            Icons.lightbulb_outline,
-            color: colors.onPrimaryContainer,
-          ),
-        ),
-        title: Text(topic.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+        title: Text(topic.title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(
-          '${topic.technology} • ${topic.status}',
+          topic.description.isNotEmpty ? topic.description : 'Chưa có mô tả',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            topic.status,
+            style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );

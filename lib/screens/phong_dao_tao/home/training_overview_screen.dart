@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_training_data.dart';
+import '../../../services/training_data_service.dart';
 import '../management/training_data_management_screen.dart';
 
 class TrainingOverviewScreen extends StatelessWidget {
@@ -11,7 +11,7 @@ class TrainingOverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     final colors = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: data,

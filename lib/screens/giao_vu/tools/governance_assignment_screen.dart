@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_governance_data.dart';
-import '../../../data/mock/mock_governance_notifications.dart';
+import '../../../services/governance_data_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../models/course_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../widgets/governance/governance_widgets.dart';
@@ -22,7 +22,7 @@ class _GovernanceAssignmentScreenState
 
   @override
   Widget build(BuildContext context) {
-    final data = MockGovernanceData.instance;
+    final data = GovernanceDataService.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {
@@ -146,16 +146,15 @@ class _GovernanceAssignmentScreenState
   }
 
   void _confirm(
-    MockGovernanceData data,
+    GovernanceDataService data,
     CourseModel course,
     LecturerModel lecturer,
   ) {
     data.assignLecturer(course.id, lecturer.fullName);
-    MockGovernanceNotifications.instance.addNotification(
+    NotificationService.instance.addNotification(
       type: 'Phân công',
-      icon: Icons.assignment_ind_outlined,
       title: 'Phân công giảng viên được cập nhật',
-      content: '@@{lecturer.fullName} phụ trách lớp @@{course.classCode}.',
+      message: '${lecturer.fullName} phụ trách lớp ${course.classCode}.',
     );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

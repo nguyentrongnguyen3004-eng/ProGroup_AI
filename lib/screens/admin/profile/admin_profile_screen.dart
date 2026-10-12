@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
-import '../../../data/mock/mock_admin_data.dart';
+import '../../../services/admin_data_service.dart';
 import '../../../models/admin_account_model.dart';
 import '../../../models/user_model.dart';
 import '../../admin/admin_helpers.dart';
@@ -20,11 +20,11 @@ class AdminProfileScreen extends StatefulWidget {
 
 class _AdminProfileScreenState extends State<AdminProfileScreen> {
   AdminAccountModel? get _account =>
-      MockAdminData.instance.accountById(widget.user.id);
+      AdminDataService.instance.accountById(widget.user.id);
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: Listenable.merge([MockAdminData.instance, AppSettings.instance]),
+    animation: Listenable.merge([AdminDataService.instance, AppSettings.instance]),
     builder: (context, _) {
       final account = _account;
       if (account == null) {
@@ -185,7 +185,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     );
     if (!mounted || action == null) return;
     if (action == 'remove') {
-      MockAdminData.instance.updateAccount(account.copyWith(avatar: ''));
+      AdminDataService.instance.updateAccount(account.copyWith(avatar: ''));
       showAdminMessage(
         context,
         'Đã xóa ảnh đại diện.',
@@ -254,7 +254,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         ),
       );
       if (preview != true || !mounted) return;
-      MockAdminData.instance.updateAccount(
+      AdminDataService.instance.updateAccount(
         account.copyWith(avatar: 'data:$mime;base64,${base64Encode(bytes)}'),
       );
       showAdminMessage(
@@ -309,7 +309,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         );
         return;
       }
-      final duplicate = MockAdminData.instance.accounts.any(
+      final duplicate = AdminDataService.instance.accounts.any(
         (item) =>
             item.id != account.id &&
             item.email.toLowerCase() == email.toLowerCase(),
@@ -385,7 +385,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         ),
       );
       if (confirmed == true && mounted) {
-        MockAdminData.instance.updateAccount(account.copyWith(email: email));
+        AdminDataService.instance.updateAccount(account.copyWith(email: email));
         showAdminMessage(context, 'Đã cập nhật email.', 'Email updated.');
       }
     } finally {
@@ -464,7 +464,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           'Passwords do not match.',
         );
       } else {
-        MockAdminData.instance.updateAccount(
+        AdminDataService.instance.updateAccount(
           account.copyWith(password: result.$2),
         );
         showAdminMessage(context, 'Đã đổi mật khẩu.', 'Password changed.');
@@ -559,7 +559,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    MockAdminData.instance.recordActivity(
+    AdminDataService.instance.recordActivity(
       action: 'Đăng xuất',
       target: widget.user.username,
       description: 'Tài khoản Admin đăng xuất.',

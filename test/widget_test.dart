@@ -357,7 +357,6 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: LecturerGroupDetailScreen(
-          course: original,
           group: MockLecturerGroups.groups.first,
         ),
       ),

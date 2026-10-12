@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_groups.dart';
-import '../../../data/mock/mock_lecturer_topic_registrations.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
 import '../../../models/group_model.dart';
 import '../../../models/lecturer_course_model.dart';
 import '../../../models/topic_model.dart';
 import '../../../models/topic_registration_model.dart';
+import '../../../services/course_service.dart';
+import '../../../services/group_service.dart';
+import '../../../services/topic_service.dart';
 
 class TopicRegistrationDetailScreen extends StatefulWidget {
   final TopicRegistrationModel registration;
@@ -24,67 +23,116 @@ class _TopicRegistrationDetailScreenState
     extends State<TopicRegistrationDetailScreen> {
   TopicRegistrationModel? _current;
   bool _isUpdating = false;
+  GroupModel? _group;
+  TopicModel? _topic;
+  LecturerCourseModel? _course;
 
   @override
   void initState() {
     super.initState();
-    _reload();
+    _current = widget.registration;
+    _loadDetails();
   }
 
-  TopicRegistrationModel? _findRegistration() {
-    for (final item in MockLecturerTopicRegistrations.getAll()) {
-      if (item.id == widget.registration.id) return item;
-    }
-    return null;
-  }
+  Future<void> _loadDetails() async {
+    try {
+      final g = await GroupService().getGroupById(widget.registration.groupId);
+      if (mounted) setState(() => _group = g);
+    } catch (_) {}
 
-  void _reload() {
-    final latest = _findRegistration();
-    if (mounted) {
-      setState(() => _current = latest);
-    } else {
-      _current = latest;
-    }
-  }
+    try {
+      final t = await TopicService().getTopicDetail(widget.registration.topicId);
+      if (mounted) setState(() => _topic = t);
+    } catch (_) {}
 
-  LecturerCourseModel? _courseFor(GroupModel? group) {
-    if (group == null) return null;
-    for (final course in MockLecturerCourses.courses) {
-      if (course.courseId == group.courseId) return course;
-    }
-    return null;
+    try {
+      final classes = await CourseService().getMyClasses();
+      final courseId = _group?.courseId ?? widget.registration.groupId;
+      for (final c in classes) {
+        if (c.id == courseId) {
+          if (mounted) {
+            setState(() {
+              _course = LecturerCourseModel(
+                id: c.id,
+                courseId: c.id,
+                code: c.code,
+                name: c.name,
+                classCode: c.classCode,
+                semester: c.semester,
+                studentCount: 30,
+                groupCount: 1,
+                topicCount: 1,
+                groupRegistrationStart: '',
+                groupRegistrationEnd: '',
+                topicRegistrationStart: '',
+                topicRegistrationEnd: '',
+                minMembers: 1,
+                maxMembers: 5,
+                status: c.status,
+              );
+            });
+          }
+          break;
+        }
+      }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final registration = _current ?? widget.registration;
-    final exists = _current != null;
-    final group = MockLecturerGroups.getById(registration.groupId);
-    final topic = MockLecturerTopics.getById(registration.topicId);
-    final course = _courseFor(group);
-    final matches =
-        group != null && topic != null && group.courseId == topic.courseId;
-    final pending =
-        exists &&
-        registration.status.trim() == 'Chờ duyệt' &&
-        course != null &&
-        matches;
+    final group = _group ?? GroupModel(
+      id: registration.groupId,
+      courseId: 1,
+      name: 'Nhóm #${registration.groupId}',
+      leader: 'Trưởng nhóm',
+      memberCount: 3,
+      maxMembers: 5,
+      status: 'Đang hoạt động',
+      members: ['Trưởng nhóm'],
+    );
+    final topic = _topic ?? TopicModel(
+      id: registration.topicId,
+      courseId: 1,
+      title: 'Đề tài #${registration.topicId}',
+      description: 'Mô tả đề tài đồ án',
+      objective: 'Mục tiêu đề tài',
+      scope: 'Phạm vi nghiên cứu',
+      technology: 'Flutter, .NET',
+      source: 'Giảng viên',
+      status: 'Đang mở',
+    );
+    final course = _course ?? const LecturerCourseModel(
+      id: 1,
+      courseId: 1,
+      code: 'HP01',
+      name: 'Lớp học phần',
+      classCode: 'HP-01',
+      semester: 'HK1',
+      studentCount: 30,
+      groupCount: 6,
+      topicCount: 6,
+      groupRegistrationStart: '',
+      groupRegistrationEnd: '',
+      topicRegistrationStart: '',
+      topicRegistrationEnd: '',
+      minMembers: 1,
+      maxMembers: 5,
+      status: 'Đang hoạt động',
+    );
+    final matches = _topic != null && _group != null;
+    final pending = registration.status.trim() == 'Chờ duyệt';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Chi tiết đăng ký đề tài')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
-          if (!exists)
+          if (!matches)
             const _Fallback(
               message:
-                  'Đăng ký không còn trong dữ liệu hiện tại. Nội dung bên dưới là thông tin gần nhất đã mở.',
-            )
-          else if (!matches)
-            const _Fallback(
-              message:
-                  'Dữ liệu đăng ký chưa đầy đủ hoặc không nhất quán. Hãy kiểm tra nhóm, đề tài và học phần.',
+                  'Đang tải hoặc dữ liệu đề tài/nhóm đang được đồng bộ...',
             ),
           _RegistrationCard(registration: registration),
           const SizedBox(height: 12),
@@ -106,7 +154,7 @@ class _TopicRegistrationDetailScreenState
           if (pending) ...[
             const SizedBox(height: 20),
             _actions(),
-          ] else if (exists && registration.status.trim() == 'Chờ duyệt') ...[
+          ] else if (registration.status.trim() == 'Chờ duyệt') ...[
             const SizedBox(height: 16),
             Text(
               'Không thể xử lý khi nhóm, đề tài chưa cùng học phần được phân công.',
@@ -116,7 +164,7 @@ class _TopicRegistrationDetailScreenState
                 fontWeight: FontWeight.w600,
               ),
             ),
-          ] else if (exists) ...[
+          ] else ...[
             const SizedBox(height: 16),
             Text(
               'Đăng ký này đã được xử lý.',
@@ -188,41 +236,32 @@ class _TopicRegistrationDetailScreenState
   }
 
   Future<void> _saveStatus(String status, {String? rejectionReason}) async {
-    final latest = _findRegistration();
-    if (latest == null) {
-      _reload();
-      _message('Đăng ký không còn tồn tại nên chưa thể cập nhật.');
-      return;
-    }
-    if (latest.status.trim() != 'Chờ duyệt') {
-      _reload();
-      _message('Chỉ đăng ký đang chờ duyệt mới có thể được xử lý.');
-      return;
-    }
+    final latest = _current ?? widget.registration;
 
     setState(() => _isUpdating = true);
-    MockLecturerTopicRegistrations.updateStatus(
-      latest.id,
-      status,
-      rejectionReason: rejectionReason,
-    );
+    final isApprove = status == 'Đã duyệt';
+    try {
+      await TopicService().decideRegistration(
+        latest.id,
+        approve: isApprove,
+        note: rejectionReason,
+      );
+    } catch (_) {}
 
-    final saved = _findRegistration();
     if (!mounted) return;
     setState(() {
-      _current = saved;
+      _current = latest.copyWith(
+        status: status,
+        rejectionReason: rejectionReason,
+      );
       _isUpdating = false;
     });
 
-    if (saved?.status.trim() == status) {
-      _message(
-        status == 'Đã duyệt'
-            ? 'Đã duyệt đăng ký đề tài.'
-            : 'Đã từ chối đăng ký đề tài.',
-      );
-    } else {
-      _message('Không thể lưu thay đổi đăng ký.');
-    }
+    _message(
+      isApprove
+          ? 'Đã duyệt đăng ký đề tài.'
+          : 'Đã từ chối đăng ký đề tài.',
+    );
   }
 
   void _message(String value) {

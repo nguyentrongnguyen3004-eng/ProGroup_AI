@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_admin_data.dart';
+import '../../../services/admin_data_service.dart';
 import '../../admin/admin_helpers.dart';
 
 class AdminActivityLogScreen extends StatefulWidget {
@@ -23,9 +23,9 @@ class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: MockAdminData.instance,
+    animation: AdminDataService.instance,
     builder: (context, _) {
-      final all = MockAdminData.instance.activities;
+      final all = AdminDataService.instance.activities;
       final actions = all.map((item) => item.action).toSet().toList()..sort();
       final entries = all.where((item) {
         final q = _query.text.trim().toLowerCase();
@@ -101,7 +101,7 @@ class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
                           value: 'Tất cả',
                           child: Text(adminText('Tất cả', 'All')),
                         ),
-                        for (final role in MockAdminData.roles)
+                        for (final role in AdminDataService.roles)
                           DropdownMenuItem<String>(
                             value: role,
                             child: Text(adminRoleText(role)),

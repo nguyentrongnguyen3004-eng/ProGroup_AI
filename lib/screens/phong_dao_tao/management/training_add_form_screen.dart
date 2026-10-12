@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_training_data.dart';
+import '../../../services/training_data_service.dart';
 import '../../../models/course_model.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
@@ -58,7 +58,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
       : null;
 
   List<String> get _statusOptions {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     final Iterable<String> values = switch (widget.kind) {
       TrainingDataKind.students => data.students.map((item) => item.status),
       TrainingDataKind.lecturers => data.lecturerStatuses.values,
@@ -90,7 +90,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
   @override
   void initState() {
     super.initState();
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     final existingStatus = switch (widget.kind) {
       TrainingDataKind.students => _existingStudent?.status,
       TrainingDataKind.lecturers =>
@@ -141,7 +141,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
     }
   }
 
-  String _initialStatus(MockTrainingData data) {
+  String _initialStatus(TrainingDataService data) {
     final statuses = switch (widget.kind) {
       TrainingDataKind.students => data.students.map((item) => item.status),
       TrainingDataKind.lecturers => data.lecturerStatuses.values,
@@ -168,7 +168,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     final code = _codeController.text.trim();
     final duplicateMessage = _duplicateMessage(data, code);
     if (duplicateMessage != null) {
@@ -262,7 +262,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
     messenger.showSnackBar(SnackBar(content: Text(_successMessage)));
   }
 
-  String? _duplicateMessage(MockTrainingData data, String code) {
+  String? _duplicateMessage(TrainingDataService data, String code) {
     final normalized = code.toLowerCase();
     if (_isStudent &&
         data.students.any(
@@ -430,7 +430,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = MockTrainingData.instance;
+    final data = TrainingDataService.instance;
     return Scaffold(
       appBar: AppBar(title: Text(_title)),
       body: Form(

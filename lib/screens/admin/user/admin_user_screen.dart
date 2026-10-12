@@ -1,248 +1,223 @@
-import 'package:flutter/material.dart';
-
-import '../../../data/mock/mock_admin_data.dart';
-import '../../../models/admin_account_model.dart';
-import '../../admin/admin_helpers.dart';
-import '../activity/admin_activity_log_screen.dart';
-import '../role/admin_role_screen.dart';
-import 'admin_user_detail_screen.dart';
-import 'admin_user_form_screen.dart';
+﻿import 'package:flutter/material.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../services/admin_service.dart';
 
 class AdminUserScreen extends StatefulWidget {
-  const AdminUserScreen({super.key, required this.currentAdminId});
-  final int currentAdminId;
+  final int? currentAdminId;
+  const AdminUserScreen({super.key, this.currentAdminId});
 
   @override
   State<AdminUserScreen> createState() => _AdminUserScreenState();
 }
 
 class _AdminUserScreenState extends State<AdminUserScreen> {
-  final _searchController = TextEditingController();
-  String _role = 'Tất cả';
-  String _status = 'Tất cả';
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _users = [];
+  String _searchQuery = '';
+  String _selectedRole = 'Tất cả';
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchUsers();
   }
 
-  Future<void> _addAccount() async {
-    final saved = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => const AdminUserFormScreen()),
-    );
-    if (saved == true && mounted) {
-      showAdminMessage(context, 'Đã thêm tài khoản.', 'Account added.');
+  Future<void> _fetchUsers() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await AdminService().getUsers();
+      if (mounted) {
+        setState(() {
+          _users = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
-  Future<void> _openAccount(AdminAccountModel account) async {
-    final changed = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminUserDetailScreen(
-          accountId: account.id,
-          currentAdminId: widget.currentAdminId,
-        ),
+  Future<void> _toggleUserStatus(int id, bool currentStatus, String name) async {
+    final nextStatus = !currentStatus;
+    final actionText = nextStatus ? 'Mở khóa' : 'Khóa';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$actionText tài khoản'),
+        content: Text('Bạn có chắc chắn muốn $actionText tài khoản của $name?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: nextStatus ? Colors.green : Colors.red,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(actionText),
+          ),
+        ],
       ),
     );
-    if (changed == true && mounted) {
-      showAdminMessage(context, 'Đã xóa tài khoản.', 'Account deleted.');
+
+    if (confirm == true) {
+      try {
+        await AdminService().updateUserStatus(id, nextStatus);
+        _fetchUsers();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Đã $actionText tài khoản thành công!'),
+            backgroundColor: nextStatus ? Colors.green : Colors.orange,
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ));
+        }
+      }
     }
+  }
+
+  List<Map<String, dynamic>> get _filteredUsers {
+    return _users.where((u) {
+      if (_selectedRole != 'Tất cả' && u['role'] != _selectedRole) return false;
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final name = (u['hoTen'] ?? '').toString().toLowerCase();
+        final username = (u['tenDangNhap'] ?? '').toString().toLowerCase();
+        final email = (u['email'] ?? '').toString().toLowerCase();
+        if (!name.contains(query) && !username.contains(query) && !email.contains(query)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = MockAdminData.instance;
-    return AnimatedBuilder(
-      animation: data,
-      builder: (context, _) {
-        final accounts = data.filterAccounts(
-          query: _searchController.text,
-          role: _role,
-          status: _status,
-        );
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(adminText('Quản lý người dùng', 'User management')),
-            actions: [
-              PopupMenuButton<String>(
-                onSelected: (value) => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => value == 'roles'
-                        ? const AdminRoleScreen()
-                        : const AdminActivityLogScreen(),
-                  ),
-                ),
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'roles',
-                    child: Text(
-                      adminText('Quản lý vai trò', 'Role management'),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'activity',
-                    child: Text(adminText('Nhật ký hoạt động', 'Activity log')),
-                  ),
-                ],
-              ),
-            ],
+    final colors = Theme.of(context).colorScheme;
+    final users = _filteredUsers;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.text('Quản Lý Người Dùng', en: 'User Management')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchUsers,
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: _addAccount,
-            icon: const Icon(Icons.person_add_alt_1),
-            label: Text(adminText('Thêm người dùng', 'Add user')),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm theo tên, username, email...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val),
+            ),
           ),
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    hintText: adminText(
-                      'Tìm họ tên, username, email, mã...',
-                      'Search name, username, email, code...',
-                    ),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: _searchController.text.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {});
-                            },
-                            icon: const Icon(Icons.clear),
-                          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: ['Tất cả', 'ADMIN', 'GIANGVIEN', 'SINHVIEN', 'GIAOVUKHOA', 'PHONGDAOTAO'].map((role) {
+                final isSelected = _selectedRole == role;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(role),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) setState(() => _selectedRole = role);
+                    },
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _role,
-                        decoration: InputDecoration(
-                          labelText: adminText('Vai trò', 'Role'),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : users.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Không có người dùng nào phù hợp.',
+                          style: TextStyle(color: colors.onSurfaceVariant),
                         ),
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: 'Tất cả',
-                            child: Text(
-                              adminText('Tất cả vai trò', 'All roles'),
-                            ),
-                          ),
-                          for (final role in MockAdminData.roles)
-                            DropdownMenuItem<String>(
-                              value: role,
-                              child: Text(adminRoleText(role)),
-                            ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) setState(() => _role = value);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _status,
-                        decoration: InputDecoration(
-                          labelText: adminText('Trạng thái', 'Status'),
-                        ),
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: 'Tất cả',
-                            child: Text(
-                              adminText('Tất cả trạng thái', 'All statuses'),
-                            ),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: MockAdminData.activeStatus,
-                            child: Text(
-                              adminStatusText(MockAdminData.activeStatus),
-                            ),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: MockAdminData.lockedStatus,
-                            child: Text(
-                              adminStatusText(MockAdminData.lockedStatus),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) setState(() => _status = value);
-                        },
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: adminText('Đặt lại bộ lọc', 'Reset filters'),
-                      onPressed: () => setState(() {
-                        _role = 'Tất cả';
-                        _status = 'Tất cả';
-                        _searchController.clear();
-                      }),
-                      icon: const Icon(Icons.filter_alt_off_outlined),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: accounts.isEmpty
-                    ? adminEmptyState(
-                        context,
-                        'Không tìm thấy tài khoản phù hợp.',
-                        'No matching accounts found.',
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
-                        itemCount: accounts.length,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: users.length,
                         itemBuilder: (context, index) {
-                          final account = accounts[index];
-                          final locked =
-                              account.status == MockAdminData.lockedStatus;
+                          final user = users[index];
+                          final id = user['nguoiDungId'] as int;
+                          final hoTen = user['hoTen'] as String? ?? '';
+                          final username = user['tenDangNhap'] as String? ?? '';
+                          final email = user['email'] as String? ?? '';
+                          final roleName = user['roleName'] as String? ?? user['role'] ?? '';
+                          final isActive = user['trangThai'] as bool? ?? true;
+
                           return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
+                            ),
                             child: ListTile(
-                              leading: adminAvatar(context, account),
-                              title: Text(
-                                account.fullName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Text(
-                                '${account.username} · ${account.email}\n${account.userCode} · ${adminRoleText(account.role)}',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              isThreeLine: true,
-                              trailing: Chip(
-                                avatar: Icon(
-                                  locked
-                                      ? Icons.lock_outline
-                                      : Icons.check_circle_outline,
-                                  size: 16,
+                              leading: CircleAvatar(
+                                backgroundColor: colors.primaryContainer,
+                                child: Text(
+                                  hoTen.isNotEmpty ? hoTen[0].toUpperCase() : 'U',
+                                  style: TextStyle(color: colors.onPrimaryContainer, fontWeight: FontWeight.bold),
                                 ),
-                                label: Text(adminStatusText(account.status)),
-                                visualDensity: VisualDensity.compact,
                               ),
-                              onTap: () => _openAccount(account),
+                              title: Text(hoTen, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('$username • $email'),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: colors.secondaryContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      roleName,
+                                      style: TextStyle(fontSize: 11, color: colors.onSecondaryContainer),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              trailing: IconButton(
+                                icon: Icon(
+                                  isActive ? Icons.lock_open : Icons.lock,
+                                  color: isActive ? Colors.green : Colors.red,
+                                ),
+                                tooltip: isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
+                                onPressed: () => _toggleUserStatus(id, isActive, hoTen),
+                              ),
                             ),
                           );
                         },
                       ),
-              ),
-            ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

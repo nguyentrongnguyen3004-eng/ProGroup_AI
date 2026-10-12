@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_admin_data.dart';
-import '../../../data/mock/mock_groups.dart';
-import '../../../data/mock/mock_training_data.dart';
 import '../../../models/admin_account_model.dart';
 import '../../../models/course_model.dart';
 import '../../../models/group_model.dart';
 import '../../../models/training_subject_model.dart';
+import '../../../services/admin_data_service.dart';
+import '../../../services/group_service.dart';
+import '../../../services/training_data_service.dart';
 import '../../admin/admin_helpers.dart';
 import 'admin_data_management_screen.dart';
 
@@ -27,7 +27,7 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
   String _query = '';
 
   List<_Record> _records() {
-    final training = MockTrainingData.instance;
+    final training = TrainingDataService.instance;
     return switch (widget.type) {
       AdminDataType.students =>
         training.students
@@ -54,9 +54,9 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
       AdminDataType.courseClasses =>
         training.courseClasses.map((item) => _course(item)).toList(),
       AdminDataType.groups =>
-        MockGroups.groups.map((item) => _group(item)).toList(),
+        GroupService.groups.map((item) => _group(item)).toList(),
       AdminDataType.accounts =>
-        MockAdminData.instance.accounts.map((item) => _account(item)).toList(),
+        AdminDataService.instance.accounts.map((item) => _account(item)).toList(),
     };
   }
 
@@ -84,8 +84,8 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: Listenable.merge([
-      MockTrainingData.instance,
-      MockAdminData.instance,
+      TrainingDataService.instance,
+      AdminDataService.instance,
     ]),
     builder: (context, _) {
       final records = _records()

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_groups.dart';
-import '../../../data/mock/mock_topic_registrations.dart';
-import '../../../data/mock/mock_user.dart';
 import '../../../models/course_model.dart';
 import '../../../models/group_model.dart';
 import '../../../models/topic_model.dart';
 import '../../../models/topic_registration_model.dart';
+import '../../../services/group_service.dart';
+import '../../../services/topic_service.dart';
 
 class TopicDetailScreen extends StatefulWidget {
   final TopicModel topic;
@@ -24,34 +23,70 @@ class TopicDetailScreen extends StatefulWidget {
 }
 
 class _TopicDetailScreenState extends State<TopicDetailScreen> {
-  GroupModel? get currentGroup {
-    try {
-      return MockGroups.groups.firstWhere(
-        (group) =>
-            group.courseId == widget.course.id &&
-            group.members.contains(MockUser.student.fullName),
-      );
-    } catch (_) {
-      return null;
-    }
+  GroupModel? _currentGroup;
+  TopicRegistrationModel? _currentRegistration;
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGroupAndRegistration();
   }
 
-  TopicRegistrationModel? get currentRegistration {
-    final group = currentGroup;
+  Future<void> _loadGroupAndRegistration() async {
+    setState(() => _isLoading = true);
+    try {
+      final myGroups = await GroupService().getMyGroups();
+      GroupModel? matchedGroup;
+      for (final g in myGroups) {
+        if (g.courseId == widget.course.id) {
+          matchedGroup = g;
+          break;
+        }
+      }
+      if (matchedGroup == null && myGroups.isNotEmpty) {
+        matchedGroup = myGroups.first;
+      }
 
-    if (group == null) {
-      return null;
+      TopicRegistrationModel? matchedReg;
+      try {
+        final regs = await TopicService().getTopicRegistrations();
+        for (final r in regs) {
+          final regTopicId = r['deTaiId'] ?? r['topicId'];
+          final regGroupId = r['nhomId'] ?? r['groupId'];
+          if (regTopicId == widget.topic.id && (matchedGroup == null || regGroupId == matchedGroup.id)) {
+            matchedReg = TopicRegistrationModel(
+              id: r['dangKyId'] ?? r['id'] ?? 1,
+              groupId: regGroupId ?? 1,
+              topicId: regTopicId ?? widget.topic.id,
+              status: r['trangThai'] ?? 'Chờ duyệt',
+              registeredAt: DateTime.tryParse(r['ngayDangKy']?.toString() ?? '') ?? DateTime.now(),
+              rejectionReason: r['ghiChu'],
+            );
+            break;
+          }
+        }
+      } catch (_) {}
+
+      if (mounted) {
+        setState(() {
+          _currentGroup = matchedGroup;
+          _currentRegistration = matchedReg;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    return MockTopicRegistrations.getByGroupAndTopic(group.id, widget.topic.id);
   }
 
   bool get isAvailable {
-    return widget.topic.status == 'Có thể đăng ký';
+    return widget.topic.status == 'Có thể đăng ký' || widget.topic.status.isEmpty;
   }
 
-  void _registerTopic() {
-    final group = currentGroup;
+  Future<void> _registerTopic() async {
+    final group = _currentGroup;
 
     if (group == null) {
       _showMessage(
@@ -63,12 +98,7 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       return;
     }
 
-    final existing = MockTopicRegistrations.getByGroupAndTopic(
-      group.id,
-      widget.topic.id,
-    );
-
-    if (existing != null) {
+    if (_currentRegistration != null) {
       _showMessage(
         AppLocalizations.text(
           'Nhóm đã gửi đăng ký đề tài này.',
@@ -78,34 +108,35 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       return;
     }
 
-    if (!isAvailable) {
+    setState(() => _isSubmitting = true);
+    try {
+      await TopicService().registerTopic(
+        periodId: widget.course.id,
+        groupId: group.id,
+        topicId: widget.topic.id,
+      );
+
+      setState(() {
+        _currentRegistration = TopicRegistrationModel(
+          id: DateTime.now().millisecondsSinceEpoch,
+          groupId: group.id,
+          topicId: widget.topic.id,
+          status: 'Chờ duyệt',
+          registeredAt: DateTime.now(),
+        );
+        _isSubmitting = false;
+      });
+
       _showMessage(
         AppLocalizations.text(
-          'Đề tài hiện không thể đăng ký.',
-          en: 'This topic is currently unavailable.',
+          'Đã gửi yêu cầu đăng ký đề tài.',
+          en: 'Topic registration request submitted.',
         ),
       );
-      return;
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      _showMessage('Lỗi khi đăng ký đề tài: ${e.toString()}');
     }
-
-    final registration = TopicRegistrationModel(
-      id: DateTime.now().millisecondsSinceEpoch,
-      groupId: group.id,
-      topicId: widget.topic.id,
-      status: 'Chờ duyệt',
-      registeredAt: DateTime.now(),
-    );
-
-    MockTopicRegistrations.add(registration);
-
-    setState(() {});
-
-    _showMessage(
-      AppLocalizations.text(
-        'Đã gửi yêu cầu đăng ký đề tài.',
-        en: 'Topic registration request submitted.',
-      ),
-    );
   }
 
   void _showMessage(String message) {
@@ -118,10 +149,8 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
     switch (status) {
       case 'Đã duyệt':
         return const Color(0xFF16A36C);
-
       case 'Từ chối':
         return const Color(0xFFE55353);
-
       case 'Chờ duyệt':
       default:
         return const Color(0xFFF59E0B);
@@ -130,8 +159,8 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final group = currentGroup;
-    final registration = currentRegistration;
+    final group = _currentGroup;
+    final registration = _currentRegistration;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FC),
@@ -143,25 +172,23 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
           AppLocalizations.text('Chi tiết đề tài', en: 'Topic details'),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTopicHeader(),
-            const SizedBox(height: 16),
-
-            _buildInfoCard(),
-
-            const SizedBox(height: 16),
-
-            if (registration != null && group != null)
-              _buildRegistrationCard(registration, group),
-
-            if (registration == null) _buildRegistrationSection(group),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTopicHeader(),
+                  const SizedBox(height: 16),
+                  _buildInfoCard(),
+                  const SizedBox(height: 16),
+                  if (registration != null && group != null)
+                    _buildRegistrationCard(registration, group),
+                  if (registration == null) _buildRegistrationSection(group),
+                ],
+              ),
+            ),
     );
   }
 
@@ -270,20 +297,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       );
     }
 
-    if (!isAvailable) {
-      return _buildNoticeCard(
-        icon: Icons.lock_outline,
-        title: AppLocalizations.text(
-          'Đề tài không khả dụng',
-          en: 'Topic unavailable',
-        ),
-        message: AppLocalizations.text(
-          'Đề tài này hiện không mở đăng ký.',
-          en: 'This topic is currently unavailable for registration.',
-        ),
-      );
-    }
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -311,7 +324,7 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: _registerTopic,
+              onPressed: _isSubmitting ? null : _registerTopic,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3157D5),
                 foregroundColor: Colors.white,
@@ -320,10 +333,12 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: Text(
-                AppLocalizations.text('Đăng ký đề tài', en: 'Register topic'),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+              child: _isSubmitting
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      AppLocalizations.text('Đăng ký đề tài', en: 'Register topic'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
             ),
           ),
         ],

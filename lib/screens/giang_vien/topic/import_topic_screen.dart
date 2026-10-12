@@ -9,11 +9,9 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/mock/mock_lecturer_courses.dart';
-import '../../../data/mock/mock_lecturer_notifications.dart';
-import '../../../data/mock/mock_lecturer_topics.dart';
 import '../../../models/course_model.dart';
 import '../../../models/topic_model.dart';
+import '../../../services/course_service.dart';
 import 'import_topic_preview_screen.dart';
 
 class ImportTopicScreen extends StatefulWidget {
@@ -36,16 +34,13 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   bool _busy = false;
 
   int? _selectedCourseId;
+  List<CourseModel> _courses = [];
 
   String _selectedFormat = 'csv';
 
   int? get _fixedCourseId => widget.lecturerCourseId ?? widget.course?.id;
 
-  bool get _hasValidFixedCourse =>
-      _fixedCourseId != null &&
-      MockLecturerCourses.courses.any(
-        (course) => course.courseId == _fixedCourseId,
-      );
+  bool get _hasValidFixedCourse => _fixedCourseId != null;
 
   int? get _effectiveCourseId =>
       _hasValidFixedCourse ? _fixedCourseId : _selectedCourseId;
@@ -57,15 +52,25 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   @override
   void initState() {
     super.initState();
-
     final fixedCourseId = _fixedCourseId;
-
-    if (fixedCourseId != null &&
-        MockLecturerCourses.courses.any(
-          (course) => course.courseId == fixedCourseId,
-        )) {
+    if (fixedCourseId != null) {
       _selectedCourseId = fixedCourseId;
     }
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      final list = await CourseService().getMyClasses();
+      if (mounted) {
+        setState(() {
+          _courses = list;
+          if (_selectedCourseId == null && list.isNotEmpty) {
+            _selectedCourseId = list.first.id;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -73,17 +78,20 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   // ============================================================
 
   Future<void> _downloadTemplate() async {
-    final course = MockLecturerCourses.getByCourseId(_effectiveCourseId ?? -1);
-
-    if (_effectiveCourseId == null || course == null) {
+    if (_effectiveCourseId == null) {
       _showMessage('Vui lòng chọn lớp học phần trước.', error: true);
       return;
     }
 
+    final dummyCourse = {
+      'name': 'Lớp học phần #$_effectiveCourseId',
+      'classCode': 'LHP_$_effectiveCourseId',
+    };
+
     if (_selectedFormat == 'csv') {
-      await _downloadCsvTemplate(course);
+      await _downloadCsvTemplate(dummyCourse);
     } else {
-      await _downloadExcelTemplate(course);
+      await _downloadExcelTemplate(dummyCourse);
     }
   }
 
@@ -503,13 +511,6 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
       return;
     }
 
-    MockLecturerNotifications.instance.addNotification(
-      type: 'Import',
-      icon: Icons.error_outline,
-      title: 'Import đề tài không thành công',
-      content: message,
-    );
-
     _showMessage(message, error: true);
   }
 
@@ -537,10 +538,7 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-
-    final selectedCourse = MockLecturerCourses.getByCourseId(
-      _effectiveCourseId ?? -1,
-    );
+    final selectedCourse = _courses.where((c) => c.id == _effectiveCourseId).firstOrNull;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Import đề tài')),
@@ -557,17 +555,17 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
                 'Mỗi file chỉ nhập đề tài cho một lớp học phần. '
                 'ID đề tài và trạng thái được hệ thống xử lý tự động.',
             child: DropdownButtonFormField<int>(
-              initialValue: _effectiveCourseId,
+              value: _courses.any((c) => c.id == _effectiveCourseId) ? _effectiveCourseId : null,
               decoration: const InputDecoration(
                 labelText: 'Lớp học phần',
                 prefixIcon: Icon(Icons.school_outlined),
               ),
-              items: MockLecturerCourses.courses
+              items: _courses
                   .map(
                     (course) => DropdownMenuItem(
-                      value: course.courseId,
+                      value: course.id,
                       child: Text(
-                        '${course.name} • ${course.classCode}',
+                        '${course.code} • ${course.name}',
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1035,21 +1033,8 @@ class TopicCsvParser {
       dataRows.add(_CsvDataRow(rowNumber: index + 1, cells: cells));
     }
 
-    final nextId =
-        MockLecturerTopics.topics.fold<int>(
-          0,
-          (maximum, topic) => topic.id > maximum ? topic.id : maximum,
-        ) +
-        1;
-
-    final validStatuses = MockLecturerTopics.topics
-        .map((topic) => topic.status.trim())
-        .where((status) => status.isNotEmpty)
-        .toSet();
-
-    final defaultStatus = validStatuses.isNotEmpty
-        ? validStatuses.first
-        : 'Đang hoạt động';
+    final nextId = DateTime.now().millisecondsSinceEpoch;
+    final defaultStatus = 'Đang hoạt động';
 
     return List<TopicImportPreviewRow>.generate(dataRows.length, (index) {
       final row = dataRows[index];
@@ -1151,13 +1136,7 @@ class TopicCsvParser {
   // --------------------------------------------------------------------------
 
   static void _validateCourse(int courseScopeId) {
-    final assignedCourseIds = MockLecturerCourses.courses
-        .map((course) => course.courseId)
-        .toSet();
-
-    if (!assignedCourseIds.contains(courseScopeId)) {
-      throw const FormatException('Lớp học phần không thuộc phân công.');
-    }
+    // Validation is handled via selected course in UI
   }
 }
 

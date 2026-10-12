@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-import 'package:progroup_ai_frontend/services/mock_service.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
 import 'package:progroup_ai_frontend/widgets/app_button.dart';
 import 'package:progroup_ai_frontend/widgets/app_text_field.dart';
 
@@ -21,7 +21,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   final confirmController = TextEditingController();
 
-  final service = MockService();
+  final service = AuthService();
 
   bool loading = false;
   bool obscurePassword = true;

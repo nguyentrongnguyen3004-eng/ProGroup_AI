@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/mock/mock_admin_data.dart';
+import '../../../services/admin_data_service.dart';
 import '../../../models/admin_account_model.dart';
 import '../../admin/admin_helpers.dart';
 
@@ -38,8 +38,8 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     _username = TextEditingController(text: account?.username ?? '');
     _email = TextEditingController(text: account?.email ?? '');
     _phone = TextEditingController(text: account?.phone ?? '');
-    _role = account?.role ?? MockAdminData.roles.first;
-    _status = account?.status ?? MockAdminData.activeStatus;
+    _role = account?.role ?? AdminDataService.roles.first;
+    _status = account?.status ?? AdminDataService.activeStatus;
   }
 
   @override
@@ -62,7 +62,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     final requiredError = _required(value);
     if (requiredError != null) return requiredError;
     final normalized = value!.trim().toLowerCase();
-    final duplicate = MockAdminData.instance.accounts.any((item) {
+    final duplicate = AdminDataService.instance.accounts.any((item) {
       if (item.id == widget.account?.id) return false;
       final current = switch (field) {
         'code' => item.userCode,
@@ -82,7 +82,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final data = MockAdminData.instance;
+    final data = AdminDataService.instance;
     final model = AdminAccountModel(
       id: widget.account?.id ?? 0,
       userCode: _code.text.trim(),
@@ -202,7 +202,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
               labelText: adminText('Vai trò *', 'Role *'),
             ),
             items: [
-              for (final role in MockAdminData.roles)
+              for (final role in AdminDataService.roles)
                 DropdownMenuItem(value: role, child: Text(adminRoleText(role))),
             ],
             onChanged: _self
@@ -219,11 +219,11 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
             ),
             items: [
               DropdownMenuItem(
-                value: MockAdminData.activeStatus,
+                value: AdminDataService.activeStatus,
                 child: Text(adminText('Đang hoạt động', 'Active')),
               ),
               DropdownMenuItem(
-                value: MockAdminData.lockedStatus,
+                value: AdminDataService.lockedStatus,
                 child: Text(adminText('Đã khóa', 'Locked')),
               ),
             ],

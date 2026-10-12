@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../../data/mock/mock_training_notifications.dart';
+import '../../../services/notification_service.dart';
 import '../home/training_overview_screen.dart';
 import '../management/training_data_management_screen.dart';
 import '../notification/training_notification_screen.dart';
@@ -27,7 +27,7 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final notifications = MockTrainingNotifications.instance;
+    final notifications = NotificationService.instance;
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
