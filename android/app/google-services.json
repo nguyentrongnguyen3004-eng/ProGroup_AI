@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "945804494730",
+    "project_id": "progroup-ai",
+    "storage_bucket": "progroup-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945804494730:android:ce69b16d519458e71aea73",
+        "android_client_info": {
+          "package_name": "com.example.progroup_ai_frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEpvhOBOGCdyplO0vCp5nNC111ix0g7m4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
