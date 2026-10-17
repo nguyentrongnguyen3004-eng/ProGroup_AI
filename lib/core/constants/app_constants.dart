@@ -8,7 +8,7 @@ class AppConstants {
   static const String apiBaseUrl = 'http://127.0.0.1:5094';
 
   static final String geminiApiKey = utf8.decode(
-      base64Decode('QVEuQWI4Uk42THlPcnUtX09jbXdyb1VYbnRDQ2VQaGVndVNnQ1JXUnMxRHZ3RkJwZHNfelE='));
+      base64Decode('QVEuQWI4Uk42THlQcnUtX09jbXdyb1VYbnRDQ2VQaGVndVNnQ1JXUnMxRHZ3RkJwZHNfelE='));
 
   static const String mockUsername = 'admin.demo';
 
