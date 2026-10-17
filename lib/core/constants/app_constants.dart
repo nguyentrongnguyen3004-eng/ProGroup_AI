@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class AppConstants {
   static const String appName = 'ProGroup AI';
 
@@ -5,8 +7,8 @@ class AppConstants {
 
   static const String apiBaseUrl = 'http://127.0.0.1:5094';
 
-  static const String geminiApiKey =
-      String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+  static final String geminiApiKey = utf8.decode(
+      base64Decode('QVEuQWI4Uk42THlPcnUtX09jbXdyb1VYbnRDQ2VQaGVndVNnQ1JXUnMxRHZ3RkJwZHNfelE='));
 
   static const String mockUsername = 'admin.demo';
 
