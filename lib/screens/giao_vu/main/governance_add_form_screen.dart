@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
+<<<<<<< HEAD
+=======
 import '../../../services/governance_data_service.dart';
+>>>>>>> origin/Frontend
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
+import '../../../services/admin_api_service.dart';
 
 enum GovernanceAddKind { student, lecturer }
 
@@ -31,6 +35,7 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
   final _facultyController = TextEditingController();
   final _departmentController = TextEditingController();
   late String _status;
+  bool _isSaving = false;
 
   bool get _isStudent => widget.kind == GovernanceAddKind.student;
   GovernanceStudentModel? get _existingStudent =>
@@ -43,6 +48,11 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
   bool get _isEdit => widget.existingData != null;
 
   List<String> get _statusOptions {
+<<<<<<< HEAD
+    return _isStudent
+        ? ['Đang học', 'Bảo lưu', 'Đã tốt nghiệp']
+        : ['Đang công tác', 'Nghỉ phép', 'Đã nghỉ việc'];
+=======
     final data = GovernanceDataService.instance;
     final values = _isStudent
         ? data.students.map((item) => item.status)
@@ -60,35 +70,31 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
       uniqueOptions.insert(0, selectedStatus);
     }
     return uniqueOptions;
+>>>>>>> origin/Frontend
   }
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
+=======
     final data = GovernanceDataService.instance;
+>>>>>>> origin/Frontend
     if (_isStudent) {
       final existing = _existingStudent;
       _codeController.text = existing?.studentCode ?? '';
       _nameController.text = existing?.fullName ?? '';
       _emailController.text = existing?.email ?? '';
       _classController.text = existing?.classCode ?? '';
-      _status =
-          existing?.status ??
-          (data.students.isEmpty ? 'Đang học' : data.students.first.status);
+      _status = existing?.status ?? 'Đang học';
     } else {
       final existing = _existingLecturer;
       _codeController.text = existing?.lecturerCode ?? '';
       _nameController.text = existing?.fullName ?? '';
       _emailController.text = existing?.email ?? '';
-      _facultyController.text =
-          existing?.faculty ??
-          (data.lecturers.isEmpty ? '' : data.lecturers.first.faculty);
+      _facultyController.text = existing?.faculty ?? '';
       _departmentController.text = existing?.department ?? '';
-      _status = existing != null
-          ? data.lecturerStatus(existing)
-          : (data.lecturers.isEmpty
-                ? 'Đang công tác'
-                : data.lecturerStatus(data.lecturers.first));
+      _status = 'Đang công tác';
     }
   }
 
@@ -103,112 +109,50 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isSaving) return;
 
+<<<<<<< HEAD
+    setState(() => _isSaving = true);
+=======
     final data = GovernanceDataService.instance;
+>>>>>>> origin/Frontend
     final code = _codeController.text.trim();
-    final duplicate = _isStudent
-        ? data.students.any(
-            (student) =>
-                student.id != _existingStudent?.id &&
-                student.studentCode.toLowerCase() == code.toLowerCase(),
-          )
-        : data.lecturers.any(
-            (lecturer) =>
-                lecturer.id != _existingLecturer?.id &&
-                lecturer.lecturerCode.toLowerCase() == code.toLowerCase(),
-          );
-    if (duplicate) {
-      _showMessage(
-        _isStudent
-            ? _text('Mã sinh viên đã tồn tại.', 'Student ID already exists.')
-            : _text('Mã giảng viên đã tồn tại.', 'Lecturer ID already exists.'),
-        error: true,
-      );
-      return;
-    }
-    final email = _emailController.text.trim().toLowerCase();
-    final duplicateEmail = _isStudent
-        ? data.students.any(
-            (student) =>
-                student.id != _existingStudent?.id &&
-                student.email.toLowerCase() == email,
-          )
-        : data.lecturers.any(
-            (lecturer) =>
-                lecturer.id != _existingLecturer?.id &&
-                lecturer.email.toLowerCase() == email,
-          );
-    if (duplicateEmail) {
-      _showMessage(
-        _text('Email đã tồn tại.', 'Email already exists.'),
-        error: true,
-      );
-      return;
-    }
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
 
-    if (_isStudent) {
-      final existing = _existingStudent;
-      final student = GovernanceStudentModel(
-        id: existing?.id ?? data.nextStudentId,
-        studentCode: code,
-        fullName: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        classCode: _classController.text.trim(),
-        status: _status,
-      );
-      if (existing == null) {
-        data.addStudents([student]);
-      } else {
-        data.updateStudent(student);
-      }
-    } else {
-      final existing = _existingLecturer;
-      final lecturer = LecturerModel(
-        id: existing?.id ?? data.nextLecturerId,
-        lecturerCode: code,
-        fullName: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        faculty: _facultyController.text.trim(),
-        department: _departmentController.text.trim(),
-        avatar: existing?.avatar ?? '',
-      );
-      if (existing == null) {
-        data.addLecturers([lecturer], statuses: {code: _status});
-      } else {
-        data.updateLecturer(lecturer, status: _status);
-      }
-    }
+    try {
+      await AdminApiService.instance.createUser({
+        'tenDangNhap': code,
+        'matKhau': '123456',
+        'hoTen': name,
+        'email': email,
+        'soDienThoai': '',
+        'maVaiTro': _isStudent ? 'SINHVIEN' : 'GIANGVIEN',
+        'trangThai': true,
+      });
 
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    navigator.pop(true);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          _isStudent
-              ? (_isEdit
-                    ? _text(
-                        'Cập nhật sinh viên thành công.',
-                        'Student updated successfully.',
-                      )
-                    : _text(
-                        'Thêm sinh viên thành công.',
-                        'Student added successfully.',
-                      ))
-              : (_isEdit
-                    ? _text(
-                        'Cập nhật giảng viên thành công.',
-                        'Lecturer updated successfully.',
-                      )
-                    : _text(
-                        'Thêm giảng viên thành công.',
-                        'Lecturer added successfully.',
-                      )),
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+      navigator.pop(true);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            _isStudent
+                ? _text('Thêm sinh viên thành công.', 'Student added successfully.')
+                : _text('Thêm giảng viên thành công.', 'Lecturer added successfully.'),
+          ),
+          backgroundColor: Colors.green,
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage(e.toString().replaceAll('Exception: ', ''), error: true);
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   void _showMessage(String message, {bool error = false}) {

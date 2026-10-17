@@ -19,6 +19,11 @@ class MockLecturer extends ChangeNotifier {
 
   static LecturerModel get current => _current;
 
+  static void setLecturer(LecturerModel model) {
+    _current = model;
+    instance.notifyListeners();
+  }
+
   static void updateEmail(String email) {
     _current = _current.copyWith(email: email);
     instance.notifyListeners();

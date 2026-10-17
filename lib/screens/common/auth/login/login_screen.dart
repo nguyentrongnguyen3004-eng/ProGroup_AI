@@ -117,29 +117,29 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             children: [
-              SizedBox(height: 45),
+              const SizedBox(height: 15),
 
               Container(
-                width: 82,
-                height: 82,
+                width: 76,
+                height: 76,
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(Icons.groups, color: Colors.white, size: 45),
+                child: const Icon(Icons.groups, color: Colors.white, size: 42),
               ),
 
-              SizedBox(height: 22),
+              const SizedBox(height: 16),
 
               Text(
                 AppConstants.appName,
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 
-              SizedBox(height: 8),
+              const SizedBox(height: 6),
 
               Text(
                 AppConstants.appSubtitle,
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(color: AppTheme.grayColor),
               ),
 
-              SizedBox(height: 45),
+              const SizedBox(height: 25),
 
               AppTextField(
                 controller: usernameController,
@@ -201,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              SizedBox(height: 15),
+              const SizedBox(height: 8),
 
               AppButton(
                 text: 'ĐĂNG NHẬP',
@@ -210,59 +210,63 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: login,
               ),
 
-              SizedBox(height: 25),
+              const SizedBox(height: 10),
 
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.blue.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.15)),
                 ),
                 child: Column(
                   children: [
                     Text(
                       AppLocalizations.text(
-                        'Tài khoản demo',
-                        en: 'Demo Account',
+                        'Tài khoản đăng nhập hệ thống (API)',
+                        en: 'System Login Accounts (API)',
                       ),
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
-                    SizedBox(height: 5),
-                    Text(
-                      AppLocalizations.text(
-                        'Sinh viên: sv001 / 123456',
-                        en: 'Student: sv001 / 123456',
-                      ),
-                    ),
-                    Text(
-                      AppLocalizations.text(
-                        'Giảng viên: gv001 / 123456',
-                        en: 'Lecturer: gv001 / 123456',
-                      ),
-                    ),
-                    Text(
-                      AppLocalizations.text(
-                        'Giáo vụ khoa: giaovu / 123456',
-                        en: 'Faculty staff: giaovu / 123456',
-                      ),
-                    ),
-                    Text(
-                      AppLocalizations.text(
-                        'Phòng đào tạo: daotao / 123456',
-                        en: 'Academic Affairs: daotao / 123456',
-                      ),
-                    ),
-                    Text(
-                      AppLocalizations.text(
-                        'Admin hệ thống: admin / 123456',
-                        en: 'System admin: admin / 123456',
-                      ),
-                    ),
+                    const SizedBox(height: 6),
+                    _buildAccountRow('Sinh viên', 'sv001', '123456', Icons.school),
+                    _buildAccountRow('Giảng viên', 'gv001', '123456', Icons.person_outline),
+                    _buildAccountRow('Giáo vụ khoa', 'gvk.demo', '123456', Icons.admin_panel_settings_outlined),
+                    _buildAccountRow('Phòng đào tạo', 'pdt.demo', '123456', Icons.domain),
+                    _buildAccountRow('Admin hệ thống', 'admin.demo', '123456', Icons.security),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountRow(String roleLabel, String user, String pass, IconData icon) {
+    return InkWell(
+      onTap: () {
+        usernameController.text = user;
+        passwordController.text = pass;
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 15, color: Colors.blue.shade700),
+            const SizedBox(width: 6),
+            Text('$roleLabel: ', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+            Expanded(
+              child: Text(
+                '$user / $pass',
+                style: TextStyle(color: Colors.blue.shade900, fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.touch_app_outlined, size: 13, color: Colors.grey),
+          ],
         ),
       ),
     );

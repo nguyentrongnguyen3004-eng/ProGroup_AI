@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
+<<<<<<< HEAD
+import '../../../core/settings/app_settings.dart';
+import '../../../services/admin_api_service.dart';
+import '../../../widgets/common/unified_role_bottom_nav.dart';
+=======
 import '../../../services/notification_service.dart';
+>>>>>>> origin/Frontend
 import '../home/training_overview_screen.dart';
 import '../management/training_data_management_screen.dart';
 import '../notification/training_notification_screen.dart';
@@ -16,7 +22,30 @@ class TrainingMainScreen extends StatefulWidget {
 
 class _TrainingMainScreenState extends State<TrainingMainScreen> {
   int _currentIndex = 0;
-  TrainingDataKind _selectedKind = TrainingDataKind.students;
+  int _unreadCount = 0;
+  TrainingDataKind _selectedKind = TrainingDataKind.courseClasses;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnread();
+  }
+
+  Future<void> _loadUnread() async {
+    try {
+      final list = await AdminApiService.instance.fetchNotifications();
+      if (!mounted) return;
+      setState(() {
+        _unreadCount = list.where((n) => n['isRead'] != true && n['daDoc'] != true).length;
+      });
+    } catch (_) {}
+  }
+
+  void _selectTab(int index) {
+    if (index < 0 || index >= 4 || index == _currentIndex) return;
+    setState(() => _currentIndex = index);
+    if (index == 2) _loadUnread();
+  }
 
   void _openManagement(TrainingDataKind kind) {
     setState(() {
@@ -27,6 +56,19 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+    return AnimatedBuilder(
+      animation: AppSettings.instance,
+      builder: (context, _) {
+        final lang = AppSettings.instance.language;
+
+        final navItems = [
+          UnifiedRoleNavItem(
+            label: AppLocalizations.text('Tổng quan', en: 'Overview'),
+            activeIcon: Icons.dashboard_rounded,
+            inactiveIcon: Icons.dashboard_rounded,
+            color: const Color(0xFF2563EB), // Blue
+=======
     final notifications = NotificationService.instance;
     return Scaffold(
       body: IndexedStack(
@@ -36,85 +78,54 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
           TrainingDataManagementScreen(
             key: ValueKey(_selectedKind),
             initialKind: _selectedKind,
+>>>>>>> origin/Frontend
           ),
-          const TrainingNotificationScreen(),
-          const TrainingProfileScreen(),
-        ],
-      ),
-      bottomNavigationBar: AnimatedBuilder(
-        animation: notifications,
-        builder: (context, _) => NavigationBar(
-          selectedIndex: _currentIndex,
-          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-          onDestinationSelected: (index) =>
-              setState(() => _currentIndex = index),
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.dashboard_outlined),
-              selectedIcon: const Icon(Icons.dashboard),
-              label: _text(context, 'Trang chủ', 'Home'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.dataset_outlined),
-              selectedIcon: const Icon(Icons.dataset),
-              label: _text(context, 'Quản lý', 'Management'),
-            ),
-            NavigationDestination(
-              icon: _NotificationIcon(notifications.unreadCount),
-              selectedIcon: _NotificationIcon(
-                notifications.unreadCount,
-                selected: true,
+          UnifiedRoleNavItem(
+            label: AppLocalizations.text('QL Đào tạo', en: 'Training'),
+            activeIcon: Icons.school_rounded,
+            inactiveIcon: Icons.school_rounded,
+            color: const Color(0xFF6366F1), // Indigo
+          ),
+          UnifiedRoleNavItem(
+            label: AppLocalizations.text('Thông báo', en: 'Notifications'),
+            activeIcon: Icons.notifications_rounded,
+            inactiveIcon: Icons.notifications_rounded,
+            color: const Color(0xFFF59E0B), // Amber
+            badgeCount: _unreadCount,
+          ),
+          UnifiedRoleNavItem(
+            label: AppLocalizations.text('Cá nhân', en: 'Profile'),
+            activeIcon: Icons.person_rounded,
+            inactiveIcon: Icons.person_rounded,
+            color: const Color(0xFF8B5CF6), // Purple
+          ),
+        ];
+
+        return Scaffold(
+          body: IndexedStack(
+            key: ValueKey('train_stack_$lang'),
+            index: _currentIndex,
+            children: [
+              TrainingOverviewScreen(
+                key: ValueKey('train_overview_$lang'),
+                onOpenManagement: _openManagement,
+                onOpenNotifications: () => _selectTab(2),
               ),
-              label: _text(context, 'Thông báo', 'Notifications'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.person_outline),
-              selectedIcon: const Icon(Icons.person),
-              label: _text(context, 'Cá nhân', 'Profile'),
-            ),
-          ],
-        ),
-      ),
+              TrainingDataManagementScreen(
+                key: ValueKey('train_data_${_selectedKind}_$lang'),
+                initialKind: _selectedKind,
+              ),
+              TrainingNotificationScreen(key: ValueKey('train_notif_$lang')),
+              TrainingProfileScreen(key: ValueKey('train_prof_$lang')),
+            ],
+          ),
+          bottomNavigationBar: UnifiedRoleBottomNav(
+            currentIndex: _currentIndex,
+            onChanged: _selectTab,
+            items: navItems,
+          ),
+        );
+      },
     );
   }
-}
-
-String _text(BuildContext context, String vi, String en) =>
-    AppLocalizations.text(vi, en: en);
-
-class _NotificationIcon extends StatelessWidget {
-  final int count;
-  final bool selected;
-
-  const _NotificationIcon(this.count, {this.selected = false});
-
-  @override
-  Widget build(BuildContext context) => Stack(
-    clipBehavior: Clip.none,
-    children: [
-      Icon(selected ? Icons.notifications : Icons.notifications_outlined),
-      if (count > 0)
-        Positioned(
-          top: -5,
-          right: -9,
-          child: Container(
-            constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.error,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              count > 9 ? '9+' : '$count',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onError,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-    ],
-  );
 }

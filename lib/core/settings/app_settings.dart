@@ -13,6 +13,8 @@ class AppSettings extends ChangeNotifier {
 
   String get language => _language;
 
+  Locale get locale => Locale(_language);
+
   bool get notificationsEnabled => _notificationsEnabled;
 
   bool get isEnglish => _language == 'en';

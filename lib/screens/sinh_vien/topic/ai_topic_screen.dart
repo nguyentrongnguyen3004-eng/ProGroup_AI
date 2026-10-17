@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+<<<<<<< HEAD
+import '../../../core/localization/app_localizations.dart';
+import '../../../models/course_model.dart';
+import '../../../models/lecturer_topic_suggestion_model.dart';
+import '../../../services/gemini_service.dart';
+import '../../../services/student_api_service.dart';
+import 'propose_topic_screen.dart';
+=======
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/models/topic_model.dart';
 import 'package:progroup_ai_frontend/services/topic_service.dart';
@@ -9,132 +18,81 @@ import 'package:progroup_ai_frontend/models/ai_topic_recommendation_model.dart';
 import 'package:progroup_ai_frontend/models/ai_topic_request_model.dart';
 import 'package:progroup_ai_frontend/services/ai_feedback_service.dart';
 import 'package:progroup_ai_frontend/services/ai_topic_recommendation_service.dart';
+>>>>>>> origin/Frontend
 
 class AiTopicScreen extends StatefulWidget {
+  final dynamic recommendationService;
+  final dynamic feedbackService;
+
   const AiTopicScreen({
     super.key,
-    this.recommendationService = const AiTopicRecommendationService(),
+    this.recommendationService,
     this.feedbackService,
   });
-
-  final AiTopicRecommendationService recommendationService;
-  final AiFeedbackService? feedbackService;
 
   @override
   State<AiTopicScreen> createState() => _AiTopicScreenState();
 }
 
 class _AiTopicScreenState extends State<AiTopicScreen> {
-  final _messageController = TextEditingController();
+  final _fieldController = TextEditingController();
   final _technologyController = TextEditingController();
-  final _scrollController = ScrollController();
-  late final AiFeedbackService _feedbackService;
+  final _keywordsController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _geminiService = const GeminiService();
 
-  final List<AiChatMessageModel> _messages = [
-    const AiChatMessageModel(
-      id: 0,
-      text:
-          'Xin chào! Mình có thể giúp bạn tìm đề tài phù hợp với môn học, lĩnh vực và định hướng của bạn. Hãy chọn tiêu chí hoặc gửi yêu cầu bằng tin nhắn.',
-      isUser: false,
-    ),
-  ];
+  List<CourseModel> _courses = [];
+  CourseModel? _selectedCourse;
+  List<LecturerTopicSuggestionModel> _suggestions = const [];
+  bool _loading = false;
+  bool _searched = false;
+  String? _error;
+  int _topicCount = 3;
 
-  final Map<String, List<String>> _learningModules = {
-    'Công nghệ thông tin': [
-      'Lập trình Web',
-      'Lập trình Mobile',
-      'Trí tuệ nhân tạo',
-      'Machine Learning',
-      'Cơ sở dữ liệu',
-      'Phân tích thiết kế hệ thống',
-      'Công nghệ phần mềm',
-      'IoT',
-      'Big Data',
-    ],
-    'Kinh tế - Kinh doanh': [
-      'Quản trị kinh doanh',
-      'Marketing',
-      'Tài chính - Ngân hàng',
-      'Kế toán',
-      'Thương mại điện tử',
-      'Kinh doanh quốc tế',
-    ],
-    'Kỹ thuật': [
-      'Cơ khí',
-      'Cơ điện tử',
-      'Điện - Điện tử',
-      'Tự động hóa',
-      'Công nghệ ô tô',
-      'Robot',
-    ],
-    'Công nghệ thực phẩm': [
-      'An toàn thực phẩm',
-      'Chế biến thực phẩm',
-      'Kiểm nghiệm thực phẩm',
-    ],
-  };
-
-  final List<String> _applicationFields = [
-    'Công nghệ thông tin',
-    'Kinh doanh',
-    'Marketing',
-    'Tài chính - Ngân hàng',
-    'Thực phẩm',
-    'Cơ khí',
-    'Cơ điện tử',
-    'Điện - Điện tử',
-    'Tự động hóa',
-    'Ô tô',
-    'Logistics',
-    'Nông nghiệp',
-    'Y tế',
-    'Giáo dục',
-    'Du lịch',
-    'Môi trường',
-    'Sản xuất',
+  final List<String> _quickFields = [
+    'Phần mềm Web',
+    'Ứng dụng Mobile',
+    'Trí tuệ nhân tạo (AI)',
+    'IoT & Thiết bị thông minh',
     'Thương mại điện tử',
-    'An toàn thông tin',
-    'Trí tuệ nhân tạo',
+    'Quản lý giáo dục / Y tế',
   ];
-
-  final List<String> _priorities = [
-    'Dễ triển khai',
-    'Tính thực tế',
-    'Tính sáng tạo',
-    'Có AI',
-    'Phù hợp thời gian',
-    'Phù hợp kỹ năng',
-    'Khả năng mở rộng',
-    'Phù hợp đồ án tốt nghiệp',
-    'Có thể phát triển thành sản phẩm',
-  ];
-
-  final List<String> _levels = ['Cơ bản', 'Trung bình', 'Nâng cao'];
-  final List<String> _platforms = ['Web', 'Mobile', 'Web + Mobile'];
-  final Set<String> _selectedModules = {};
-  final Set<String> _selectedFields = {};
-  final Set<String> _selectedPriorities = {};
-
-  String _selectedLevel = 'Trung bình';
-  String _selectedPlatform = 'Web';
-  String _conversationId = DateTime.now().microsecondsSinceEpoch.toString();
-  int _nextMessageId = 1;
-  bool _isTyping = false;
 
   @override
   void initState() {
     super.initState();
-    _feedbackService = widget.feedbackService ?? AiFeedbackService();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      final courses = await StudentApiService.instance.fetchMyCourses();
+      if (!mounted) return;
+      setState(() {
+        _courses = courses;
+        if (courses.isNotEmpty) {
+          _selectedCourse = courses.first;
+        }
+      });
+    } catch (_) {
+      // Fallback
+    }
   }
 
   @override
   void dispose() {
-    _messageController.dispose();
+    _fieldController.dispose();
     _technologyController.dispose();
-    _scrollController.dispose();
+    _keywordsController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
+<<<<<<< HEAD
+  Future<void> _generate() async {
+    final courseName = _selectedCourse?.name ?? 'Đồ án Chuyên ngành';
+    final classCode = _selectedCourse?.classCode ?? 'N01';
+=======
   AiTopicRequestModel _currentRequest(String message) {
     return AiTopicRequestModel(
       message: message,
@@ -175,736 +133,576 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
     final response = recommendations.isEmpty
         ? 'Hiện chưa có đề tài trong danh mục để đối chiếu. Bạn hãy thử điều chỉnh tiêu chí.'
         : 'Mình đã xếp hạng ${recommendations.length} đề tài theo tiêu chí bạn chọn. Điểm tổng hợp kết hợp 60% điểm tiêu chí và 40% độ tương đồng văn bản.';
+>>>>>>> origin/Frontend
 
     setState(() {
-      _isTyping = false;
-      _messages.add(
-        AiChatMessageModel(
-          id: _nextMessageId++,
-          text: response,
-          isUser: false,
-          recommendations: recommendations,
-          request: request,
-        ),
-      );
+      _loading = true;
+      _searched = true;
+      _error = null;
+      _suggestions = const [];
     });
-    _scrollToBottom();
-  }
 
-  Future<void> _showMultiSelectDialog({
-    required String title,
-    required List<String> options,
-    required Set<String> selected,
-  }) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.72,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        children: options.map((option) {
-                          return CheckboxListTile(
-                            value: selected.contains(option),
-                            title: Text(option),
-                            onChanged: (value) {
-                              setModalState(() {
-                                if (value == true) {
-                                  selected.add(option);
-                                } else {
-                                  selected.remove(option);
-                                }
-                              });
-                              setState(() {});
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          child: const Text('Xác nhận'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showModuleSelector() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.75,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'Module học tập',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        children: _learningModules.entries.map((entry) {
-                          return ExpansionTile(
-                            title: Text(entry.key),
-                            children: entry.value.map((module) {
-                              return CheckboxListTile(
-                                value: _selectedModules.contains(module),
-                                title: Text(module),
-                                onChanged: (value) {
-                                  setModalState(() {
-                                    if (value == true) {
-                                      _selectedModules.add(module);
-                                    } else {
-                                      _selectedModules.remove(module);
-                                    }
-                                  });
-                                  setState(() {});
-                                },
-                              );
-                            }).toList(),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          child: const Text('Xác nhận'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showAdvancedOptions() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  12,
-                  20,
-                  MediaQuery.viewInsetsOf(context).bottom + 24,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Tùy chỉnh đề xuất',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 20),
-                    const Text('Cấp độ kỹ thuật'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: _levels.map((level) {
-                        return ChoiceChip(
-                          label: Text(level),
-                          selected: _selectedLevel == level,
-                          onSelected: (_) {
-                            setModalState(() => _selectedLevel = level);
-                            setState(() {});
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text('Nền tảng'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: _platforms.map((platform) {
-                        return ChoiceChip(
-                          label: Text(platform),
-                          selected: _selectedPlatform == platform,
-                          onSelected: (_) {
-                            setModalState(() => _selectedPlatform = platform);
-                            setState(() {});
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _technologyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Công nghệ mong muốn',
-                        hintText: 'Flutter, ASP.NET Core, Python...',
-                        prefixIcon: Icon(Icons.code),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => Navigator.pop(sheetContext),
-                        child: const Text('Lưu tùy chỉnh'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showFeedbackDialog(AiChatMessageModel message) async {
-    const reasons = [
-      'Không đúng lĩnh vực',
-      'Không đúng mức độ',
-      'Không đúng nền tảng',
-      'Thiếu thông tin',
-      'Đề tài không thực tế',
-      'Khác',
-    ];
-    String? selectedReason;
-    final commentController = TextEditingController();
-    final result = await showDialog<(String, String?)>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Điều gì chưa phù hợp?'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ...reasons.map((reason) {
-                      return RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(reason),
-                        value: reason,
-                        groupValue: selectedReason,
-                        onChanged: (value) =>
-                            setDialogState(() => selectedReason = value),
-                      );
-                    }),
-                    if (selectedReason == 'Khác')
-                      TextField(
-                        controller: commentController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Mô tả thêm',
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Hủy'),
-                ),
-                FilledButton(
-                  onPressed: selectedReason == null
-                      ? null
-                      : () => Navigator.pop(
-                            dialogContext,
-                            (selectedReason!, commentController.text.trim()),
-                          ),
-                  child: const Text('Gửi nhận xét'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    commentController.dispose();
-    if (result == null || !mounted) return;
-    await _saveFeedback(
-      message,
-      helpful: false,
-      reason: result.$1,
-      comment: result.$2,
-    );
-  }
-
-  Future<void> _saveFeedback(
-    AiChatMessageModel message, {
-    required bool helpful,
-    String? reason,
-    String? comment,
-  }) async {
-    if (message.request == null) return;
-    final index = _messages.indexWhere((item) => item.id == message.id);
-    if (index < 0 || _messages[index].helpful != null) return;
-
-    setState(() {
-      _messages[index] = _messages[index].copyWith(
-        helpful: helpful,
-        feedbackReason: reason,
+    try {
+      final suggestions = await _geminiService.generateTopicSuggestions(
+        courseName: courseName,
+        classCode: classCode,
+        field: _fieldController.text.trim(),
+        technology: _technologyController.text.trim(),
+        keywords: _keywordsController.text.trim(),
+        description: _descriptionController.text.trim(),
+        topicCount: _topicCount,
       );
-    });
-    await _feedbackService.submit(
-      AiFeedbackModel(
-        conversationId: _conversationId,
-        messageId: message.id,
-        userMessage: message.request!.message,
-        aiResponse: message.text,
-        request: message.request!,
-        helpful: helpful,
-        feedbackReason: reason,
-        comment: comment?.isEmpty == true ? null : comment,
-        createdAt: DateTime.now(),
-      ),
-    );
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cảm ơn bạn đã gửi phản hồi.')),
-      );
+
+      if (!mounted) return;
+      setState(() {
+        _suggestions = suggestions;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString().replaceAll('Exception:', '').trim();
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _useSuggestion(AiTopicRecommendationModel recommendation) {
-    final topic = recommendation.topic;
-    Navigator.pop(context, {
-      'title': topic.title,
-      'description': topic.description,
-      'objective': topic.objective,
-      'scope': topic.scope,
-      'technology': topic.technology,
-      'source': 'AI đề xuất',
-      'status': 'Chưa đăng ký',
-    });
-  }
-
-  void _showTopicDetail(AiTopicRecommendationModel recommendation) {
-    final topic = recommendation.topic;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(topic.title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 16),
-                _detailSection('Mô tả', topic.description),
-                _detailSection('Mục tiêu', topic.objective),
-                _detailSection('Phạm vi', topic.scope),
-                _detailSection('Công nghệ', topic.technology),
-                Text(
-                  'Điểm phù hợp: ${(recommendation.finalScore * 100).round()}%',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _useSuggestion(recommendation);
-                    },
-                    icon: const Icon(Icons.check),
-                    label: const Text('Dùng đề tài này'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _detailSection(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(value),
-        ],
+  void _useSuggestionForProposal(LecturerTopicSuggestionModel suggestion) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProposeTopicScreen(
+          initialValues: {
+            'title': suggestion.title,
+            'description': suggestion.description,
+            'objective': suggestion.objective,
+            'scope': suggestion.scope,
+            'technology': suggestion.technology,
+          },
+        ),
       ),
     );
   }
 
-  String _selectionSummary(Set<String> values, String empty) {
-    if (values.isEmpty) return empty;
-    if (values.length <= 2) return values.join(', ');
-    return '${values.take(2).join(', ')} +${values.length - 2}';
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  Future<void> _resetConversation() async {
-    setState(() {
-      _messages
-        ..clear()
-        ..add(
-          const AiChatMessageModel(
-            id: 0,
-            text:
-                'Xin chào! Mình có thể giúp bạn tìm đề tài phù hợp. Hãy chọn tiêu chí hoặc gửi yêu cầu bằng tin nhắn.',
-            isUser: false,
-          ),
-        );
-      _nextMessageId = 1;
-      _conversationId = DateTime.now().microsecondsSinceEpoch.toString();
-    });
-    _scrollToBottom();
+  void _copyToClipboard(LecturerTopicSuggestionModel suggestion) {
+    final text = '''
+Tên đề tài: ${suggestion.title}
+Mục tiêu: ${suggestion.objective}
+Phạm vi: ${suggestion.scope}
+Công nghệ: ${suggestion.technology}
+Mô tả: ${suggestion.description}
+''';
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã sao chép thông tin đề tài vào bộ nhớ tạm.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.text('ProGroup AI', en: 'ProGroup AI')),
+        title: Text(
+          AppLocalizations.text('AI Gợi ý đề tài', en: 'AI Topic Generator'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
-          IconButton(
-            onPressed: _resetConversation,
-            tooltip: 'Cuộc trò chuyện mới',
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
           Container(
-            margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            padding: const EdgeInsets.all(14),
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primaryContainer,
-                ],
+              color: const Color(0xFF10B981).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF10B981).withValues(alpha: 0.4),
               ),
-              borderRadius: BorderRadius.circular(14),
             ),
-            child: Row(
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Trợ lý tìm và phát triển đề tài',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF10B981)),
+                SizedBox(width: 5),
+                Text(
+                  'Gemini AI Live',
+                  style: TextStyle(
+                    color: Color(0xFF10B981),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                   ),
-                ),
-                IconButton(
-                  onPressed: _showAdvancedOptions,
-                  tooltip: 'Cấp độ, nền tảng và công nghệ',
-                  color: Colors.white,
-                  icon: const Icon(Icons.tune),
                 ),
               ],
             ),
           ),
-          _buildSelectors(),
-          _buildQuickActions(),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) => _buildMessage(_messages[index]),
-            ),
-          ),
-          if (_isTyping)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+        ],
+      ),
+      body: SafeArea(
+        bottom: true,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          children: [
+            // 1. AI Feature Hero Banner
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF4F46E5), // Indigo
+                    Color(0xFF7C3AED), // Violet
+                    Color(0xFF9333EA), // Purple
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
                   ),
-                  SizedBox(width: 8),
-                  Text('Đang xếp hạng đề tài...'),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Cố vấn Đề tài AI Sinh viên',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Nhập định hướng mong muốn, AI sẽ tạo danh sách đề tài chi tiết cho bạn.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          _buildInput(theme),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildSelectors() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _selectorButton(
-                  icon: Icons.school_outlined,
-                  title: 'Module học tập',
-                  value: _selectionSummary(
-                    _selectedModules,
-                    'Chọn module',
-                  ),
-                  onTap: _showModuleSelector,
+            const SizedBox(height: 16),
+
+            // 2. Input Form Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.5),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _selectorButton(
-                  icon: Icons.category_outlined,
-                  title: 'Lĩnh vực',
-                  value: _selectionSummary(_selectedFields, 'Chọn lĩnh vực'),
-                  onTap: () => _showMultiSelectDialog(
-                    title: 'Lĩnh vực ứng dụng',
-                    options: _applicationFields,
-                    selected: _selectedFields,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Lớp học phần
+                  if (_courses.isNotEmpty) ...[
+                    DropdownButtonFormField<CourseModel>(
+                      initialValue: _selectedCourse,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.text('Lớp học phần đang học', en: 'Enrolled Course Class'),
+                        prefixIcon: const Icon(Icons.school_rounded, color: Color(0xFF6366F1)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: _courses.map((course) {
+                        return DropdownMenuItem<CourseModel>(
+                          value: course,
+                          child: Text(
+                            '${course.name} • ${course.classCode}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setState(() => _selectedCourse = val),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // Lĩnh vực
+                  _buildInput(
+                    controller: _fieldController,
+                    label: 'Lĩnh vực nghiên cứu / bài toán thực tế',
+                    hintText: 'Ví dụ: Y tế, Giáo dục, Thương mại điện tử, Quản lý kho...',
+                    icon: Icons.category_rounded,
+                    iconColor: const Color(0xFF8B5CF6),
+                  ),
+
+                  // Chip gợi ý nhanh lĩnh vực
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: _quickFields.map((f) {
+                      final isSelected = _fieldController.text == f;
+                      return ActionChip(
+                        label: Text(f, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                        backgroundColor: isSelected ? const Color(0xFF8B5CF6) : null,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        onPressed: () {
+                          setState(() {
+                            _fieldController.text = f;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Công nghệ
+                  _buildInput(
+                    controller: _technologyController,
+                    label: 'Công nghệ dự kiến (Framework, Ngôn ngữ, Cloud)',
+                    hintText: 'Ví dụ: Flutter, React Native, Node.js, Spring Boot, AI, IoT...',
+                    icon: Icons.code_rounded,
+                    iconColor: const Color(0xFFF59E0B),
+                  ),
+
+                  // Từ khóa
+                  _buildInput(
+                    controller: _keywordsController,
+                    label: 'Từ khóa chính',
+                    hintText: 'Ví dụ: Tối ưu lộ trình, Nhận diện khuôn mặt, Đặt lịch hẹn...',
+                    icon: Icons.tag_rounded,
+                    iconColor: const Color(0xFF0284C7),
+                  ),
+
+                  // Mô tả nhu cầu
+                  _buildInput(
+                    controller: _descriptionController,
+                    label: 'Mô tả nhu cầu hoặc yêu cầu riêng của nhóm (tùy chọn)',
+                    hintText: 'Ví dụ: Muốn làm ứng dụng có tính năng thanh toán, đồ án 3 thành viên...',
+                    icon: Icons.notes_rounded,
+                    iconColor: const Color(0xFF10B981),
+                    maxLines: 2,
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Số lượng đề tài muốn gợi ý
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.format_list_numbered_rounded, size: 20, color: Color(0xFF4F46E5)),
+                          const SizedBox(width: 8),
+                          Text(
+                            AppLocalizations.text('Số lượng đề tài cần gợi ý:', en: 'Number of topics to suggest:'),
+                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [3, 5, 10].map((count) {
+                          final isSelected = _topicCount == count;
+                          return ChoiceChip(
+                            label: Text(
+                              '$count ${AppLocalizations.text('đề tài', en: 'topics')}',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? const Color(0xFF4F46E5) : null,
+                              ),
+                            ),
+                            selected: isSelected,
+                            selectedColor: const Color(0xFF4F46E5).withValues(alpha: 0.18),
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _topicCount = count);
+                              }
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Nút tạo gợi ý
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton.icon(
+                      onPressed: _loading ? null : _generate,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: _loading
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.auto_awesome_rounded),
+                      label: Text(
+                        _loading ? 'Gemini AI đang sinh $_topicCount đề tài...' : 'Tạo $_topicCount gợi ý đề tài với AI',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (_error != null) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: Colors.red),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          _selectorButton(
-            icon: Icons.flag_outlined,
-            title: 'Ưu tiên',
-            value: _selectionSummary(
-              _selectedPriorities,
-              'Chọn định hướng ưu tiên',
-            ),
-            onTap: () => _showMultiSelectDialog(
-              title: 'Định hướng ưu tiên',
-              options: _priorities,
-              selected: _selectedPriorities,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _selectorButton({
-    required IconData icon,
-    required String title,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        alignment: Alignment.centerLeft,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.expand_more, size: 18),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        scrollDirection: Axis.horizontal,
-        children: [
-          ActionChip(
-            avatar: const Icon(Icons.lightbulb_outline, size: 18),
-            label: const Text('Gợi ý đề tài'),
-            onPressed: () => _sendMessage(
-              'Hãy đề xuất 3 đề tài phù hợp với thông tin tôi đã chọn.',
-            ),
-          ),
-          const SizedBox(width: 8),
-          ActionChip(
-            avatar: const Icon(Icons.analytics_outlined, size: 18),
-            label: const Text('Phân tích đề tài'),
-            onPressed: () => _sendMessage(
-              'Hãy phân tích hướng đề tài phù hợp với tôi.',
-            ),
-          ),
-          const SizedBox(width: 8),
-          ActionChip(
-            avatar: const Icon(Icons.account_tree_outlined, size: 18),
-            label: const Text('Chức năng'),
-            onPressed: () => _sendMessage(
-              'Hãy gợi ý chức năng chính cho đề tài phù hợp.',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInput(ThemeData theme) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _messageController,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _sendMessage(),
-                decoration: InputDecoration(
-                  hintText: 'Nhập yêu cầu cho AI...',
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: BorderSide.none,
+            // 3. Danh sách kết quả gợi ý
+            if (_suggestions.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4F46E5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Danh sách đề tài AI gợi ý (${_suggestions.length})',
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF10B981)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Google Gemini',
+                          style: TextStyle(
+                            color: Color(0xFF10B981),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: _isTyping ? null : () => _sendMessage(),
-              tooltip: 'Gửi',
-              icon: const Icon(Icons.send),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessage(AiChatMessageModel message) {
-    final theme = Theme.of(context);
-    final isUser = message.isUser;
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 520),
-        width: isUser ? null : double.infinity,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isUser
-              ? theme.colorScheme.primary
-              : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(14),
-            topRight: const Radius.circular(14),
-            bottomLeft: Radius.circular(isUser ? 14 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 14),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              message.text,
-              style: TextStyle(
-                color: isUser ? theme.colorScheme.onPrimary : null,
-                height: 1.4,
-              ),
-            ),
-            if (message.recommendations.isNotEmpty) ...[
               const SizedBox(height: 12),
-              for (var index = 0;
-                  index < message.recommendations.length;
-                  index++)
-                _buildRecommendationCard(
-                  message.recommendations[index],
-                  index + 1,
+              ..._suggestions.asMap().entries.map((entry) {
+                final index = entry.key + 1;
+                final s = entry.value;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.4)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title header
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '#$index',
+                                style: const TextStyle(
+                                  color: Color(0xFF4F46E5),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                s.title,
+                                style: const TextStyle(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Technology chip
+                        if (s.technology.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.code_rounded, size: 14, color: Color(0xFFD97706)),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    s.technology,
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: Color(0xFFD97706),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+
+                        // Objective & Scope
+                        if (s.objective.isNotEmpty)
+                          _buildDetailRow(Icons.flag_rounded, 'Mục tiêu:', s.objective, colors),
+                        if (s.scope.isNotEmpty)
+                          _buildDetailRow(Icons.crop_free_rounded, 'Phạm vi:', s.scope, colors),
+                        if (s.description.isNotEmpty)
+                          _buildDetailRow(Icons.description_outlined, 'Mô tả:', s.description, colors),
+
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 10),
+
+                        // Actions
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _copyToClipboard(s),
+                              icon: const Icon(Icons.copy_rounded, size: 16),
+                              label: Text(
+                                AppLocalizations.text('Sao chép', en: 'Copy'),
+                                style: const TextStyle(fontSize: 12.5),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: () => _useSuggestionForProposal(s),
+                              icon: const Icon(Icons.send_rounded, size: 16),
+                              label: Text(
+                                AppLocalizations.text('Đề xuất đề tài này', en: 'Propose Topic'),
+                                style: const TextStyle(fontSize: 12.5),
+                              ),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFF4F46E5),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ] else if (_searched && !_loading && _error == null) ...[
+              const SizedBox(height: 30),
+              Center(
+                child: Text(
+                  'Không có đề tài nào được tạo. Hãy thử thay đổi từ khóa hoặc công nghệ.',
+                  style: TextStyle(color: colors.onSurfaceVariant),
                 ),
-            ],
-            if (!isUser && message.request != null) ...[
-              const Divider(height: 20),
-              _buildFeedback(message),
+              ),
             ],
           ],
         ),
@@ -912,115 +710,55 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
     );
   }
 
-  Widget _buildRecommendationCard(
-    AiTopicRecommendationModel recommendation,
-    int rank,
-  ) {
-    final topic = recommendation.topic;
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
+  Widget _buildDetailRow(IconData icon, String label, String value, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 13,
-                child: Text('$rank', style: theme.textTheme.labelSmall),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  topic.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-              Text('${(recommendation.finalScore * 100).round()}%'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(topic.description),
-          const SizedBox(height: 6),
+          Icon(icon, size: 15, color: colors.onSurfaceVariant),
+          const SizedBox(width: 6),
           Text(
-            'Công nghệ: ${topic.technology}',
-            style: theme.textTheme.bodySmall,
-          ),
-          Text(
-            'Điểm tiêu chí ${(recommendation.weightedScore * 100).round()}% '
-            '• Văn bản ${(recommendation.cosineSimilarity * 100).round()}%',
-            style: theme.textTheme.labelSmall,
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            children: [
-              TextButton.icon(
-                onPressed: () => _showTopicDetail(recommendation),
-                icon: const Icon(Icons.visibility_outlined, size: 18),
-                label: const Text('Chi tiết'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: () => _useSuggestion(recommendation),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Dùng đề tài'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeedback(AiChatMessageModel message) {
-    if (message.helpful != null) {
-      return Row(
-        children: [
-          Icon(
-            message.helpful! ? Icons.thumb_up_alt : Icons.thumb_down_alt,
-            size: 17,
-            color: message.helpful! ? Colors.green : Colors.orange,
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: colors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              message.helpful!
-                  ? 'Cảm ơn bạn, phản hồi đã được ghi nhận.'
-                  : 'Đã ghi nhận: ${message.feedbackReason}',
-              style: Theme.of(context).textTheme.bodySmall,
+              value,
+              style: TextStyle(fontSize: 12.5, color: colors.onSurface),
             ),
           ),
         ],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Câu trả lời này có hữu ích không?',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+      ),
+    );
+  }
+
+  Widget _buildInput({
+    required TextEditingController controller,
+    required String label,
+    required String hintText,
+    required IconData icon,
+    required Color iconColor,
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hintText,
+          prefixIcon: Icon(icon, color: iconColor),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
-        IconButton(
-          onPressed: () => _saveFeedback(message, helpful: true),
-          tooltip: 'Hữu ích',
-          visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.thumb_up_alt_outlined, size: 19),
-        ),
-        IconButton(
-          onPressed: () => _showFeedbackDialog(message),
-          tooltip: 'Chưa phù hợp',
-          visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.thumb_down_alt_outlined, size: 19),
-        ),
-      ],
+      ),
     );
   }
 }

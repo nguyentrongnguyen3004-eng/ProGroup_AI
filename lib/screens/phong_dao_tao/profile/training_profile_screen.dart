@@ -1,13 +1,21 @@
-import 'dart:convert';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
+<<<<<<< HEAD
+import '../../../models/user_model.dart';
+import '../../../services/admin_api_service.dart';
+import '../../../services/api_service.dart';
+import '../../../services/auth_service.dart';
+import 'dart:convert';
+import '../../../widgets/common/change_email_dialog.dart';
+import '../../../widgets/common/change_password_dialog.dart';
+import '../../../widgets/common/profile_avatar_picker_helper.dart';
+=======
 import '../../../services/training_data_service.dart';
 import '../../../models/training_profile_model.dart';
+>>>>>>> origin/Frontend
 
 class TrainingProfileScreen extends StatefulWidget {
   const TrainingProfileScreen({super.key});
@@ -17,292 +25,252 @@ class TrainingProfileScreen extends StatefulWidget {
 }
 
 class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
+  late UserModel _user;
+  String _customAvatar = '';
+  final String _department = 'Phòng Đào tạo';
+  final String _office = 'Tòa nhà Điều hành - Tầng 2, P.204';
+  bool _isLoading = false;
+
+  void _showMessage(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _user = AuthService.currentUser;
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final res = await ApiService.instance.get('/api/auth/me');
+      if (!mounted) return;
+      if (res is Map<String, dynamic>) {
+        setState(() {
+          _user = UserModel(
+            id: res['nguoiDungId'] ?? _user.id,
+            username: res['tenDangNhap'] ?? _user.username,
+            fullName: res['hoTen'] ?? _user.fullName,
+            email: res['email'] ?? _user.email,
+            role: res['maVaiTro'] ?? _user.role,
+            roleName: res['tenVaiTro'] ?? _user.roleName,
+          );
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return 'ĐT';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+=======
     final data = TrainingDataService.instance;
     final settings = AppSettings.instance;
+>>>>>>> origin/Frontend
     return AnimatedBuilder(
-      animation: Listenable.merge([data, settings]),
+      animation: AppSettings.instance,
       builder: (context, _) {
-        final profile = data.profile;
+        final settings = AppSettings.instance;
+
         return Scaffold(
-          appBar: AppBar(
-            title: Text(
-              _text(context, 'Cá nhân', 'Profile'),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
-            children: [
-              _buildProfileHeader(profile),
-              const SizedBox(height: 25),
-              _buildInfoCard(profile),
-              const SizedBox(height: 15),
-              _buildAccountCard(profile),
-              const SizedBox(height: 15),
-              _buildSettingsCard(settings),
-              const SizedBox(height: 15),
-              _buildAboutCard(),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red.shade600,
-                  side: BorderSide(color: Colors.red.shade200),
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+          body: SafeArea(
+            bottom: true,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 80),
+                    children: [
+                      // Profile Avatar Hero
+                      _buildProfileHeader(),
+
+                      const SizedBox(height: 20),
+
+                      // Info Section
+                      _SectionTitle(
+                        title: AppLocalizations.text('Thông tin chuyên viên', en: 'Officer Information'),
+                        icon: Icons.person_rounded,
+                        iconColor: const Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildInfoCard(),
+
+                      const SizedBox(height: 18),
+
+                      // Account Security Section
+                      _SectionTitle(
+                        title: AppLocalizations.text('Bảo mật & Tài khoản', en: 'Security & Account'),
+                        icon: Icons.shield_rounded,
+                        iconColor: const Color(0xFF10B981),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildAccountCard(),
+
+                      const SizedBox(height: 18),
+
+                      // System Settings Section
+                      _SectionTitle(
+                        title: AppLocalizations.text('Cài đặt hệ thống', en: 'System Settings'),
+                        icon: Icons.tune_rounded,
+                        iconColor: const Color(0xFF8B5CF6),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSettingsCard(settings),
+
+                      const SizedBox(height: 18),
+
+                      // About Section
+                      _SectionTitle(
+                        title: AppLocalizations.text('Thông tin ứng dụng', en: 'Application Info'),
+                        icon: Icons.info_rounded,
+                        iconColor: const Color(0xFF64748B),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildAboutCard(),
+
+                      const SizedBox(height: 24),
+
+                      // Logout Button
+                      OutlinedButton.icon(
+                        onPressed: _logout,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red.shade600,
+                          side: BorderSide(color: Colors.red.shade200, width: 1.2),
+                          minimumSize: const Size(double.infinity, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        icon: const Icon(Icons.logout_rounded, size: 20),
+                        label: Text(
+                          AppLocalizations.text('Đăng xuất', en: 'Log Out'),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                icon: const Icon(Icons.logout),
-                label: Text(_text(context, 'Đăng xuất', 'Log out')),
-              ),
-            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildProfileHeader(TrainingProfileModel profile) {
-    final initials = _initials(profile.fullName);
-    return Column(
-      children: [
-        Stack(
-          children: [
-            CircleAvatar(
-              radius: 52,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
-              child: _buildAvatar(profile.avatar, initials),
-            ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: InkWell(
-                onTap: () => _changeAvatar(profile.avatar),
-                borderRadius: BorderRadius.circular(30),
+  // ============================================================
+  // PROFILE HEADER (MATCHING LECTURER & STUDENT SPEC)
+  // ============================================================
+  Widget _buildProfileHeader() {
+    final colors = Theme.of(context).colorScheme;
+    final initials = _getInitials(_user.fullName);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                    width: 2.5,
+                  ),
+                ),
                 child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: Colors.white,
-                    size: 18,
+                  radius: 48,
+                  backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                  child: _buildAvatarImage(initials),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: InkWell(
+                  onTap: _changeAvatar,
+                  borderRadius: BorderRadius.circular(30),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Text(
-          profile.fullName,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${_text(context, 'Mã cán bộ', 'Staff ID')}: ${profile.staffCode}',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAvatar(String avatar, String initials) {
-    if (avatar.startsWith('data:image/')) {
-      final separator = avatar.indexOf(',');
-      if (separator >= 0) {
-        try {
-          return ClipOval(
-            child: Image.memory(
-              base64Decode(avatar.substring(separator + 1)),
-              width: 104,
-              height: 104,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _buildInitialAvatar(initials),
+          const SizedBox(height: 14),
+          Text(
+            _user.fullName,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
             ),
-          );
-        } catch (_) {
-          return _buildInitialAvatar(initials);
-        }
-      }
-    }
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-      return ClipOval(
-        child: Image.network(
-          avatar,
-          width: 104,
-          height: 104,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _buildInitialAvatar(initials),
-        ),
-      );
-    }
-    return _buildInitialAvatar(initials);
-  }
-
-  Widget _buildInitialAvatar(String initials) => Text(
-    initials,
-    style: TextStyle(
-      fontSize: 34,
-      fontWeight: FontWeight.bold,
-      color: Theme.of(context).colorScheme.primary,
-    ),
-  );
-
-  String _initials(String name) {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return 'PĐ';
-    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-  }
-
-  Widget _buildInfoCard(TrainingProfileModel profile) => Card(
-    child: Column(
-      children: [
-        _infoTile(
-          Icons.person_outline,
-          _text(context, 'Họ và tên', 'Full name'),
-          profile.fullName,
-        ),
-        const Divider(height: 1),
-        _infoTile(
-          Icons.badge_outlined,
-          _text(context, 'Mã cán bộ', 'Staff ID'),
-          profile.staffCode,
-        ),
-        const Divider(height: 1),
-        _infoTile(
-          Icons.alternate_email,
-          _text(context, 'Email', 'Email'),
-          profile.email,
-        ),
-        const Divider(height: 1),
-        _infoTile(
-          Icons.phone_outlined,
-          _text(context, 'Số điện thoại', 'Phone'),
-          profile.phone,
-        ),
-        const Divider(height: 1),
-        _infoTile(
-          Icons.apartment_outlined,
-          _text(context, 'Đơn vị', 'Unit'),
-          profile.unit,
-        ),
-        const Divider(height: 1),
-        _infoTile(
-          Icons.work_outline,
-          _text(context, 'Chức vụ', 'Position'),
-          profile.position,
-        ),
-        const Divider(height: 1),
-        _infoTile(
-          Icons.assignment_ind_outlined,
-          _text(context, 'Vai trò', 'Role'),
-          profile.roleName,
-        ),
-        const Divider(height: 1),
-        _infoTile(
-          Icons.verified_user_outlined,
-          _text(context, 'Trạng thái', 'Status'),
-          profile.accountStatus,
-        ),
-      ],
-    ),
-  );
-
-  Widget _infoTile(IconData icon, String title, String value) =>
-      ListTile(leading: Icon(icon), title: Text(title), subtitle: Text(value));
-
-  Widget _buildAccountCard(TrainingProfileModel profile) => Card(
-    child: Column(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.email_outlined),
-          title: Text(_text(context, 'Đổi email', 'Change email')),
-          subtitle: Text(profile.email),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => _changeEmail(profile.email),
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.lock_outline),
-          title: Text(_text(context, 'Đổi mật khẩu', 'Change password')),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _changePassword,
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildSettingsCard(AppSettings settings) => Card(
-    child: Column(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.palette_outlined),
-          title: Text(_text(context, 'Giao diện', 'Theme')),
-          subtitle: Text(_themeName(settings.themeMode)),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _changeTheme,
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.language_outlined),
-          title: Text(_text(context, 'Ngôn ngữ', 'Language')),
-          subtitle: Text(settings.language == 'en' ? 'English' : 'Tiếng Việt'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _changeLanguage,
-        ),
-        const Divider(height: 1),
-        SwitchListTile(
-          secondary: const Icon(Icons.notifications_outlined),
-          title: Text(_text(context, 'Thông báo', 'Notifications')),
-          value: settings.notificationsEnabled,
-          onChanged: settings.setNotifications,
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildAboutCard() => Card(
-    child: ListTile(
-      leading: const Icon(Icons.info_outline),
-      title: Text(_text(context, 'Giới thiệu', 'About')),
-      subtitle: const Text('ProGroup AI · 1.0.0'),
-    ),
-  );
-
-  Future<void> _changeAvatar(String currentAvatar) async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: Text(_text(context, 'Chọn ảnh', 'Choose image')),
-              onTap: () => Navigator.pop(context, 'choose'),
-            ),
-            if (currentAvatar.isNotEmpty)
-              ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: Text(_text(context, 'Xóa ảnh', 'Remove image')),
-                onTap: () => Navigator.pop(context, 'remove'),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.25),
               ),
-          ],
-        ),
+            ),
+            child: Text(
+              _user.roleName.isNotEmpty ? _user.roleName : 'Phòng đào tạo',
+              style: const TextStyle(
+                color: Color(0xFF4F46E5),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
+<<<<<<< HEAD
+=======
     if (!mounted) return;
     if (action == 'remove') {
       TrainingDataService.instance.updateAvatar('');
@@ -312,76 +280,203 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
     } else if (action == 'choose') {
       await _pickAvatar();
     }
+>>>>>>> origin/Frontend
   }
 
-  Future<void> _pickAvatar() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-        withData: true,
-      );
-      if (!mounted) return;
-      if (result == null || result.files.isEmpty) return;
-      final bytes = result.files.single.bytes;
-      if (bytes == null || bytes.isEmpty) {
-        _showMessage(
-          _text(
-            context,
-            'Không đọc được tệp ảnh đã chọn.',
-            'Could not read the selected image.',
+  // ============================================================
+  // PERSONAL INFORMATION CARD
+  // ============================================================
+  Widget _buildInfoCard() {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          _ListRow(
+            icon: Icons.person_rounded,
+            iconColor: const Color(0xFF3B82F6),
+            title: AppLocalizations.text('Tài khoản đăng nhập', en: 'Username'),
+            subtitle: _user.username,
           ),
-        );
-        return;
-      }
-      final extension = result.files.single.extension?.toLowerCase() ?? '';
-      if (!const {'png', 'jpg', 'jpeg', 'webp', 'gif'}.contains(extension)) {
-        _showMessage(
-          _text(
-            context,
-            'Chỉ hỗ trợ PNG, JPG, JPEG, WEBP hoặc GIF.',
-            'Only PNG, JPG, JPEG, WEBP, or GIF are supported.',
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.email_rounded,
+            iconColor: const Color(0xFFEC4899),
+            title: AppLocalizations.text('Email liên hệ', en: 'Email'),
+            subtitle: _user.email.isNotEmpty ? _user.email : 'Chưa cập nhật',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _changeEmail(_user.email),
           ),
-        );
-        return;
-      }
-      if (bytes.length > 5 * 1024 * 1024) {
-        _showMessage(
-          _text(
-            context,
-            'Ảnh đại diện phải nhỏ hơn 5 MB.',
-            'Profile pictures must be smaller than 5 MB.',
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.domain_rounded,
+            iconColor: const Color(0xFF8B5CF6),
+            title: AppLocalizations.text('Đơn vị', en: 'Department'),
+            subtitle: _department,
           ),
-        );
-        return;
-      }
-      final mime = switch (extension) {
-        'png' => 'image/png',
-        'webp' => 'image/webp',
-        'gif' => 'image/gif',
-        _ => 'image/jpeg',
-      };
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(
-            _text(context, 'Xem trước ảnh đại diện', 'Preview profile picture'),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.location_city_rounded,
+            iconColor: const Color(0xFF06B6D4),
+            title: AppLocalizations.text('Văn phòng làm việc', en: 'Office Location'),
+            subtitle: _office,
           ),
-          content: Center(
-            child: ClipOval(
-              child: Image.memory(
-                bytes,
-                width: 128,
-                height: 128,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const SizedBox(
-                  width: 128,
-                  height: 128,
-                  child: Icon(Icons.broken_image_outlined, size: 42),
-                ),
-              ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.verified_user_rounded,
+            iconColor: const Color(0xFF10B981),
+            title: AppLocalizations.text('Vai trò tài khoản', en: 'Role'),
+            subtitle: _user.roleName.isNotEmpty ? _user.roleName : 'Phòng đào tạo',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ACCOUNT SECURITY CARD
+  // ============================================================
+  Widget _buildAccountCard() {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          _ListRow(
+            icon: Icons.lock_rounded,
+            iconColor: const Color(0xFFF59E0B),
+            title: AppLocalizations.text('Đổi mật khẩu', en: 'Change Password'),
+            subtitle: AppLocalizations.text(
+              'Cập nhật mật khẩu đăng nhập bảo vệ tài khoản',
+              en: 'Update login password for security',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: _changePassword,
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.security_rounded,
+            iconColor: const Color(0xFF10B981),
+            title: AppLocalizations.text('Bảo mật tài khoản', en: 'Account Security'),
+            subtitle: AppLocalizations.text(
+              'Xác thực tài khoản chuyên viên Phòng Đào tạo',
+              en: 'Training office staff verification',
+            ),
+            trailing: const Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF10B981),
+              size: 20,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SETTINGS CARD
+  // ============================================================
+  Widget _buildSettingsCard(AppSettings settings) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          _ListRow(
+            icon: Icons.palette_rounded,
+            iconColor: const Color(0xFF8B5CF6),
+            title: AppLocalizations.text('Giao diện hiển thị', en: 'Theme Mode'),
+            subtitle: _themeName(settings.themeMode),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: _changeTheme,
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.language_rounded,
+            iconColor: const Color(0xFF3B82F6),
+            title: AppLocalizations.text('Ngôn ngữ', en: 'Language'),
+            subtitle: settings.language == 'vi' ? 'Tiếng Việt' : 'English',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: _changeLanguage,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ABOUT CARD
+  // ============================================================
+  Widget _buildAboutCard() {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          _ListRow(
+            icon: Icons.info_rounded,
+            iconColor: const Color(0xFF64748B),
+            title: AppLocalizations.text('Phiên bản', en: 'Version'),
+            subtitle: 'ProGroup AI v1.0.0',
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.help_rounded,
+            iconColor: const Color(0xFF0EA5E9),
+            title: AppLocalizations.text('Trợ giúp & Hướng dẫn', en: 'Help & FAQ'),
+            subtitle: AppLocalizations.text('Trung tâm hỗ trợ ProGroup AI', en: 'ProGroup AI Support Center'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(AppLocalizations.text('Trung tâm hỗ trợ Phòng Đào tạo ProGroup AI.', en: 'ProGroup AI Training Department Support Center.')),
+                ),
+              );
+            },
+          ),
+<<<<<<< HEAD
+        ],
+      ),
+    );
+  }
+
+  String _themeName(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return AppLocalizations.text('Theo hệ thống', en: 'System');
+      case ThemeMode.light:
+        return AppLocalizations.text('Sáng', en: 'Light');
+      case ThemeMode.dark:
+        return AppLocalizations.text('Tối', en: 'Dark');
+=======
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -411,45 +506,32 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
           ),
         );
       }
+>>>>>>> origin/Frontend
     }
   }
 
-  Future<void> _changeEmail(String currentEmail) async {
-    final controller = TextEditingController(text: currentEmail);
-    try {
-      final email = await showDialog<String>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(_text(context, 'Đổi email', 'Change email')),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: _text(context, 'Email mới', 'New email'),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(_text(context, 'Hủy', 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, controller.text.trim()),
-              child: Text(_text(context, 'Tiếp tục', 'Continue')),
-            ),
-          ],
-        ),
-      );
-      if (!mounted || email == null) return;
-      if (email.toLowerCase() == currentEmail.trim().toLowerCase()) {
-        _showMessage(
-          _text(
-            context,
-            'Email mới phải khác email hiện tại.',
-            'The new email must differ from the current email.',
-          ),
+  Future<void> _changeEmail(String current) async {
+    final newEmail = await ChangeEmailDialog.show(
+      context,
+      currentEmail: current,
+      onConfirm: (email) async {
+        await AdminApiService.instance.changeEmail(email);
+      },
+    );
+    if (newEmail != null && mounted) {
+      setState(() {
+        _user = UserModel(
+          id: _user.id,
+          username: _user.username,
+          fullName: _user.fullName,
+          email: newEmail,
+          role: _user.role,
+          roleName: _user.roleName,
         );
+<<<<<<< HEAD
+      });
+      _showMessage(AppLocalizations.text('Đổi email thành công.', en: 'Email changed successfully.'));
+=======
         return;
       }
       if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
@@ -541,210 +623,366 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
       );
     } finally {
       controller.dispose();
+>>>>>>> origin/Frontend
     }
   }
 
   Future<void> _changePassword() async {
-    final formKey = GlobalKey<FormState>();
-    final current = TextEditingController();
-    final next = TextEditingController();
-    final confirm = TextEditingController();
-    try {
-      final changed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(_text(context, 'Đổi mật khẩu', 'Change password')),
-          content: Form(
-            key: formKey,
+    final success = await ChangePasswordDialog.show(
+      context,
+      onConfirm: (current, newPass) async {
+        await AdminApiService.instance.changePassword(current, newPass);
+      },
+    );
+    if (success == true && mounted) {
+      _showMessage(AppLocalizations.text('Đổi mật khẩu thành công.', en: 'Password changed successfully.'));
+    }
+  }
+
+  void _changeTheme() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        final current = AppSettings.instance.themeMode;
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _passwordField(
-                  current,
-                  _text(context, 'Mật khẩu hiện tại', 'Current password'),
+                Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Text(
+                    AppLocalizations.text(
+                      'Chọn giao diện',
+                      en: 'Choose Theme',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _passwordField(
-                  next,
-                  _text(context, 'Mật khẩu mới', 'New password'),
-                  validator: (value) => (value ?? '').length < 6
-                      ? _text(
-                          context,
-                          'Mật khẩu cần ít nhất 6 ký tự.',
-                          'Use at least 6 characters.',
-                        )
-                      : null,
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.light,
+                  groupValue: current,
+                  title: Text(
+                    AppLocalizations.text(
+                      'Sáng',
+                      en: 'Light',
+                    ),
+                  ),
+                  secondary: const _SquircleIcon(
+                    icon: Icons.light_mode_rounded,
+                    color: Color(0xFFF59E0B),
+                  ),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    AppSettings.instance.setThemeMode(value);
+                    Navigator.pop(sheetContext);
+                  },
                 ),
-                const SizedBox(height: 12),
-                _passwordField(
-                  confirm,
-                  _text(context, 'Xác nhận mật khẩu', 'Confirm password'),
-                  validator: (value) => value != next.text
-                      ? _text(
-                          context,
-                          'Mật khẩu xác nhận không khớp.',
-                          'Passwords do not match.',
-                        )
-                      : null,
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.dark,
+                  groupValue: current,
+                  title: Text(
+                    AppLocalizations.text(
+                      'Tối',
+                      en: 'Dark',
+                    ),
+                  ),
+                  secondary: const _SquircleIcon(
+                    icon: Icons.dark_mode_rounded,
+                    color: Color(0xFF6366F1),
+                  ),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    AppSettings.instance.setThemeMode(value);
+                    Navigator.pop(sheetContext);
+                  },
+                ),
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.system,
+                  groupValue: current,
+                  title: Text(
+                    AppLocalizations.text(
+                      'Theo hệ thống',
+                      en: 'System',
+                    ),
+                  ),
+                  secondary: const _SquircleIcon(
+                    icon: Icons.settings_brightness_rounded,
+                    color: Color(0xFF8B5CF6),
+                  ),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    AppSettings.instance.setThemeMode(value);
+                    Navigator.pop(sheetContext);
+                  },
                 ),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _changeLanguage() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final settings = AppSettings.instance;
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
+                  title: const Text('Tiếng Việt'),
+                  trailing: settings.language == 'vi' ? const Icon(Icons.check, color: Color(0xFF2563EB)) : null,
+                  onTap: () {
+                    settings.setLanguage('vi');
+                    Navigator.pop(ctx);
+                  },
+                ),
+                ListTile(
+                  leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
+                  title: const Text('English'),
+                  trailing: settings.language == 'en' ? const Icon(Icons.check, color: Color(0xFF2563EB)) : null,
+                  onTap: () {
+                    settings.setLanguage('en');
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _changeAvatar() {
+    ProfileAvatarPickerHelper.show(
+      context: context,
+      onAvatarSelected: (newAvatar) {
+        setState(() {
+          _customAvatar = newAvatar;
+        });
+      },
+      onAvatarRemoved: () {
+        setState(() {
+          _customAvatar = '';
+        });
+      },
+    );
+  }
+
+  Widget _buildAvatarImage(String initials) {
+    if (_customAvatar.startsWith('data:image/')) {
+      final comma = _customAvatar.indexOf(',');
+      if (comma != -1) {
+        try {
+          final bytes = base64Decode(_customAvatar.substring(comma + 1));
+          return ClipOval(
+            child: Image.memory(
+              bytes,
+              width: 96,
+              height: 96,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Text(
+                initials,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2563EB),
+                ),
+              ),
+            ),
+          );
+        } catch (_) {}
+      }
+    }
+    return Text(
+      initials,
+      style: const TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF2563EB),
+      ),
+    );
+  }
+
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            AppLocalizations.text(
+              'Đăng xuất',
+              en: 'Log Out',
+            ),
+          ),
+          content: Text(
+            AppLocalizations.text(
+              'Bạn có chắc muốn đăng xuất khỏi tài khoản?',
+              en: 'Are you sure you want to log out?',
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_text(context, 'Hủy', 'Cancel')),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: Text(
+                AppLocalizations.text(
+                  'Hủy',
+                  en: 'Cancel',
+                ),
+              ),
             ),
             FilledButton(
               onPressed: () {
-                if (current.text.isEmpty) {
-                  _showMessage(
-                    _text(
-                      context,
-                      'Vui lòng nhập mật khẩu hiện tại.',
-                      'Enter your current password.',
-                    ),
-                  );
-                  return;
-                }
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.pop(dialogContext, true);
-                }
+                Navigator.pop(dialogContext);
+                AuthService.logout();
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.login,
+                  (route) => false,
+                );
               },
-              child: Text(_text(context, 'Cập nhật', 'Update')),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              ),
+              child: Text(
+                AppLocalizations.text(
+                  'Đăng xuất',
+                  en: 'Log Out',
+                ),
+              ),
             ),
           ],
-        ),
-      );
-      if (changed == true && mounted) {
-        _showMessage(
-          _text(
-            context,
-            'Đã cập nhật mật khẩu demo.',
-            'Demo password updated.',
-          ),
         );
-      }
-    } finally {
-      current.dispose();
-      next.dispose();
-      confirm.dispose();
-    }
-  }
-
-  Widget _passwordField(
-    TextEditingController controller,
-    String label, {
-    String? Function(String?)? validator,
-  }) => TextFormField(
-    controller: controller,
-    obscureText: true,
-    validator:
-        validator ??
-        (value) => (value ?? '').isEmpty
-            ? _text(context, 'Không được để trống.', 'This field is required.')
-            : null,
-    decoration: InputDecoration(labelText: label),
-  );
-
-  Future<void> _changeTheme() async {
-    final current = AppSettings.instance.themeMode;
-    final selected = await showDialog<ThemeMode>(
-      context: context,
-      builder: (dialogContext) => SimpleDialog(
-        title: Text(_text(context, 'Chọn giao diện', 'Choose theme')),
-        children: [
-          RadioGroup<ThemeMode>(
-            groupValue: current,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: ThemeMode.values
-                  .map(
-                    (mode) => RadioListTile<ThemeMode>(
-                      value: mode,
-                      title: Text(_themeName(mode)),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
+      },
     );
-    if (selected != null) AppSettings.instance.setThemeMode(selected);
-  }
-
-  Future<void> _changeLanguage() async {
-    final current = AppSettings.instance.language;
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => SimpleDialog(
-        title: Text(_text(context, 'Chọn ngôn ngữ', 'Choose language')),
-        children: [
-          RadioGroup<String>(
-            groupValue: current,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final language in ['vi', 'en'])
-                  RadioListTile<String>(
-                    value: language,
-                    title: Text(language == 'vi' ? 'Tiếng Việt' : 'English'),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    if (selected != null) AppSettings.instance.setLanguage(selected);
-  }
-
-  String _themeName(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => _text(context, 'Theo hệ thống', 'System default'),
-    ThemeMode.light => _text(context, 'Sáng', 'Light'),
-    ThemeMode.dark => _text(context, 'Tối', 'Dark'),
-  };
-
-  Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(_text(context, 'Đăng xuất', 'Log out')),
-        content: Text(
-          _text(
-            context,
-            'Bạn có chắc muốn đăng xuất khỏi tài khoản?',
-            'Are you sure you want to log out?',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(_text(context, 'Hủy', 'Cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(_text(context, 'Đăng xuất', 'Log out')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
-  }
-
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
-String _text(BuildContext context, String vi, String en) =>
-    AppLocalizations.text(vi, en: en);
+// ============================================================
+// REUSABLE HELPER WIDGETS MATCHING LECTURER SPEC
+// ============================================================
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+
+  const _SectionTitle({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: iconColor),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: 14.5,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SquircleIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _SquircleIcon({required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, color: color, size: 20),
+    );
+  }
+}
+
+class _ListRow extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  const _ListRow({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: _SquircleIcon(icon: icon, color: iconColor),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: colors.onSurfaceVariant,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: colors.onSurface,
+          fontSize: 14.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+}

@@ -8,10 +8,16 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/course_model.dart';
+import '../../../models/lecturer_course_model.dart';
 import '../../../models/topic_model.dart';
+<<<<<<< HEAD
+import '../../../services/lecturer_api_service.dart';
+=======
 import '../../../services/course_service.dart';
+>>>>>>> origin/Frontend
 import 'import_topic_preview_screen.dart';
 
 class ImportTopicScreen extends StatefulWidget {
@@ -34,13 +40,25 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   bool _busy = false;
 
   int? _selectedCourseId;
+<<<<<<< HEAD
+  List<LecturerCourseModel> _courses = [];
+=======
   List<CourseModel> _courses = [];
+>>>>>>> origin/Frontend
 
   String _selectedFormat = 'csv';
 
   int? get _fixedCourseId => widget.lecturerCourseId ?? widget.course?.id;
 
+<<<<<<< HEAD
+  bool get _hasValidFixedCourse =>
+      _fixedCourseId != null &&
+      _courses.any(
+        (course) => course.courseId == _fixedCourseId,
+      );
+=======
   bool get _hasValidFixedCourse => _fixedCourseId != null;
+>>>>>>> origin/Frontend
 
   int? get _effectiveCourseId =>
       _hasValidFixedCourse ? _fixedCourseId : _selectedCourseId;
@@ -52,6 +70,31 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
+
+    _courses = LecturerApiService.instance.cachedCourses;
+    final fixedCourseId = _fixedCourseId;
+
+    if (fixedCourseId != null &&
+        _courses.any(
+          (course) => course.courseId == fixedCourseId,
+        )) {
+      _selectedCourseId = fixedCourseId;
+    }
+
+    if (_courses.isEmpty) {
+      LecturerApiService.instance.fetchCourses().then((c) {
+        if (mounted) {
+          setState(() {
+            _courses = c;
+            if (_selectedCourseId == null && c.isNotEmpty) {
+              _selectedCourseId = fixedCourseId ?? c.first.courseId;
+            }
+          });
+        }
+      });
+    }
+=======
     final fixedCourseId = _fixedCourseId;
     if (fixedCourseId != null) {
       _selectedCourseId = fixedCourseId;
@@ -71,6 +114,7 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
         });
       }
     } catch (_) {}
+>>>>>>> origin/Frontend
   }
 
   // ============================================================
@@ -78,8 +122,27 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   // ============================================================
 
   Future<void> _downloadTemplate() async {
+<<<<<<< HEAD
+    LecturerCourseModel? course;
+    for (final c in _courses) {
+      if (c.courseId == (_effectiveCourseId ?? -1)) {
+        course = c;
+        break;
+      }
+    }
+
+    if (_effectiveCourseId == null || course == null) {
+      _showMessage(
+        AppLocalizations.text(
+          'Vui lòng chọn lớp học phần trước.',
+          en: 'Please select a course class first.',
+        ),
+        error: true,
+      );
+=======
     if (_effectiveCourseId == null) {
       _showMessage('Vui lòng chọn lớp học phần trước.', error: true);
+>>>>>>> origin/Frontend
       return;
     }
 
@@ -142,11 +205,22 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
             );
 
       if (savedPath != null && mounted) {
-        _showMessage('Đã tải file mẫu CSV cho lớp $classCode.');
+        _showMessage(
+          AppLocalizations.text(
+            'Đã tải file mẫu CSV cho lớp $classCode.',
+            en: 'Downloaded CSV template for class $classCode.',
+          ),
+        );
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Không thể tạo file mẫu CSV.', error: true);
+        _showMessage(
+          AppLocalizations.text(
+            'Không thể tạo file mẫu CSV.',
+            en: 'Could not create CSV template.',
+          ),
+          error: true,
+        );
       }
     }
   }
@@ -287,11 +361,22 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
             );
 
       if (savedPath != null && mounted) {
-        _showMessage('Đã tải file Excel mẫu cho lớp $classCode.');
+        _showMessage(
+          AppLocalizations.text(
+            'Đã tải file Excel mẫu cho lớp $classCode.',
+            en: 'Downloaded Excel template for class $classCode.',
+          ),
+        );
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Không thể tạo file Excel mẫu.', error: true);
+        _showMessage(
+          AppLocalizations.text(
+            'Không thể tạo file Excel mẫu.',
+            en: 'Could not create Excel template.',
+          ),
+          error: true,
+        );
       }
     }
   }
@@ -324,7 +409,13 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
       // ========================================================
 
       if (_selectedFormat == 'csv' && extension != 'csv') {
-        _showMessage('Vui lòng chọn file CSV.', error: true);
+        _showMessage(
+          AppLocalizations.text(
+            'Vui lòng chọn file CSV.',
+            en: 'Please select a CSV file.',
+          ),
+          error: true,
+        );
         return;
       }
 
@@ -334,7 +425,10 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
 
       if (_selectedFormat == 'xlsx' && extension != 'xlsx') {
         _showMessage(
-          'Vui lòng chọn file Excel có định dạng .xlsx.',
+          AppLocalizations.text(
+            'Vui lòng chọn file Excel có định dạng .xlsx.',
+            en: 'Please select an Excel file in .xlsx format.',
+          ),
           error: true,
         );
         return;
@@ -343,7 +437,13 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
       final bytes = file.bytes;
 
       if (bytes == null || bytes.isEmpty) {
-        _showMessage('Không đọc được nội dung file.', error: true);
+        _showMessage(
+          AppLocalizations.text(
+            'Không đọc được nội dung file.',
+            en: 'Could not read file content.',
+          ),
+          error: true,
+        );
         return;
       }
 
@@ -357,7 +457,12 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
             .replaceFirst('\uFEFF', '');
 
         if (content.trim().isEmpty) {
-          _reportImportFailure('File CSV đang trống.');
+          _reportImportFailure(
+            AppLocalizations.text(
+              'File CSV đang trống.',
+              en: 'CSV file is empty.',
+            ),
+          );
           return;
         }
 
@@ -379,11 +484,18 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
       }
     } on FormatException {
       _reportImportFailure(
-        'Không đọc được file CSV. '
-        'Hãy lưu CSV với mã hóa UTF-8 rồi thử lại.',
+        AppLocalizations.text(
+          'Không đọc được file CSV. Hãy lưu CSV với mã hóa UTF-8 rồi thử lại.',
+          en: 'Could not read CSV file. Please save CSV with UTF-8 encoding and try again.',
+        ),
       );
     } catch (_) {
-      _reportImportFailure('Không thể đọc file đã chọn.');
+      _reportImportFailure(
+        AppLocalizations.text(
+          'Không thể đọc file đã chọn.',
+          en: 'Could not read selected file.',
+        ),
+      );
     }
   }
 
@@ -395,24 +507,48 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
     final courseScopeId = _effectiveCourseId;
 
     if (courseScopeId == null) {
-      _showMessage('Hãy chọn lớp học phần trước khi nhập file.', error: true);
+      _showMessage(
+        AppLocalizations.text(
+          'Hãy chọn lớp học phần trước khi nhập file.',
+          en: 'Please select a course class before importing file.',
+        ),
+        error: true,
+      );
       return;
     }
 
     if (_selectedFileName == null) {
-      _showMessage('Vui lòng chọn file trước.', error: true);
+      _showMessage(
+        AppLocalizations.text(
+          'Vui lòng chọn file trước.',
+          en: 'Please select a file first.',
+        ),
+        error: true,
+      );
       return;
     }
 
     if (_selectedFormat == 'csv' &&
         (_fileContent == null || _fileContent!.trim().isEmpty)) {
-      _showMessage('Không có nội dung CSV để đọc.', error: true);
+      _showMessage(
+        AppLocalizations.text(
+          'Không có nội dung CSV để đọc.',
+          en: 'No CSV content to read.',
+        ),
+        error: true,
+      );
       return;
     }
 
     if (_selectedFormat == 'xlsx' &&
         (_selectedExcelBytes == null || _selectedExcelBytes!.isEmpty)) {
-      _showMessage('Không có dữ liệu Excel để đọc.', error: true);
+      _showMessage(
+        AppLocalizations.text(
+          'Không có dữ liệu Excel để đọc.',
+          en: 'No Excel data to read.',
+        ),
+        error: true,
+      );
       return;
     }
 
@@ -450,7 +586,12 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
           _busy = false;
         });
 
-        _reportImportFailure('Không thể phân tích file $_formatLabel.');
+        _reportImportFailure(
+          AppLocalizations.text(
+            'Không thể phân tích file $_formatLabel.',
+            en: 'Could not parse $_formatLabel file.',
+          ),
+        );
       }
 
       return;
@@ -465,7 +606,12 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
     });
 
     if (rows.isEmpty) {
-      _reportImportFailure('File không có dòng đề tài để xem trước.');
+      _reportImportFailure(
+        AppLocalizations.text(
+          'File không có dòng đề tài để xem trước.',
+          en: 'File has no topic rows to preview.',
+        ),
+      );
       return;
     }
 
@@ -511,7 +657,11 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
       return;
     }
 
+<<<<<<< HEAD
+    _showMessage(AppLocalizations.tr(message), error: true);
+=======
     _showMessage(message, error: true);
+>>>>>>> origin/Frontend
   }
 
   // ============================================================
@@ -525,7 +675,7 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(AppLocalizations.tr(message)),
         backgroundColor: error ? Theme.of(context).colorScheme.error : null,
       ),
     );
@@ -538,34 +688,78 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+<<<<<<< HEAD
+
+    LecturerCourseModel? selectedCourse;
+    for (final c in _courses) {
+      if (c.courseId == (_effectiveCourseId ?? -1)) {
+        selectedCourse = c;
+        break;
+      }
+    }
+=======
     final selectedCourse = _courses.where((c) => c.id == _effectiveCourseId).firstOrNull;
+>>>>>>> origin/Frontend
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Import đề tài')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      appBar: AppBar(
+        title: Text(
+          AppLocalizations.text('Import đề tài', en: 'Import Topics'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        bottom: true,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
         children: [
           // ======================================================
           // STEP 1
           // ======================================================
           _FlowCard(
             number: '1',
-            title: 'Chọn lớp học phần',
-            description:
-                'Mỗi file chỉ nhập đề tài cho một lớp học phần. '
-                'ID đề tài và trạng thái được hệ thống xử lý tự động.',
+            title: AppLocalizations.text('Chọn lớp học phần', en: 'Select Course Class'),
+            description: AppLocalizations.text(
+              'Mỗi file chỉ nhập đề tài cho một lớp học phần. '
+              'ID đề tài và trạng thái được hệ thống xử lý tự động.',
+              en: 'Each file only imports topics for one course class. '
+                  'Topic ID and status are automatically handled by the system.',
+            ),
             child: DropdownButtonFormField<int>(
+<<<<<<< HEAD
+              isExpanded: true,
+              initialValue: _effectiveCourseId,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.text('Lớp học phần', en: 'Course class'),
+                prefixIcon: const Icon(Icons.school_outlined),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+=======
               value: _courses.any((c) => c.id == _effectiveCourseId) ? _effectiveCourseId : null,
               decoration: const InputDecoration(
                 labelText: 'Lớp học phần',
                 prefixIcon: Icon(Icons.school_outlined),
+>>>>>>> origin/Frontend
               ),
               items: _courses
                   .map(
                     (course) => DropdownMenuItem(
                       value: course.id,
                       child: Text(
+<<<<<<< HEAD
+                        '${AppLocalizations.courseName(course.name)} • ${course.classCode}',
+=======
                         '${course.code} • ${course.name}',
+>>>>>>> origin/Frontend
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -591,15 +785,18 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
           // ======================================================
           _FlowCard(
             number: '2',
-            title: 'Chọn định dạng file',
-            description: 'Bạn có thể nhập dữ liệu bằng CSV hoặc Excel (.xlsx).',
+            title: AppLocalizations.text('Chọn định dạng file', en: 'Select File Format'),
+            description: AppLocalizations.text(
+              'Bạn có thể nhập dữ liệu bằng CSV hoặc Excel (.xlsx).',
+              en: 'You can import data using CSV or Excel (.xlsx).',
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: _FormatCard(
                     icon: Icons.description_outlined,
                     title: 'CSV',
-                    subtitle: 'File text',
+                    subtitle: AppLocalizations.text('File text', en: 'Text file'),
                     selected: _selectedFormat == 'csv',
                     onTap: () => _changeFormat('csv'),
                   ),
@@ -627,13 +824,22 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
           // ======================================================
           _FlowCard(
             number: '3',
-            title: 'Tải file mẫu',
+            title: AppLocalizations.text('Tải file mẫu', en: 'Download Template'),
             description: selectedCourse == null
-                ? 'Chọn lớp học phần để tải file mẫu.'
-                : 'File mẫu dành cho '
-                      '${selectedCourse.name} • '
-                      '${selectedCourse.classCode}. '
-                      'File không chứa dữ liệu mẫu.',
+                ? AppLocalizations.text(
+                    'Chọn lớp học phần để tải file mẫu.',
+                    en: 'Select a course class to download template.',
+                  )
+                : AppLocalizations.text(
+                    'File mẫu dành cho '
+                    '${selectedCourse.name} • '
+                    '${selectedCourse.classCode}. '
+                    'File không chứa dữ liệu mẫu.',
+                    en: 'Template for '
+                    '${AppLocalizations.courseName(selectedCourse.name)} • '
+                    '${selectedCourse.classCode}. '
+                    'File contains no sample data.',
+                  ),
             child: OutlinedButton.icon(
               onPressed: _busy || _effectiveCourseId == null
                   ? null
@@ -643,8 +849,13 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
                     ? Icons.description_outlined
                     : Icons.table_chart_outlined,
               ),
-              label: Text(
-                _selectedFormat == 'csv' ? 'Tải mẫu CSV' : 'Tải mẫu Excel',
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _selectedFormat == 'csv'
+                      ? AppLocalizations.text('Tải mẫu CSV', en: 'Download CSV template')
+                      : AppLocalizations.text('Tải mẫu Excel', en: 'Download Excel template'),
+                ),
               ),
             ),
           ),
@@ -656,12 +867,20 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
           // ======================================================
           _FlowCard(
             number: '4',
-            title: 'Chọn file',
+            title: AppLocalizations.text('Chọn file', en: 'Select File'),
             description: selectedCourse == null
-                ? 'Chọn lớp học phần để tiếp tục.'
-                : 'Chọn file $_formatLabel để nhập vào '
-                      '${selectedCourse.name} • '
-                      '${selectedCourse.classCode}.',
+                ? AppLocalizations.text(
+                    'Chọn lớp học phần để tiếp tục.',
+                    en: 'Select a course class to proceed.',
+                  )
+                : AppLocalizations.text(
+                    'Chọn file $_formatLabel để nhập vào '
+                    '${selectedCourse.name} • '
+                    '${selectedCourse.classCode}.',
+                    en: 'Select $_formatLabel file to import into '
+                    '${AppLocalizations.courseName(selectedCourse.name)} • '
+                    '${selectedCourse.classCode}.',
+                  ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -670,7 +889,15 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
                       ? null
                       : _pickFile,
                   icon: const Icon(Icons.upload_file_outlined),
-                  label: Text('Chọn file $_formatLabel'),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppLocalizations.text(
+                        'Chọn file $_formatLabel',
+                        en: 'Choose $_formatLabel file',
+                      ),
+                    ),
+                  ),
                 ),
 
                 if (_selectedFileName != null) ...[
@@ -714,11 +941,18 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
           // ======================================================
           _FlowCard(
             number: '5',
-            title: 'Xem trước trước khi nhập',
-            description:
-                'Các cột gồm: Tên đề tài, Mô tả, Mục tiêu, Phạm vi, '
-                'Công nghệ sử dụng và Nguồn đề xuất. '
-                'ID và trạng thái được hệ thống xử lý tự động.',
+            title: AppLocalizations.text(
+              'Xem trước trước khi nhập',
+              en: 'Preview Before Import',
+            ),
+            description: AppLocalizations.text(
+              'Các cột gồm: Tên đề tài, Mô tả, Mục tiêu, Phạm vi, '
+              'Công nghệ sử dụng và Nguồn đề xuất. '
+              'ID và trạng thái được hệ thống xử lý tự động.',
+              en: 'Columns include: Topic Name, Description, Objective, Scope, '
+                  'Technology, and Source. '
+                  'ID and status are automatically managed by the system.',
+            ),
             child: FilledButton.icon(
               onPressed: _busy ? null : _continueToPreview,
               icon: _busy
@@ -728,20 +962,34 @@ class _ImportTopicScreenState extends State<ImportTopicScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.preview_outlined),
-              label: const Text('Tiếp tục xem trước'),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  AppLocalizations.text(
+                    'Tiếp tục xem trước',
+                    en: 'Continue to preview',
+                  ),
+                ),
+              ),
             ),
           ),
 
           const SizedBox(height: 12),
 
           Text(
-            'Các dòng trống sẽ được bỏ qua. '
-            'Các dòng thiếu dữ liệu hoặc sai số cột sẽ được báo lỗi '
-            'trong màn hình xem trước.',
+            AppLocalizations.text(
+              'Các dòng trống sẽ được bỏ qua. '
+              'Các dòng thiếu dữ liệu hoặc sai số cột sẽ được báo lỗi '
+              'trong màn hình xem trước.',
+              en: 'Empty rows will be skipped. '
+                  'Rows with missing data or incorrect column count will show errors '
+                  'in the preview screen.',
+            ),
             style: TextStyle(color: colors.onSurfaceVariant, height: 1.4),
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -767,18 +1015,16 @@ class _FormatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? colors.primaryContainer : colors.surface,
+          color: selected ? const Color(0xFF2563EB).withValues(alpha: 0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? colors.primary : colors.outlineVariant,
+            color: selected ? const Color(0xFF2563EB) : Colors.grey.shade300,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -786,36 +1032,38 @@ class _FormatCard extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: selected ? colors.primary : colors.onSurfaceVariant,
-              size: 28,
+              color: selected ? const Color(0xFF2563EB) : Colors.grey,
+              size: 24,
             ),
-
             const SizedBox(width: 10),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: colors.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                      color: selected ? const Color(0xFF2563EB) : null,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12,
-                      color: colors.onSurfaceVariant,
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
-
-            if (selected) Icon(Icons.check_circle, color: colors.primary),
           ],
         ),
       ),
@@ -844,43 +1092,43 @@ class _FlowCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 15,
-                  backgroundColor: colors.primaryContainer,
-                  foregroundColor: colors.onPrimaryContainer,
-                  child: Text(number),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '$number. $title',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E3A5F),
                 ),
-
-                const SizedBox(width: 10),
-
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            Text(description, style: const TextStyle(height: 1.45)),
-
-            const SizedBox(height: 14),
-
-            child,
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
       ),
     );
   }
@@ -1034,7 +1282,11 @@ class TopicCsvParser {
     }
 
     final nextId = DateTime.now().millisecondsSinceEpoch;
+<<<<<<< HEAD
+    const defaultStatus = 'Đang hoạt động';
+=======
     final defaultStatus = 'Đang hoạt động';
+>>>>>>> origin/Frontend
 
     return List<TopicImportPreviewRow>.generate(dataRows.length, (index) {
       final row = dataRows[index];
@@ -1136,7 +1388,17 @@ class TopicCsvParser {
   // --------------------------------------------------------------------------
 
   static void _validateCourse(int courseScopeId) {
+<<<<<<< HEAD
+    final assignedCourseIds = LecturerApiService.instance.cachedCourses
+        .map((course) => course.courseId)
+        .toSet();
+
+    if (assignedCourseIds.isNotEmpty && !assignedCourseIds.contains(courseScopeId)) {
+      throw const FormatException('Lớp học phần không thuộc phân công.');
+    }
+=======
     // Validation is handled via selected course in UI
+>>>>>>> origin/Frontend
   }
 }
 

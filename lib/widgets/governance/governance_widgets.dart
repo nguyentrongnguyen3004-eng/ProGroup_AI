@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 
 class GovernanceSearchField extends StatelessWidget {
@@ -17,7 +18,7 @@ class GovernanceSearchField extends StatelessWidget {
     return TextField(
       onChanged: onChanged,
       decoration: InputDecoration(
-        hintText: hint,
+        hintText: AppLocalizations.tr(hint),
         prefixIcon: const Icon(Icons.search),
         isDense: true,
       ),
@@ -48,7 +49,7 @@ class GovernanceStatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
       ),
       child: Text(
-        label,
+        AppLocalizations.status(label),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
@@ -87,13 +88,13 @@ class GovernanceInfoLine extends StatelessWidget {
           SizedBox(
             width: 112,
             child: Text(
-              label,
+              AppLocalizations.tr(label),
               style: const TextStyle(color: AppTheme.grayColor),
             ),
           ),
           Expanded(
             child: Text(
-              value.isEmpty ? '—' : value,
+              value.isEmpty ? '—' : AppLocalizations.tr(value),
               textAlign: TextAlign.end,
               softWrap: true,
               style: const TextStyle(
@@ -148,12 +149,12 @@ class GovernanceActionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      AppLocalizations.tr(title),
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      subtitle,
+                      AppLocalizations.tr(subtitle),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: AppTheme.grayColor),
@@ -204,7 +205,7 @@ class GovernanceStatCard extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              title,
+              AppLocalizations.tr(title),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: AppTheme.grayColor),

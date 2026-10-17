@@ -90,93 +90,249 @@ class _LecturerCourseSettingsScreenState
   @override
   Widget build(BuildContext context) {
     final current = widget.course;
+<<<<<<< HEAD
+    final colors = Theme.of(context).colorScheme;
+
+=======
+>>>>>>> origin/Frontend
     return Scaffold(
-      appBar: AppBar(title: const Text('Cấu hình lớp học phần')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+      appBar: AppBar(
+        title: const Text(
+          'Cấu hình lớp học phần',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: SafeArea(
+        bottom: true,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 80),
           children: [
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.school_outlined),
-                title: Text(current.name),
-                subtitle: Text(current.classCode + ' • ' + current.semester),
+            // Course Info Pill Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.school_rounded,
+                      color: Color(0xFF4F46E5),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          current.name,
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${current.classCode} • ${current.semester}',
+                          style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Thời gian đăng ký',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            _DateField(
-              label: 'Bắt đầu lập nhóm',
-              value: _format(_groupStart),
-              onTap: () =>
-                  _chooseDate((value) => _groupStart = value, _groupStart),
-            ),
-            _DateField(
-              label: 'Kết thúc lập nhóm',
-              value: _format(_groupEnd),
-              onTap: () => _chooseDate((value) => _groupEnd = value, _groupEnd),
-            ),
-            _DateField(
-              label: 'Bắt đầu đăng ký đề tài',
-              value: _format(_topicStart),
-              onTap: () =>
-                  _chooseDate((value) => _topicStart = value, _topicStart),
-            ),
-            _DateField(
-              label: 'Kết thúc đăng ký đề tài',
-              value: _format(_topicEnd),
-              onTap: () => _chooseDate((value) => _topicEnd = value, _topicEnd),
-            ),
-            const SizedBox(height: 12),
-            Text('Quy mô nhóm', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _minController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Số thành viên tối thiểu',
-                prefixIcon: Icon(Icons.group_outlined),
+            const SizedBox(height: 18),
+
+            // Card 1: Deadlines
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.35),
+                ),
               ),
-              validator: (value) {
-                final parsed = int.tryParse(value?.trim() ?? '');
-                if (parsed == null || parsed < 1) {
-                  return 'Số thành viên tối thiểu phải từ 1.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _maxController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Số thành viên tối đa',
-                prefixIcon: Icon(Icons.groups_outlined),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.date_range_rounded,
+                          size: 18,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Thời gian đăng ký',
+                        style: TextStyle(
+                          color: colors.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _DateField(
+                    label: 'Bắt đầu lập nhóm',
+                    value: _format(_groupStart),
+                    iconColor: const Color(0xFF2563EB),
+                    onTap: () => _chooseDate((v) => _groupStart = v, _groupStart),
+                  ),
+                  _DateField(
+                    label: 'Kết thúc lập nhóm',
+                    value: _format(_groupEnd),
+                    iconColor: const Color(0xFF2563EB),
+                    onTap: () => _chooseDate((v) => _groupEnd = v, _groupEnd),
+                  ),
+                  const SizedBox(height: 6),
+                  _DateField(
+                    label: 'Bắt đầu đăng ký đề tài',
+                    value: _format(_topicStart),
+                    iconColor: const Color(0xFF8B5CF6),
+                    onTap: () => _chooseDate((v) => _topicStart = v, _topicStart),
+                  ),
+                  _DateField(
+                    label: 'Kết thúc đăng ký đề tài',
+                    value: _format(_topicEnd),
+                    iconColor: const Color(0xFF8B5CF6),
+                    onTap: () => _chooseDate((v) => _topicEnd = v, _topicEnd),
+                  ),
+                ],
               ),
-              validator: (value) {
-                final parsed = int.tryParse(value?.trim() ?? '');
-                final minimum = int.tryParse(_minController.text.trim());
-                if (parsed == null || parsed < 1) {
-                  return 'Số thành viên tối đa phải từ 1.';
-                }
-                if (minimum != null && parsed < minimum) {
-                  return 'Số tối đa phải lớn hơn hoặc bằng số tối thiểu.';
-                }
-                return null;
-              },
             ),
-            const SizedBox(height: 22),
-            FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Lưu cấu hình'),
+            const SizedBox(height: 18),
+
+            // Card 2: Group Limits
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.groups_rounded,
+                          size: 18,
+                          color: Color(0xFF059669),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Quy mô nhóm',
+                        style: TextStyle(
+                          color: colors.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _minController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Số thành viên tối thiểu',
+                      prefixIcon: const Icon(Icons.person_outline_rounded, color: Color(0xFF10B981)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    validator: (value) {
+                      final parsed = int.tryParse(value?.trim() ?? '');
+                      if (parsed == null || parsed < 1) {
+                        return 'Số thành viên tối thiểu phải từ 1.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _maxController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Số thành viên tối đa',
+                      prefixIcon: const Icon(Icons.people_alt_rounded, color: Color(0xFFF59E0B)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    validator: (value) {
+                      final parsed = int.tryParse(value?.trim() ?? '');
+                      final minimum = int.tryParse(_minController.text.trim());
+                      if (parsed == null || parsed < 1) {
+                        return 'Số thành viên tối đa phải từ 1.';
+                      }
+                      if (minimum != null && parsed < minimum) {
+                        return 'Số tối đa phải lớn hơn hoặc bằng số tối thiểu.';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
+        ),
+      ),
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(18, 10, 18, 16),
+        child: ElevatedButton.icon(
+          onPressed: _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2563EB),
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+          ),
+          icon: const Icon(Icons.check_circle_rounded, size: 20),
+          label: const Text(
+            'Lưu cấu hình',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -186,11 +342,13 @@ class _LecturerCourseSettingsScreenState
 class _DateField extends StatelessWidget {
   final String label;
   final String value;
+  final Color iconColor;
   final VoidCallback onTap;
 
   const _DateField({
     required this.label,
     required this.value,
+    required this.iconColor,
     required this.onTap,
   });
 
@@ -199,13 +357,46 @@ class _DateField extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 10),
     child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.calendar_month_outlined),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
-        child: Text(value),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_month_rounded, size: 18, color: iconColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                value,
+                style: TextStyle(
+                  color: iconColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -224,9 +415,8 @@ DateTime _parse(String value) {
   return DateTime.tryParse(value) ?? DateTime.now();
 }
 
-String _format(DateTime value) =>
-    value.day.toString().padLeft(2, '0') +
-    '/' +
-    value.month.toString().padLeft(2, '0') +
-    '/' +
-    value.year.toString();
+String _format(DateTime value) {
+  final d = value.day.toString().padLeft(2, '0');
+  final m = value.month.toString().padLeft(2, '0');
+  return '$d/$m/${value.year}';
+}

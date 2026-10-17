@@ -45,4 +45,13 @@ class MockGroupJoinRequests {
   static void add(GroupJoinRequestModel request) {
     requests.add(request);
   }
+
+  static void updateStatus(int id, String status) {
+    for (final req in requests) {
+      if (req.id == id) {
+        req.status = status;
+        break;
+      }
+    }
+  }
 }

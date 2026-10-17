@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+<<<<<<< HEAD
+import '../../../services/admin_api_service.dart';
+import '../../../services/governance_api_service.dart';
+=======
 import '../../../models/admin_account_model.dart';
 import '../../../models/course_model.dart';
 import '../../../models/group_model.dart';
@@ -7,6 +11,7 @@ import '../../../models/training_subject_model.dart';
 import '../../../services/admin_data_service.dart';
 import '../../../services/group_service.dart';
 import '../../../services/training_data_service.dart';
+>>>>>>> origin/Frontend
 import '../../admin/admin_helpers.dart';
 import 'admin_data_management_screen.dart';
 
@@ -16,6 +21,7 @@ class AdminDataDetailScreen extends StatefulWidget {
     required this.type,
     required this.title,
   });
+
   final AdminDataType type;
   final String title;
 
@@ -24,8 +30,17 @@ class AdminDataDetailScreen extends StatefulWidget {
 }
 
 class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<Map<String, dynamic>> _data = [];
   String _query = '';
 
+<<<<<<< HEAD
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+=======
   List<_Record> _records() {
     final training = TrainingDataService.instance;
     return switch (widget.type) {
@@ -58,30 +73,82 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
       AdminDataType.accounts =>
         AdminDataService.instance.accounts.map((item) => _account(item)).toList(),
     };
+>>>>>>> origin/Frontend
   }
 
-  _Record _subject(TrainingSubjectModel item) => _Record(
-    item.name,
-    item.code,
-    '${item.credits} ${adminText('tín chỉ', 'credits')} · ${item.department} · ${adminStatusText(item.status)}',
-  );
-  _Record _course(CourseModel item) => _Record(
-    item.classCode,
-    '${item.code} · ${item.name}',
-    '${item.semester} · ${item.lecturer.isEmpty ? adminText('Chưa phân công', 'Unassigned') : item.lecturer} · ${adminStatusText(item.status)}',
-  );
-  _Record _group(GroupModel item) => _Record(
-    item.name,
-    '${item.memberCount}/${item.maxMembers} · ${item.leader}',
-    adminStatusText(item.status),
-  );
-  _Record _account(AdminAccountModel item) => _Record(
-    item.fullName,
-    '${item.userCode} · ${item.username} · ${item.email}',
-    '${adminRoleText(item.role)} · ${adminStatusText(item.status)}',
-  );
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      List<Map<String, dynamic>> list = [];
+      switch (widget.type) {
+        case AdminDataType.students:
+          list = await GovernanceApiService.instance.fetchStudents();
+        case AdminDataType.lecturers:
+          list = await GovernanceApiService.instance.fetchLecturers();
+        case AdminDataType.courseClasses:
+        case AdminDataType.subjects:
+          list = await GovernanceApiService.instance.fetchCourses();
+        case AdminDataType.groups:
+          list = await GovernanceApiService.instance.fetchGroups();
+        case AdminDataType.accounts:
+          list = await AdminApiService.instance.fetchUsers();
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _data = list;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Không thể tải dữ liệu: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
+<<<<<<< HEAD
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final filtered = _data.where((item) {
+      if (query.isEmpty) return true;
+      final text = item.values.map((v) => v.toString()).join(' ').toLowerCase();
+      return text.contains(query);
+    }).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          widget.title,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadData,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        bottom: true,
+        child: Column(
+=======
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: Listenable.merge([
       TrainingDataService.instance,
@@ -98,54 +165,155 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
       return Scaffold(
         appBar: AppBar(title: Text(widget.title)),
         body: Column(
+>>>>>>> origin/Frontend
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: TextField(
-                onChanged: (value) => setState(() => _query = value),
+                onChanged: (val) => setState(() => _query = val),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: adminText(
-                    'Tìm trong dữ liệu...',
-                    'Search these records...',
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF2563EB)),
+                  hintText: adminText('Tìm kiếm...', 'Search...'),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
-                  border: const OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
                 ),
               ),
             ),
             Expanded(
-              child: records.isEmpty
-                  ? adminEmptyState(
-                      context,
-                      'Không có dữ liệu phù hợp.',
-                      'No matching records found.',
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                      itemCount: records.length,
-                      itemBuilder: (context, index) {
-                        final item = records[index];
-                        return Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.description_outlined),
-                            title: Text(item.title),
-                            subtitle: Text('${item.subtitle}\n${item.extra}'),
-                            isThreeLine: true,
-                          ),
-                        );
-                      },
+              child: _buildListContent(filtered),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListContent(List<Map<String, dynamic>> list) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+              const SizedBox(height: 12),
+              Text(_errorMessage!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (list.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 80),
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.4,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_outlined, size: 54, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text(
+                      adminText('Chưa có dữ liệu', 'No data available'),
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
                     ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
       );
-    },
-  );
-}
+    }
 
-class _Record {
-  const _Record(this.title, this.subtitle, this.extra);
-  final String title;
-  final String subtitle;
-  final String extra;
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 80),
+        itemCount: list.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final item = list[index];
+          final title = item['tenLopHocPhan'] ?? item['TenLopHocPhan'] ?? item['tenHocPhan'] ?? item['TenHocPhan'] ?? item['hoTen'] ?? item['HoTen'] ?? item['tenNhom'] ?? item['tenDangNhap'] ?? '—';
+          final sub1 = item['maLopHocPhan'] ?? item['MaLopHocPhan'] ?? item['mssv'] ?? item['MSSV'] ?? item['maGiangVien'] ?? item['tenDangNhap'] ?? '';
+          final sub2 = item['email'] ?? item['Email'] ?? item['giangVienTen'] ?? item['GiangVienTen'] ?? '';
+
+          return Card(
+            elevation: 0,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.grey.shade200),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.dataset_outlined, color: Color(0xFF2563EB), size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$title',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E3A5F)),
+                        ),
+                        if (sub1.isNotEmpty || sub2.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            '$sub1 ${sub2.isNotEmpty ? "· $sub2" : ""}',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

@@ -40,6 +40,12 @@ class MockLecturerNotifications extends ChangeNotifier {
     _notifications.map((item) => Map<String, dynamic>.unmodifiable(item)),
   );
 
+  void setNotifications(List<Map<String, dynamic>> items) {
+    _notifications.clear();
+    _notifications.addAll(items);
+    notifyListeners();
+  }
+
   int get unreadCount =>
       _notifications.where((item) => item['isRead'] == false).length;
 

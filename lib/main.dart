@@ -33,7 +33,11 @@ import 'package:progroup_ai_frontend/screens/sinh_vien/group/create_group_screen
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/join_group_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/propose_topic_screen.dart';
 
-void main() {
+import 'services/firebase_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseService.instance.initialize();
   runApp(const ProGroupApp());
 }
 
@@ -76,10 +80,18 @@ class ProGroupApp extends StatelessWidget {
                 );
 
               case AppRoutes.resetPassword:
-                final email = settings.arguments as String;
+                final args = settings.arguments;
+                String email = '';
+                String otp = '';
+                if (args is Map) {
+                  email = args['email']?.toString() ?? '';
+                  otp = args['otp']?.toString() ?? '';
+                } else if (args is String) {
+                  email = args;
+                }
 
                 return MaterialPageRoute(
-                  builder: (_) => ResetPasswordScreen(email: email),
+                  builder: (_) => ResetPasswordScreen(email: email, otp: otp),
                 );
 
               case AppRoutes.lecturerMain:
@@ -162,11 +174,19 @@ class ProGroupApp extends StatelessWidget {
 
                 final course = CourseModel(
                   id: topic.courseId,
+<<<<<<< HEAD
+                  code: 'LHP',
+                  name: topic.title,
+                  classCode: 'LHP-${topic.courseId}',
+                  semester: 'HK1 2026-2027',
+                  lecturer: topic.lecturerName ?? 'Giảng viên phụ trách',
+=======
                   code: 'HP',
                   name: 'Lớp học phần',
                   classCode: 'HP-01',
                   semester: 'HK1',
                   lecturer: 'Giảng viên',
+>>>>>>> origin/Frontend
                   status: 'Đang mở',
                 );
 

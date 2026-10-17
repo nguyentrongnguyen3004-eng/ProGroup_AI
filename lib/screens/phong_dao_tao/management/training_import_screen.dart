@@ -86,7 +86,20 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
     final headers = _headers(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_text(context, 'Import dữ liệu', 'Import data')),
+        title: Text(
+          _text(context, 'Import dữ liệu', 'Import data'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: _text(context, 'Lịch sử import', 'Import history'),
@@ -95,7 +108,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
                 builder: (_) => const TrainingImportHistoryScreen(),
               ),
             ),
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.history, color: Colors.white),
           ),
         ],
       ),
@@ -1094,47 +1107,39 @@ class _ImportStepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 15,
-                  backgroundColor: colors.primaryContainer,
-                  foregroundColor: colors.onPrimaryContainer,
-                  child: Text(
-                    number,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        description,
-                        style: TextStyle(color: colors.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$number. $title',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E3A5F),
             ),
-            const SizedBox(height: 12),
-            SizedBox(width: double.infinity, child: child),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(width: double.infinity, child: child),
+        ],
       ),
     );
   }

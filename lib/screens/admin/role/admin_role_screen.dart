@@ -1,25 +1,74 @@
 import 'package:flutter/material.dart';
 
+<<<<<<< HEAD
+=======
 import '../../../services/admin_data_service.dart';
+>>>>>>> origin/Frontend
 import '../../admin/admin_helpers.dart';
 
 class AdminRoleScreen extends StatelessWidget {
   const AdminRoleScreen({super.key});
 
+  static const List<String> roles = [
+    'Sinh viên',
+    'Giảng viên',
+    'Giáo vụ khoa',
+    'Phòng Đào tạo',
+    'Admin',
+  ];
+
+  static const Map<String, List<String>> permissions = {
+    'Sinh viên': [
+      'Xem danh sách đề tài đồ án',
+      'Đăng ký đề tài & ghép nhóm',
+      'Nhận phản hồi đánh giá AI',
+      'Nhận thông báo tiến độ',
+    ],
+    'Giảng viên': [
+      'Quản lý đề tài phụ trách',
+      'Duyệt nhóm đăng ký đề tài',
+      'Chấm điểm và phản hồi sinh viên',
+      'Gợi ý đề tài qua AI Assistant',
+    ],
+    'Giáo vụ khoa': [
+      'Phân công giảng viên phụ trách LHP',
+      'Import danh sách sinh viên & LHP',
+      'Theo dõi tiến độ đăng ký đồ án',
+      'Gửi thông báo toàn khoa',
+    ],
+    'Phòng Đào tạo': [
+      'Quản lý danh mục học phần toàn trường',
+      'Import và đồng bộ dữ liệu đào tạo',
+      'Quản lý đợt đăng ký đồ án',
+      'Báo cáo thống kê toàn trường',
+    ],
+    'Admin': [
+      'Toàn quyền quản trị tài khoản',
+      'Phân quyền và khóa/mở tài khoản',
+      'Giám sát hoạt động và bảo mật',
+      'Cấu hình thông số hệ thống',
+    ],
+  };
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(adminText('Quản lý vai trò', 'Role management')),
-    ),
-    body: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          adminText('Vai trò và quyền hạn', 'Roles and permissions'),
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          adminText('Quản lý vai trò', 'Role Management'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
+<<<<<<< HEAD
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+=======
         const SizedBox(height: 6),
         Text(
           adminText(
@@ -48,47 +97,107 @@ class AdminRoleScreen extends StatelessWidget {
                     title: Text(_permission(context, permission)),
                   ),
               ],
+>>>>>>> origin/Frontend
             ),
           ),
-      ],
-    ),
-  );
+        ),
+      ),
+      body: SafeArea(
+        bottom: true,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+          children: [
+            // Hero Banner
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  const Icon(Icons.security, color: Colors.white, size: 36),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          adminText('Vai trò & Phân quyền', 'Roles & Permissions'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          adminText(
+                            'Danh mục vai trò và bảng quyền truy cập trong hệ thống.',
+                            'System role definitions and access matrices.',
+                          ),
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            for (final role in roles)
+              Card(
+                elevation: 0,
+                color: colors.surface,
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.3)),
+                ),
+                child: ExpansionTile(
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(_icon(role), color: const Color(0xFF2563EB), size: 24),
+                  ),
+                  title: Text(
+                    adminRoleText(role),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.onSurface),
+                  ),
+                  subtitle: Text(
+                    '${(permissions[role] ?? []).length} ${adminText("quyền hạn", "permissions")}',
+                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+                  ),
+                  children: [
+                    for (final perm in permissions[role] ?? <String>[])
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.check_circle_outline, color: Color(0xFF059669), size: 18),
+                        title: Text(perm, style: TextStyle(fontSize: 13, color: colors.onSurface)),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _icon(String role) => switch (role) {
+    'Sinh viên' => Icons.school_outlined,
+    'Giảng viên' => Icons.badge_outlined,
+    'Giáo vụ khoa' => Icons.account_balance_outlined,
+    'Phòng Đào tạo' => Icons.domain_outlined,
+    _ => Icons.admin_panel_settings_outlined,
+  };
 }
-
-IconData _icon(String role) => switch (role) {
-  'Sinh viên' => Icons.school_outlined,
-  'Giảng viên' => Icons.co_present_outlined,
-  'Giáo vụ khoa' => Icons.fact_check_outlined,
-  'Phòng Đào tạo' => Icons.account_balance_outlined,
-  _ => Icons.admin_panel_settings_outlined,
-};
-
-String _permission(BuildContext context, String value) => switch (value) {
-  'Đăng ký lớp học phần' => adminText(value, 'Register for course classes'),
-  'Tạo và tham gia nhóm' => adminText(value, 'Create and join groups'),
-  'Chọn đề tài' => adminText(value, 'Choose a project topic'),
-  'Chat nhóm' => adminText(value, 'Group chat'),
-  'Quản lý profile' => adminText(value, 'Manage profile'),
-  'Quản lý lớp học phần' => adminText(value, 'Manage course classes'),
-  'Quản lý nhóm và đề tài' => adminText(value, 'Manage groups and topics'),
-  'Duyệt đề tài' => adminText(value, 'Review topics'),
-  'Quản lý sinh viên' => adminText(value, 'Manage students'),
-  'Profile và thông báo' => adminText(value, 'Profile and notifications'),
-  'Quản lý sinh viên và giảng viên' => adminText(
-    value,
-    'Manage students and lecturers',
-  ),
-  'Import dữ liệu' => adminText(value, 'Import data'),
-  'CRUD dữ liệu khoa' => adminText(value, 'Manage faculty data'),
-  'Quản lý sinh viên, giảng viên, học phần' => adminText(
-    value,
-    'Manage students, lecturers, and subjects',
-  ),
-  'Phân công giảng viên' => adminText(value, 'Assign lecturers'),
-  'Quản lý người dùng và vai trò' => adminText(value, 'Manage users and roles'),
-  'Theo dõi dữ liệu hệ thống' => adminText(value, 'View system data'),
-  'Theo dõi hoạt động' => adminText(value, 'Review activity logs'),
-  'Quản lý thông báo' => adminText(value, 'Manage notifications'),
-  'Quản lý profile hệ thống' => adminText(value, 'Manage system profile'),
-  _ => value,
-};

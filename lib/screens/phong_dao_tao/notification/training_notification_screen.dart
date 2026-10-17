@@ -1,14 +1,278 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
+<<<<<<< HEAD
+import '../../../services/admin_api_service.dart';
+import '../../../widgets/common/common_notification_detail_screen.dart';
+=======
 import '../../../models/training_notification_model.dart';
 import '../../../services/notification_service.dart';
+>>>>>>> origin/Frontend
 
-class TrainingNotificationScreen extends StatelessWidget {
+class TrainingNotificationScreen extends StatefulWidget {
   const TrainingNotificationScreen({super.key});
 
   @override
+  State<TrainingNotificationScreen> createState() => _TrainingNotificationScreenState();
+}
+
+class _TrainingNotificationScreenState extends State<TrainingNotificationScreen> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<Map<String, dynamic>> _notifications = [];
+  String _filter = 'ALL'; // ALL, UNREAD, READ
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final list = await AdminApiService.instance.fetchNotifications();
+      if (!mounted) return;
+      setState(() {
+        _notifications = list;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Không thể tải thông báo: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _markRead(int id) async {
+    await AdminApiService.instance.markNotificationAsRead(id);
+    setState(() {
+      for (final n in _notifications) {
+        if ((n['id'] ?? n['thongBaoId']) == id) {
+          n['isRead'] = true;
+          n['daDoc'] = true;
+        }
+      }
+    });
+  }
+
+  Future<void> _markAllRead() async {
+    for (final n in _notifications) {
+      final id = n['id'] ?? n['thongBaoId'];
+      if (id != null && (n['isRead'] != true && n['daDoc'] != true)) {
+        await AdminApiService.instance.markNotificationAsRead(id is int ? id : int.tryParse('$id') ?? 0);
+      }
+    }
+    setState(() {
+      for (final n in _notifications) {
+        n['isRead'] = true;
+        n['daDoc'] = true;
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+    final colors = Theme.of(context).colorScheme;
+    final canPop = ModalRoute.of(context)?.canPop == true;
+
+    final allItems = _notifications;
+    final unreadCount = allItems.where((n) => n['isRead'] != true && n['daDoc'] != true).length;
+    final readCount = allItems.length - unreadCount;
+
+    final filteredItems = allItems.where((item) {
+      final isRead = item['isRead'] == true || item['daDoc'] == true;
+      if (_filter == 'UNREAD') return !isRead;
+      if (_filter == 'READ') return isRead;
+      return true;
+    }).toList();
+
+    return Scaffold(
+      appBar: canPop
+          ? AppBar(
+              title: Text(
+                AppLocalizations.text('Thông báo Đào tạo', en: 'Training Notifications'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              actions: [
+                if (unreadCount > 0)
+                  IconButton(
+                    icon: const Icon(Icons.done_all_rounded),
+                    tooltip: 'Đánh dấu tất cả đã đọc',
+                    onPressed: _markAllRead,
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  tooltip: 'Tải lại',
+                  onPressed: _loadNotifications,
+                ),
+              ],
+            )
+          : null,
+      body: SafeArea(
+        bottom: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Gradient đồng bộ chuẩn Giảng viên khi không có nút Back
+            if (!canPop)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1E3A5F).withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_active_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppLocalizations.text('Thông báo Đào tạo', en: 'Training Notifications'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$unreadCount thông báo chưa đọc',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      TextButton.icon(
+                        onPressed: _markAllRead,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.done_all_rounded, size: 16),
+                        label: Text(
+                          AppLocalizations.text('Đã đọc', en: 'Mark read'),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+            // 3 KPI Cards: Total, Unread, Read (Unified Design System)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildKpiCard(
+                      title: AppLocalizations.text('Tổng cộng', en: 'Total'),
+                      count: allItems.length,
+                      icon: Icons.notifications_rounded,
+                      color: const Color(0xFF2563EB),
+                      isSelected: _filter == 'ALL',
+                      onTap: () => setState(() => _filter = 'ALL'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildKpiCard(
+                      title: AppLocalizations.text('Chưa đọc', en: 'Unread'),
+                      count: unreadCount,
+                      icon: Icons.mark_email_unread_rounded,
+                      color: const Color(0xFFF59E0B),
+                      isSelected: _filter == 'UNREAD',
+                      onTap: () => setState(() => _filter = 'UNREAD'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildKpiCard(
+                      title: AppLocalizations.text('Đã đọc', en: 'Read'),
+                      count: readCount,
+                      icon: Icons.mark_email_read_rounded,
+                      color: const Color(0xFF10B981),
+                      isSelected: _filter == 'READ',
+                      onTap: () => setState(() => _filter = 'READ'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: _buildList(colors, filteredItems),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildList(ColorScheme colors, List<Map<String, dynamic>> items) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.red, size: 40),
+              const SizedBox(height: 12),
+              Text(_errorMessage!, textAlign: TextAlign.center, style: TextStyle(color: colors.onSurfaceVariant)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadNotifications,
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(AppLocalizations.text('Thử lại', en: 'Retry')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+=======
     final notifications = NotificationService.instance;
     return AnimatedBuilder(
       animation: notifications,
@@ -31,222 +295,211 @@ class TrainingNotificationScreen extends StatelessWidget {
                   context,
                   'Đánh dấu tất cả đã đọc',
                   'Mark all as read',
+>>>>>>> origin/Frontend
                 ),
-                onPressed: notifications.unreadCount == 0
-                    ? null
-                    : notifications.markAllAsRead,
-                icon: const Icon(Icons.done_all),
               ),
             ],
           ),
-          body: items.isEmpty
-              ? _EmptyNotifications(
-                  title: _text(
-                    context,
-                    'Chưa có thông báo',
-                    'No notifications',
-                  ),
-                  message: _text(
-                    context,
-                    'Thông báo mới sẽ xuất hiện tại đây.',
-                    'New notifications will appear here.',
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) => _NotificationCard(
-                    item: items[index],
-                    onTap: () {
-                      notifications.markAsRead(items[index].id);
-                      _showDetails(context, items[index]);
-                    },
-                  ),
-                ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    }
 
-  void _showDetails(BuildContext context, TrainingNotificationModel item) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        icon: Icon(item.icon),
-        title: Text(item.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+    if (items.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadNotifications,
+        color: const Color(0xFF2563EB),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 80),
           children: [
-            Text(
-              item.type,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
-            ),
-            const SizedBox(height: 10),
-            Text(item.content),
-            const SizedBox(height: 14),
-            Text(
-              item.time,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.35,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.notifications_off_outlined, size: 48, color: colors.onSurfaceVariant),
+                    const SizedBox(height: 12),
+                    Text(
+                      _filter == 'UNREAD' ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo nào',
+                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(_text(context, 'Đóng', 'Close')),
-          ),
-        ],
-      ),
-    );
-  }
-}
+      );
+    }
 
-String _text(BuildContext context, String vi, String en) =>
-    AppLocalizations.text(vi, en: en);
+    return RefreshIndicator(
+      onRefresh: _loadNotifications,
+      color: const Color(0xFF2563EB),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+        itemCount: items.length,
+        separatorBuilder: (_, index) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final n = items[index];
+          final id = n['id'] ?? n['thongBaoId'];
+          final isRead = n['isRead'] == true || n['daDoc'] == true;
+          final title = (n['tieuDe'] ?? n['title'] ?? 'Thông báo').toString();
+          final content = (n['noiDung'] ?? n['content'] ?? '').toString();
+          final time = (n['ngayTao'] ?? n['time'] ?? 'Vừa xong').toString();
 
-class _NotificationCard extends StatelessWidget {
-  final TrainingNotificationModel item;
-  final VoidCallback onTap;
+          final iconColor = isRead ? const Color(0xFF6B7280) : const Color(0xFFF59E0B);
 
-  const _NotificationCard({required this.item, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final unreadColor = Color.lerp(
-      colors.primaryContainer,
-      colors.surface,
-      Theme.of(context).brightness == Brightness.light ? 0.58 : 0.78,
-    );
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      color: item.isRead ? colors.surface : unreadColor,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
+          return Card(
+            elevation: isRead ? 0 : 1,
+            color: isRead ? colors.surface : Color.lerp(iconColor.withValues(alpha: 0.08), colors.surface, 0.6),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isRead ? colors.outlineVariant.withValues(alpha: 0.35) : iconColor.withValues(alpha: 0.35),
+                width: isRead ? 1.0 : 1.4,
+              ),
             ),
-            leading: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CircleAvatar(
-                  backgroundColor: item.isRead
-                      ? colors.surfaceContainerHighest
-                      : colors.primaryContainer,
-                  child: Icon(
-                    item.icon,
-                    color: item.isRead
-                        ? colors.onSurfaceVariant
-                        : colors.onPrimaryContainer,
-                  ),
-                ),
-                if (!item.isRead)
-                  Positioned(
-                    right: -1,
-                    top: -1,
-                    child: Container(
-                      width: 11,
-                      height: 11,
-                      decoration: BoxDecoration(
-                        color: colors.error,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: colors.surface, width: 1.5),
-                      ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                if (!isRead && id != null) {
+                  _markRead(id is int ? id : int.tryParse('$id') ?? 0);
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CommonNotificationDetailScreen(
+                      notification: n,
+                      onMarkRead: () {
+                        if (id != null) {
+                          _markRead(id is int ? id : int.tryParse('$id') ?? 0);
+                        }
+                      },
                     ),
                   ),
-              ],
-            ),
-            title: Text(
-              item.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: item.isRead ? FontWeight.w500 : FontWeight.w700,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isRead ? Icons.notifications_none_rounded : Icons.notifications_active_rounded,
+                        color: iconColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
+                                    fontSize: 14.5,
+                                    color: colors.onSurface,
+                                  ),
+                                ),
+                              ),
+                              if (!isRead)
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF59E0B),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            content,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            time,
+                            style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 5),
-              child: Text(
-                item.content,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            trailing: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  item.time,
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 11,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  item.isRead
-                      ? _text(context, 'Đã đọc', 'Read')
-                      : _text(context, 'Chưa đọc', 'Unread'),
-                  style: TextStyle(
-                    color: item.isRead ? colors.onSurfaceVariant : colors.error,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
-}
 
-class _EmptyNotifications extends StatelessWidget {
-  final String title;
-  final String message;
-
-  const _EmptyNotifications({required this.title, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildKpiCard({
+    required String title,
+    required int count,
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.notifications_none_outlined,
-              size: 56,
-              color: colors.onSurfaceVariant,
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.12) : colors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? color : colors.outlineVariant.withValues(alpha: 0.5),
+              width: isSelected ? 1.8 : 1.0,
             ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: TextStyle(
-                color: colors.onSurface,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 6),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: isSelected ? color : colors.onSurface,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: colors.onSurfaceVariant),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? color : colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

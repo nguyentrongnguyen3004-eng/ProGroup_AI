@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import '../../models/topic_model.dart';
 
-class MockLecturerTopics {
-  static final List<TopicModel> topics = [
-    TopicModel(
+class MockLecturerTopics extends ChangeNotifier {
+  MockLecturerTopics._();
+  static final MockLecturerTopics instance = MockLecturerTopics._();
+
+  static List<TopicModel> _topics = [
+    const TopicModel(
       id: 1,
       courseId: 1,
       title: 'Ứng dụng quản lý nhóm đồ án',
@@ -13,7 +17,7 @@ class MockLecturerTopics {
       source: 'Giảng viên',
       status: 'Đang hoạt động',
     ),
-    TopicModel(
+    const TopicModel(
       id: 2,
       courseId: 1,
       title: 'Hệ thống gợi ý đề tài bằng AI',
@@ -24,7 +28,7 @@ class MockLecturerTopics {
       source: 'Giảng viên',
       status: 'Đang hoạt động',
     ),
-    TopicModel(
+    const TopicModel(
       id: 3,
       courseId: 1,
       title: 'Ứng dụng quản lý học tập',
@@ -35,7 +39,7 @@ class MockLecturerTopics {
       source: 'Sinh viên đề xuất',
       status: 'Đã khóa',
     ),
-    TopicModel(
+    const TopicModel(
       id: 4,
       courseId: 1,
       title: 'Ứng dụng điểm danh thông minh',
@@ -46,7 +50,7 @@ class MockLecturerTopics {
       source: 'AI đề xuất',
       status: 'Chờ duyệt',
     ),
-    TopicModel(
+    const TopicModel(
       id: 8,
       courseId: 3,
       title: 'Hệ thống cảnh báo rò rỉ gas',
@@ -59,37 +63,44 @@ class MockLecturerTopics {
     ),
   ];
 
+  static List<TopicModel> get topics => _topics;
+
+  static void setTopics(List<TopicModel> newTopics) {
+    _topics = List.from(newTopics);
+    instance.notifyListeners();
+  }
+
   static List<TopicModel> getByCourse(int courseId) {
-    return topics.where((topic) => topic.courseId == courseId).toList();
+    return _topics.where((topic) => topic.courseId == courseId).toList();
   }
 
   static TopicModel? getById(int id) {
     try {
-      return topics.firstWhere((topic) => topic.id == id);
+      return _topics.firstWhere((topic) => topic.id == id);
     } catch (_) {
       return null;
     }
   }
 
   static void add(TopicModel topic) {
-    topics.add(topic);
+    _topics.add(topic);
+    instance.notifyListeners();
   }
 
   static void update(TopicModel topic) {
-    final index = topics.indexWhere((item) => item.id == topic.id);
-
+    final index = _topics.indexWhere((item) => item.id == topic.id);
     if (index != -1) {
-      topics[index] = topic;
+      _topics[index] = topic;
+      instance.notifyListeners();
     }
   }
 
   static void updateStatus(int id, String status) {
-    final index = topics.indexWhere((item) => item.id == id);
-
+    final index = _topics.indexWhere((item) => item.id == id);
     if (index == -1) return;
 
-    final topic = topics[index];
-    topics[index] = TopicModel(
+    final topic = _topics[index];
+    _topics[index] = TopicModel(
       id: topic.id,
       courseId: topic.courseId,
       title: topic.title,
@@ -100,9 +111,11 @@ class MockLecturerTopics {
       source: topic.source,
       status: status,
     );
+    instance.notifyListeners();
   }
 
   static void delete(int id) {
-    topics.removeWhere((topic) => topic.id == id);
+    _topics.removeWhere((topic) => topic.id == id);
+    instance.notifyListeners();
   }
 }

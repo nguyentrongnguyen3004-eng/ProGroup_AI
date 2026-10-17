@@ -3,14 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
+<<<<<<< HEAD
+import 'package:progroup_ai_frontend/services/password_reset_api_service.dart';
+=======
 import 'package:progroup_ai_frontend/services/auth_service.dart';
+>>>>>>> origin/Frontend
 import 'package:progroup_ai_frontend/widgets/app_button.dart';
 import 'package:progroup_ai_frontend/widgets/app_text_field.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
+  final String otp;
 
-  const ResetPasswordScreen({super.key, required this.email});
+  const ResetPasswordScreen({
+    super.key,
+    required this.email,
+    required this.otp,
+  });
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -21,7 +30,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   final confirmController = TextEditingController();
 
+<<<<<<< HEAD
+  final service = PasswordResetApiService.instance;
+=======
   final service = AuthService();
+>>>>>>> origin/Frontend
 
   bool loading = false;
   bool obscurePassword = true;
@@ -66,7 +79,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     });
 
     try {
-      await service.resetPassword(password);
+      await service.resetPassword(widget.email, widget.otp, password);
 
       if (!mounted) return;
 

@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import '../../models/group_model.dart';
 
-class MockLecturerGroups {
-  static final List<GroupModel> groups = [
-    GroupModel(
+class MockLecturerGroups extends ChangeNotifier {
+  MockLecturerGroups._();
+  static final MockLecturerGroups instance = MockLecturerGroups._();
+
+  static List<GroupModel> _groups = [
+    const GroupModel(
       id: 101,
       courseId: 1,
       name: 'Nhóm ProGroup',
@@ -17,7 +21,7 @@ class MockLecturerGroups {
         'Phạm Quốc Huy',
       ],
     ),
-    GroupModel(
+    const GroupModel(
       id: 102,
       courseId: 1,
       name: 'Mobile Team',
@@ -33,7 +37,7 @@ class MockLecturerGroups {
         'Hoàng Anh Tuấn',
       ],
     ),
-    GroupModel(
+    const GroupModel(
       id: 103,
       courseId: 1,
       name: 'Nhóm Chưa Chọn Đề Tài',
@@ -43,7 +47,7 @@ class MockLecturerGroups {
       status: 'Đang hoạt động',
       members: ['Phạm Minh Đức', 'Đỗ Minh Khang', 'Lê Quốc Bảo'],
     ),
-    GroupModel(
+    const GroupModel(
       id: 104,
       courseId: 1,
       name: 'Smart Attendance',
@@ -58,7 +62,7 @@ class MockLecturerGroups {
         'Võ Thành Đạt',
       ],
     ),
-    GroupModel(
+    const GroupModel(
       id: 105,
       courseId: 3,
       name: 'Nhóm IoT Team',
@@ -70,13 +74,20 @@ class MockLecturerGroups {
     ),
   ];
 
+  static List<GroupModel> get groups => _groups;
+
+  static void setGroups(List<GroupModel> newGroups) {
+    _groups = List.from(newGroups);
+    instance.notifyListeners();
+  }
+
   static List<GroupModel> getByCourse(int courseId) {
-    return groups.where((group) => group.courseId == courseId).toList();
+    return _groups.where((group) => group.courseId == courseId).toList();
   }
 
   static GroupModel? getById(int id) {
     try {
-      return groups.firstWhere((group) => group.id == id);
+      return _groups.firstWhere((group) => group.id == id);
     } catch (_) {
       return null;
     }

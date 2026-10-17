@@ -36,4 +36,13 @@ class MockGroupInvitations {
   static void add(GroupInvitationModel invitation) {
     invitations.add(invitation);
   }
+
+  static void updateStatus(int id, String status) {
+    for (final inv in invitations) {
+      if (inv.id == id) {
+        inv.status = status;
+        break;
+      }
+    }
+  }
 }

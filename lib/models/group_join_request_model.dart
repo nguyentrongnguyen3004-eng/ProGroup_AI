@@ -20,4 +20,19 @@ class GroupJoinRequestModel {
     this.message = '',
     required this.createdAt,
   });
+
+  factory GroupJoinRequestModel.fromJson(Map<String, dynamic> json) {
+    return GroupJoinRequestModel(
+      id: json['id'] as int? ?? 0,
+      groupId: json['groupId'] as int? ?? 0,
+      groupName: json['groupName'] as String? ?? '',
+      studentName: json['studentName'] as String? ?? '',
+      studentMssv: json['studentMssv'] as String? ?? '',
+      studentEmail: json['studentEmail'] as String? ?? '',
+      status: json['status'] as String? ?? 'Chờ duyệt',
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
 }

@@ -5,8 +5,13 @@ import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/create_group_screen.dart';
+<<<<<<< HEAD
+import 'package:progroup_ai_frontend/services/api_service.dart';
+import 'package:progroup_ai_frontend/services/auth_service.dart';
+=======
 import 'package:progroup_ai_frontend/services/auth_service.dart';
 import 'package:progroup_ai_frontend/services/group_service.dart';
+>>>>>>> origin/Frontend
 
 class CourseGroupScreen extends StatefulWidget {
   final CourseModel course;
@@ -19,13 +24,78 @@ class CourseGroupScreen extends StatefulWidget {
 
 class _CourseGroupScreenState extends State<CourseGroupScreen> {
   CourseModel get course => widget.course;
+<<<<<<< HEAD
+  List<GroupModel> _groups = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+=======
   List<GroupModel> _courseGroups = [];
   bool _isLoading = true;
   String? _currentUserName;
+>>>>>>> origin/Frontend
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
+    _loadGroups();
+  }
+
+  Future<void> _loadGroups() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      dynamic res;
+      try {
+        res = await ApiService.instance.get('/api/groups?lopHocPhanId=${course.id}');
+      } catch (_) {
+        res = await ApiService.instance.get('/api/groups');
+      }
+
+      final List<dynamic> list;
+      if (res is List) {
+        list = res;
+      } else if (res is Map && res['value'] is List) {
+        list = res['value'] as List;
+      } else if (res is Map && res['data'] is List) {
+        list = res['data'] as List;
+      } else {
+        list = [];
+      }
+
+      final allGroups = list
+          .map((e) => GroupModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      final filtered = allGroups
+          .where((g) => g.courseId == course.id || g.courseId == 0 || allGroups.length <= 5)
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _groups = filtered.isNotEmpty ? filtered : allGroups;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  GroupModel? get currentGroup {
+    final studentName = AuthService.currentUser.fullName.toLowerCase().trim();
+
+    for (final group in _groups) {
+      if (group.leader.toLowerCase().trim() == studentName) return group;
+      for (final m in group.members) {
+        if (m.toLowerCase().trim() == studentName) return group;
+=======
     _loadData();
   }
 
@@ -56,6 +126,7 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     for (final group in _courseGroups) {
       if (group.members.contains(_currentUserName) || group.leader == _currentUserName) {
         return group;
+>>>>>>> origin/Frontend
       }
     }
     return null;
@@ -63,6 +134,9 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+    final groups = _groups;
+=======
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
@@ -72,35 +146,73 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
       );
     }
     final groups = courseGroups;
+>>>>>>> origin/Frontend
     final myGroup = currentGroup;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           AppLocalizations.text('Nhóm lớp học phần', en: 'Course Groups'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: groups.isEmpty
-            ? _buildEmptyState(context)
-            : ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  _buildCourseHeader(context),
-                  const SizedBox(height: 16),
-                  if (myGroup != null) ...[
-                    _buildMyGroup(context, myGroup),
-                    const SizedBox(height: 20),
-                  ],
-                  _buildGroupSection(context, groups, myGroup),
-                  const SizedBox(height: 20),
-                  _buildBottomActions(context),
-                ],
-              ),
+      body: SafeArea(
+        bottom: true,
+        child: RefreshIndicator(
+          onRefresh: _loadGroups,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: _loadGroups,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Thử lại'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : groups.isEmpty
+                      ? _buildEmptyState(context)
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 72),
+                          children: [
+                            _buildCourseHeader(context),
+                            const SizedBox(height: 16),
+                            if (myGroup != null) ...[
+                              _buildMyGroup(context, myGroup),
+                              const SizedBox(height: 20),
+                            ],
+                            _buildGroupSection(context, groups, myGroup),
+                            const SizedBox(height: 20),
+                            _buildBottomActions(context),
+                          ],
+                        ),
+        ),
       ),
       floatingActionButton: myGroup == null
           ? FloatingActionButton.extended(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
               onPressed: () {
                 _createGroup(context);
               },
@@ -113,14 +225,22 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     );
   }
 
+<<<<<<< HEAD
+=======
   Future<void> _refresh() async {
     await _loadData();
   }
 
+>>>>>>> origin/Frontend
   Widget _buildCourseHeader(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(
@@ -167,6 +287,11 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -238,6 +363,11 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
         const SizedBox(height: 12),
         if (otherGroups.isEmpty)
           Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.grey.shade200),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Text(
@@ -265,10 +395,14 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     GroupModel? myGroup,
   ) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-
     final isFull = group.memberCount >= group.maxMembers;
 
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -276,58 +410,95 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: primaryColor.withValues(alpha: 0.1),
-                  child: Icon(Icons.groups_outlined, color: primaryColor),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        group.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        AppLocalizations.memberCount(
-                          group.memberCount,
-                          group.maxMembers,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    group.name,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (isFull ? Colors.red : Colors.green).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    isFull
+                        ? AppLocalizations.text('Đã đầy', en: 'Full')
+                        : AppLocalizations.text('Còn chỗ', en: 'Open'),
+                    style: TextStyle(
+                      color: isFull ? Colors.red : Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(
-              '${AppLocalizations.text('Trưởng nhóm', en: 'Leader')}: ${group.leader}',
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: OutlinedButton.icon(
-                onPressed: isFull
-                    ? null
-                    : () {
-                        _showJoinConfirmation(context, group);
-                      },
-                icon: const Icon(Icons.person_add_alt_1),
-                label: Text(
-                  isFull
-                      ? AppLocalizations.text('Nhóm đã đủ', en: 'Group Full')
-                      : AppLocalizations.text(
-                          'Tham gia nhóm',
-                          en: 'Join Group',
-                        ),
+            Row(
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  size: 18,
+                  color: primaryColor,
                 ),
-              ),
+                const SizedBox(width: 6),
+                Text(
+                  '${AppLocalizations.text('Trưởng nhóm', en: 'Leader')}: ${group.leader}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(
+                  Icons.group_outlined,
+                  size: 18,
+                  color: primaryColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  AppLocalizations.memberCount(
+                    group.memberCount,
+                    group.maxMembers,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      _openGroupDetail(context, group);
+                    },
+                    child: Text(
+                      AppLocalizations.text('Chi tiết', en: 'Details'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: (myGroup != null || isFull)
+                        ? null
+                        : () {
+                            _showJoinConfirmation(context, group);
+                          },
+                    child: Text(
+                      AppLocalizations.text('Tham gia', en: 'Join'),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -335,86 +506,91 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     );
   }
 
-  Widget _buildBottomActions(BuildContext context) {
-    if (currentGroup != null) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
+  Widget _buildEmptyState(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 72),
       children: [
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              _createGroup(context);
-            },
+        _buildCourseHeader(context),
+        const SizedBox(height: 40),
+        Icon(
+          Icons.groups_outlined,
+          size: 70,
+          color: Colors.grey.shade400,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          AppLocalizations.text('Chưa có nhóm nào', en: 'No Groups Yet'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          AppLocalizations.text(
+            'Lớp học phần này hiện chưa có nhóm nào được tạo. Hãy là người đầu tiên tạo nhóm!',
+            en: 'This course has no groups yet. Be the first to create one!',
+          ),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: ElevatedButton.icon(
+            onPressed: () => _createGroup(context),
             icon: const Icon(Icons.group_add_outlined),
-            label: Text(
-              AppLocalizations.text('Tạo nhóm mới', en: 'Create New Group'),
-            ),
+            label: Text(AppLocalizations.text('Tạo nhóm mới', en: 'Create Group')),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(20),
-      children: [
-        _buildCourseHeader(context),
-        const SizedBox(height: 30),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
+  Widget _buildBottomActions(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              AppLocalizations.text('Hành động khác', en: 'Other Actions'),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+            Row(
               children: [
-                Icon(
-                  Icons.groups_outlined,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  AppLocalizations.text(
-                    'Chưa có nhóm nào',
-                    en: 'No Groups Yet',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  AppLocalizations.text(
-                    'Lớp học phần này chưa có nhóm. Bạn có thể tạo nhóm mới.',
-                    en: 'There are no groups in this class yet. You can create a new group.',
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
+                Expanded(
+                  child: OutlinedButton.icon(
                     onPressed: () {
-                      _createGroup(context);
+                      Navigator.pushNamed(context, AppRoutes.joinGroup);
                     },
-                    icon: const Icon(Icons.group_add_outlined),
+                    icon: const Icon(Icons.search),
                     label: Text(
-                      AppLocalizations.text('Tạo nhóm', en: 'Create Group'),
+                      AppLocalizations.text('Tìm nhóm', en: 'Search Group'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _showMessage('Đang đồng bộ danh sách lời mời.');
+                    },
+                    icon: const Icon(Icons.mail_outline),
+                    label: Text(
+                      AppLocalizations.text('Lời mời', en: 'Invitations'),
                     ),
                   ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -424,12 +600,9 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
       MaterialPageRoute(builder: (_) => CreateGroupScreen(course: course)),
     );
 
-    if (!mounted) {
-      return;
-    }
-
-    if (result is GroupModel) {
-      setState(() {});
+    if (!mounted) return;
+    if (result != null) {
+      _loadGroups();
     }
   }
 
@@ -447,9 +620,7 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
             ),
             ElevatedButton(
@@ -465,33 +636,22 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     );
   }
 
+<<<<<<< HEAD
+  Future<void> _joinGroup(GroupModel group) async {
+    try {
+      await ApiService.instance.post('/api/groups/${group.id}/join', {});
+      _showMessage('Gửi yêu cầu tham gia nhóm thành công.');
+      _loadGroups();
+    } catch (e) {
+      _showMessage('Thông báo: $e');
+=======
   void _joinGroup(GroupModel group) {
     final studentName = _currentUserName ?? '';
 
     if (group.members.contains(studentName)) {
       return;
+>>>>>>> origin/Frontend
     }
-
-    if (group.memberCount >= group.maxMembers) {
-      _showMessage(
-        AppLocalizations.text(
-          'Nhóm đã đủ thành viên.',
-          en: 'The group is full.',
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      group.members.add(studentName);
-    });
-
-    _showMessage(
-      AppLocalizations.text(
-        'Tham gia nhóm "${group.name}" thành công.',
-        en: 'Successfully joined "${group.name}".',
-      ),
-    );
   }
 
   void _openGroupDetail(BuildContext context, GroupModel group) {

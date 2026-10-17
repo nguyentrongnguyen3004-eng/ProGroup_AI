@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import '../../models/lecturer_course_model.dart';
 
-class MockLecturerCourses {
-  static final List<LecturerCourseModel> courses = [
-    LecturerCourseModel(
+class MockLecturerCourses extends ChangeNotifier {
+  MockLecturerCourses._();
+  static final MockLecturerCourses instance = MockLecturerCourses._();
+
+  static List<LecturerCourseModel> _courses = [
+    const LecturerCourseModel(
       id: 1,
       courseId: 1,
       code: 'LTDD',
@@ -20,7 +24,7 @@ class MockLecturerCourses {
       maxMembers: 5,
       status: 'Đang đăng ký',
     ),
-    LecturerCourseModel(
+    const LecturerCourseModel(
       id: 2,
       courseId: 3,
       code: 'IOT',
@@ -40,17 +44,27 @@ class MockLecturerCourses {
     ),
   ];
 
+  static List<LecturerCourseModel> get courses => _courses;
+
+  static void setCourses(List<LecturerCourseModel> newCourses) {
+    _courses = List.from(newCourses);
+    instance.notifyListeners();
+  }
+
   static LecturerCourseModel? getByCourseId(int courseId) {
-    for (final course in courses) {
+    for (final course in _courses) {
       if (course.courseId == courseId) return course;
     }
     return null;
   }
 
   static void update(LecturerCourseModel updated) {
-    final index = courses.indexWhere(
+    final index = _courses.indexWhere(
       (course) => course.courseId == updated.courseId,
     );
-    if (index != -1) courses[index] = updated;
+    if (index != -1) {
+      _courses[index] = updated;
+      instance.notifyListeners();
+    }
   }
 }

@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
+<<<<<<< HEAD
+import 'package:progroup_ai_frontend/services/password_reset_api_service.dart';
+=======
 import 'package:progroup_ai_frontend/services/auth_service.dart';
+>>>>>>> origin/Frontend
 import 'package:progroup_ai_frontend/widgets/app_button.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -18,7 +22,11 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> {
   final otpController = TextEditingController();
 
+<<<<<<< HEAD
+  final service = PasswordResetApiService.instance;
+=======
   final service = AuthService();
+>>>>>>> origin/Frontend
 
   bool loading = false;
 
@@ -47,7 +55,7 @@ class _OtpScreenState extends State<OtpScreen> {
     });
 
     try {
-      final result = await service.verifyOtp(otp);
+      final result = await service.verifyOtp(widget.email, otp);
       if (!mounted) return;
 
       setState(() => loading = false);
@@ -64,18 +72,13 @@ class _OtpScreenState extends State<OtpScreen> {
       Navigator.pushReplacementNamed(
         context,
         AppRoutes.resetPassword,
-        arguments: widget.email,
+        arguments: {'email': widget.email, 'otp': otp},
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
 
       setState(() => loading = false);
-      showMessage(
-        AppLocalizations.text(
-          'Không thể xác thực mã OTP lúc này. Vui lòng thử lại.',
-          en: 'The OTP could not be verified right now. Please try again.',
-        ),
-      );
+      showMessage(e.toString());
     }
   }
 
@@ -139,15 +142,34 @@ class _OtpScreenState extends State<OtpScreen> {
                 onPressed: verifyOtp,
               ),
 
-              SizedBox(height: 15),
-
               Center(
-                child: Text(
-                  AppLocalizations.text(
-                    'Demo OTP: 123456',
-                    en: 'Demo OTP: 123456',
+                child: TextButton.icon(
+                  onPressed: loading
+                      ? null
+                      : () async {
+                          setState(() => loading = true);
+                          try {
+                            await service.sendOtp(widget.email);
+                            showMessage(
+                              AppLocalizations.text(
+                                'Đã gửi lại mã OTP đến email ${widget.email}.',
+                                en: 'OTP has been resent to ${widget.email}.',
+                              ),
+                            );
+                          } catch (e) {
+                            showMessage(e.toString());
+                          } finally {
+                            if (mounted) setState(() => loading = false);
+                          }
+                        },
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: Text(
+                    AppLocalizations.text(
+                      'Gửi lại mã OTP qua Email',
+                      en: 'Resend OTP via Email',
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  style: TextStyle(color: Colors.grey),
                 ),
               ),
             ],
