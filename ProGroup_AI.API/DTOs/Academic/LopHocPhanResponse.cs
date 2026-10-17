@@ -18,3 +18,15 @@ public sealed class LopHocPhanResponse
     public string? GiangVienTen { get; set; }
     public string? GiangVienHocVi { get; set; }
 }
+
+public sealed class CreateClassRequest
+{
+    public string MaLopHocPhan { get; set; } = string.Empty;
+    public string? TenLopHocPhan { get; set; }
+    public string? MaHocPhan { get; set; }
+    public string? TenHocPhan { get; set; }
+    public int? SoTinChi { get; set; }
+    public string? TenHocKy { get; set; }
+    public string? NamHoc { get; set; }
+    public int? SoLuongToiDa { get; set; }
+}

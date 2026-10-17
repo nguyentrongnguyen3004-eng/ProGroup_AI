@@ -145,6 +145,8 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
 
 
 // ========================================
@@ -213,6 +215,7 @@ app.UseAuthorization();
 // ========================================
 
 app.MapControllers();
+app.MapGet("/api/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
 
 // ========================================

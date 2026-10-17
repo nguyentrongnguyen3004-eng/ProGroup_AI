@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*firebase-admin-sdk.json
+firebase-admin-sdk.json

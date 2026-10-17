@@ -1603,3 +1603,10 @@ SELECT DeTaiId, TenDeTai, NguonDeTai, TrangThai, TrangThaiDuyet FROM DeTaiDoAns 
 SELECT NhomId, TenNhom, TruongNhomId, TrangThai FROM NhomDoAns ORDER BY NhomId;
 SELECT ThongBaoId, NguoiDungId, TieuDe, LoaiThongBao, DaDoc FROM ThongBaos ORDER BY ThongBaoId;
 GO
+
+select * from NguoiDungs
+select * from SinhViens
+select * from LopHocPhans
+select * from DotDangKyDoAns
+select * from NhomDoAns
+select * from DeTaiDoAns

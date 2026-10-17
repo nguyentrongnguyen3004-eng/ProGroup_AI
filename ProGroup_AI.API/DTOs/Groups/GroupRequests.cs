@@ -39,3 +39,38 @@ public sealed class GroupMemberResponse
     public string VaiTro { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
 }
+
+public sealed class InviteMemberRequest
+{
+    [Required]
+    public string Mssv { get; set; } = string.Empty;
+}
+
+public sealed class RespondRequest
+{
+    public bool Accept { get; set; }
+}
+
+public sealed class GroupInvitationResponse
+{
+    public int Id { get; set; }
+    public int GroupId { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public string Inviter { get; set; } = string.Empty;
+    public string InviteeName { get; set; } = string.Empty;
+    public string InviteeMssv { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class GroupJoinRequestResponse
+{
+    public int Id { get; set; }
+    public int GroupId { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public string StudentName { get; set; } = string.Empty;
+    public string StudentMssv { get; set; } = string.Empty;
+    public string StudentEmail { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+}
