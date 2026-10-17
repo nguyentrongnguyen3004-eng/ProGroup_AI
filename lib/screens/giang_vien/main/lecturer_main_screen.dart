@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/settings/app_settings.dart';
 import '../../../services/lecturer_api_service.dart';
-=======
-import '../../../services/notification_service.dart';
->>>>>>> origin/Frontend
 import '../../../widgets/lecturer/lecturer_bottom_nav.dart';
 import '../course/lecturer_course_screen.dart';
 import '../group/lecturer_group_screen.dart';
@@ -69,11 +65,6 @@ class _LecturerMainScreenState extends State<LecturerMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-=======
-    final notifications = NotificationService.instance;
-
->>>>>>> origin/Frontend
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {

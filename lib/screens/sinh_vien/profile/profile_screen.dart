@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
@@ -13,13 +12,6 @@ import '../../../services/student_api_service.dart';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
-=======
-import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-import 'package:progroup_ai_frontend/core/settings/app_settings.dart';
-import 'package:progroup_ai_frontend/services/auth_service.dart';
-import 'package:progroup_ai_frontend/models/user_model.dart';
->>>>>>> origin/Frontend
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,20 +21,14 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-<<<<<<< HEAD
   late UserModel user;
   UserProfileModel? _profile;
-=======
-  UserModel? user;
-
->>>>>>> origin/Frontend
   late String email;
   String avatarData = '';
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
     user = AuthService.currentUser;
     email = user.email;
     _loadProfile();
@@ -60,25 +46,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (_) {
       // Giữ thông tin cơ bản từ AuthService.currentUser
-=======
-    email = '';
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    final u = await AuthService().getCurrentUser();
-    if (u != null) {
-      setState(() {
-        user = u;
-        email = u.email;
-      });
->>>>>>> origin/Frontend
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (user == null) return Scaffold(body: Center(child: CircularProgressIndicator()));
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {
@@ -170,33 +142,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-<<<<<<< HEAD
   // ============================================================
   // PROFILE HEADER
   // ============================================================
-=======
-  Widget _buildProfileHeader() {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            CircleAvatar(
-              radius: 52,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
-              child: avatarMode == 'default'
-                  ? Text(
-                      user!.fullName.substring(0, 1),
-                      style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    )
-                  : const Icon(Icons.person, size: 48),
-            ),
->>>>>>> origin/Frontend
 
   Widget _buildProfileHeader() {
     final colors = Theme.of(context).colorScheme;
@@ -284,7 +232,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
-<<<<<<< HEAD
           ),
           const SizedBox(height: 6),
           Container(
@@ -307,25 +254,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-=======
-          ],
-        ),
-
-        SizedBox(height: 14),
-
-        Text(
-          user!.fullName,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-
-        SizedBox(height: 4),
-
-        Text(
-          'MSSV: ${user!.mssv ?? user!.username}',
-          style: TextStyle(color: Colors.grey.shade600),
-        ),
-      ],
->>>>>>> origin/Frontend
     );
   }
 
@@ -418,22 +346,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: AppLocalizations.text('Họ và tên', en: 'Full Name'),
             subtitle: fullName,
           ),
-<<<<<<< HEAD
           const Divider(height: 1, indent: 64),
           _ListRow(
             icon: Icons.credit_card_rounded,
             iconColor: const Color(0xFF6366F1),
             title: AppLocalizations.text('Mã số sinh viên', en: 'Student ID'),
             subtitle: mssv,
-=======
-
-          const Divider(height: 1),
-
-          ListTile(
-            leading: const Icon(Icons.credit_card_outlined),
-            title: Text(AppLocalizations.text('MSSV', en: 'Student ID')),
-            subtitle: Text(user!.mssv ?? user!.username),
->>>>>>> origin/Frontend
           ),
           const Divider(height: 1, indent: 64),
           _ListRow(
@@ -444,7 +362,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: _changeEmail,
           ),
-<<<<<<< HEAD
           const Divider(height: 1, indent: 64),
           _ListRow(
             icon: Icons.calendar_today_rounded,
@@ -472,15 +389,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             iconColor: const Color(0xFF10B981),
             title: AppLocalizations.text('Vai trò tài khoản', en: 'Role'),
             subtitle: user.roleName.isNotEmpty ? user.roleName : 'Sinh viên',
-=======
-
-          const Divider(height: 1),
-
-          ListTile(
-            leading: const Icon(Icons.account_circle_outlined),
-            title: Text(AppLocalizations.text('Vai trò', en: 'Role')),
-            subtitle: Text(user!.roleName),
->>>>>>> origin/Frontend
           ),
         ],
       ),
@@ -779,17 +687,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-<<<<<<< HEAD
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
         return AnimatedBuilder(
-=======
-      builder: (context) {
-        if (user == null) return Scaffold(body: Center(child: CircularProgressIndicator()));
-    return AnimatedBuilder(
->>>>>>> origin/Frontend
           animation: AppSettings.instance,
           builder: (context, _) {
             final current = AppSettings.instance.language;
@@ -995,7 +897,3 @@ class _ListRow extends StatelessWidget {
     );
   }
 }
-
-
-
-

@@ -5,12 +5,7 @@ import '../../../models/course_model.dart';
 import '../../../models/group_model.dart';
 import '../../../models/topic_model.dart';
 import '../../../models/topic_registration_model.dart';
-<<<<<<< HEAD
 import '../../../services/student_api_service.dart';
-=======
-import '../../../services/group_service.dart';
-import '../../../services/topic_service.dart';
->>>>>>> origin/Frontend
 
 class TopicDetailScreen extends StatefulWidget {
   final TopicModel topic;
@@ -27,13 +22,8 @@ class TopicDetailScreen extends StatefulWidget {
 }
 
 class _TopicDetailScreenState extends State<TopicDetailScreen> {
-<<<<<<< HEAD
   GroupModel? _myGroup;
   TopicRegistrationModel? _registration;
-=======
-  GroupModel? _currentGroup;
-  TopicRegistrationModel? _currentRegistration;
->>>>>>> origin/Frontend
   bool _isLoading = true;
   bool _isSubmitting = false;
 
@@ -46,7 +36,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
   Future<void> _loadGroupAndRegistration() async {
     setState(() => _isLoading = true);
     try {
-<<<<<<< HEAD
       final myGroups = await StudentApiService.instance.fetchMyGroups();
       GroupModel? foundGroup;
       for (final g in myGroups) {
@@ -84,58 +73,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
 
   Future<void> _registerTopic() async {
     final group = _myGroup;
-=======
-      final myGroups = await GroupService().getMyGroups();
-      GroupModel? matchedGroup;
-      for (final g in myGroups) {
-        if (g.courseId == widget.course.id) {
-          matchedGroup = g;
-          break;
-        }
-      }
-      if (matchedGroup == null && myGroups.isNotEmpty) {
-        matchedGroup = myGroups.first;
-      }
-
-      TopicRegistrationModel? matchedReg;
-      try {
-        final regs = await TopicService().getTopicRegistrations();
-        for (final r in regs) {
-          final regTopicId = r['deTaiId'] ?? r['topicId'];
-          final regGroupId = r['nhomId'] ?? r['groupId'];
-          if (regTopicId == widget.topic.id && (matchedGroup == null || regGroupId == matchedGroup.id)) {
-            matchedReg = TopicRegistrationModel(
-              id: r['dangKyId'] ?? r['id'] ?? 1,
-              groupId: regGroupId ?? 1,
-              topicId: regTopicId ?? widget.topic.id,
-              status: r['trangThai'] ?? 'Chờ duyệt',
-              registeredAt: DateTime.tryParse(r['ngayDangKy']?.toString() ?? '') ?? DateTime.now(),
-              rejectionReason: r['ghiChu'],
-            );
-            break;
-          }
-        }
-      } catch (_) {}
-
-      if (mounted) {
-        setState(() {
-          _currentGroup = matchedGroup;
-          _currentRegistration = matchedReg;
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  bool get isAvailable {
-    return widget.topic.status == 'Có thể đăng ký' || widget.topic.status.isEmpty;
-  }
-
-  Future<void> _registerTopic() async {
-    final group = _currentGroup;
->>>>>>> origin/Frontend
 
     if (group == null) {
       _showMessage(
@@ -147,11 +84,7 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       return;
     }
 
-<<<<<<< HEAD
     if (_registration != null) {
-=======
-    if (_currentRegistration != null) {
->>>>>>> origin/Frontend
       _showMessage(
         AppLocalizations.text(
           'Nhóm đã gửi đăng ký đề tài này.',
@@ -163,7 +96,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-<<<<<<< HEAD
       await StudentApiService.instance.registerTopic(group.id, widget.topic.id);
       _registration = TopicRegistrationModel(
         id: DateTime.now().millisecondsSinceEpoch,
@@ -172,25 +104,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
         status: 'Chờ duyệt',
         registeredAt: DateTime.now(),
       );
-=======
-      await TopicService().registerTopic(
-        periodId: widget.course.id,
-        groupId: group.id,
-        topicId: widget.topic.id,
-      );
-
-      setState(() {
-        _currentRegistration = TopicRegistrationModel(
-          id: DateTime.now().millisecondsSinceEpoch,
-          groupId: group.id,
-          topicId: widget.topic.id,
-          status: 'Chờ duyệt',
-          registeredAt: DateTime.now(),
-        );
-        _isSubmitting = false;
-      });
-
->>>>>>> origin/Frontend
       _showMessage(
         AppLocalizations.text(
           'Đã gửi yêu cầu đăng ký đề tài.',
@@ -198,14 +111,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
         ),
       );
     } catch (e) {
-<<<<<<< HEAD
       _showMessage(e.toString());
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
-=======
-      setState(() => _isSubmitting = false);
-      _showMessage('Lỗi khi đăng ký đề tài: ${e.toString()}');
->>>>>>> origin/Frontend
     }
   }
 
@@ -224,15 +132,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
   Color _statusColor(String status) {
     switch (status) {
       case 'Đã duyệt':
-<<<<<<< HEAD
         return const Color(0xFF10B981);
       case 'Từ chối':
         return const Color(0xFFEF4444);
-=======
-        return const Color(0xFF16A36C);
-      case 'Từ chối':
-        return const Color(0xFFE55353);
->>>>>>> origin/Frontend
       case 'Chờ duyệt':
       default:
         return const Color(0xFFF59E0B);
@@ -241,12 +143,7 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
-=======
-    final group = _currentGroup;
-    final registration = _currentRegistration;
->>>>>>> origin/Frontend
 
     return Scaffold(
       appBar: AppBar(
@@ -265,7 +162,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
           ),
         ),
       ),
-<<<<<<< HEAD
       body: SafeArea(
         bottom: true,
         child: _isLoading
@@ -287,25 +183,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                 ),
               ),
       ),
-=======
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTopicHeader(),
-                  const SizedBox(height: 16),
-                  _buildInfoCard(),
-                  const SizedBox(height: 16),
-                  if (registration != null && group != null)
-                    _buildRegistrationCard(registration, group),
-                  if (registration == null) _buildRegistrationSection(group),
-                ],
-              ),
-            ),
->>>>>>> origin/Frontend
     );
   }
 
@@ -492,13 +369,8 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
         iconColor: const Color(0xFFF59E0B),
         title: AppLocalizations.text('Chưa có nhóm', en: 'No group joined'),
         message: AppLocalizations.text(
-<<<<<<< HEAD
           'Bạn cần tạo hoặc tham gia một nhóm đồ án trước khi đăng ký đề tài.',
           en: 'You need to join or create a group before registering for a topic.',
-=======
-          'Bạn cần tham gia hoặc tạo nhóm trong học phần này trước khi đăng ký đề tài.',
-          en: 'You need to join or create a group for this course before registering a topic.',
->>>>>>> origin/Frontend
         ),
       );
     }
@@ -547,26 +419,15 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-<<<<<<< HEAD
             height: 50,
             child: FilledButton.icon(
               onPressed: _isSubmitting ? null : _registerTopic,
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
-=======
-            height: 52,
-            child: ElevatedButton(
-              onPressed: _isSubmitting ? null : _registerTopic,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3157D5),
-                foregroundColor: Colors.white,
-                elevation: 0,
->>>>>>> origin/Frontend
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-<<<<<<< HEAD
               icon: _isSubmitting
                   ? const SizedBox(
                       width: 18,
@@ -580,14 +441,6 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                     : AppLocalizations.text('Gửi yêu cầu đăng ký', en: 'Submit Registration'),
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
               ),
-=======
-              child: _isSubmitting
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(
-                      AppLocalizations.text('Đăng ký đề tài', en: 'Register topic'),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
->>>>>>> origin/Frontend
             ),
           ),
         ],

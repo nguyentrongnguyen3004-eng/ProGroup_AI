@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../services/admin_api_service.dart';
-=======
-import '../../../services/admin_data_service.dart';
-import '../../../services/governance_data_service.dart';
-import '../../../services/group_service.dart';
-import '../../../services/training_data_service.dart';
->>>>>>> origin/Frontend
 import '../../admin/admin_helpers.dart';
 import 'admin_data_detail_screen.dart';
 
@@ -24,7 +17,6 @@ class AdminDataManagementScreen extends StatefulWidget {
   const AdminDataManagementScreen({super.key});
 
   @override
-<<<<<<< HEAD
   State<AdminDataManagementScreen> createState() => _AdminDataManagementScreenState();
 }
 
@@ -115,65 +107,6 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
               title: Text(
                 adminText('Quản lý dữ liệu hệ thống', 'System Data Management'),
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-=======
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: Listenable.merge([
-      AdminDataService.instance,
-      TrainingDataService.instance,
-      GovernanceDataService.instance,
-    ]),
-    builder: (context, _) {
-      final training = TrainingDataService.instance;
-      final items = [
-        (
-          AdminDataType.students,
-          adminText('Sinh viên', 'Students'),
-          training.students.length,
-          Icons.school_outlined,
-        ),
-        (
-          AdminDataType.lecturers,
-          adminText('Giảng viên', 'Lecturers'),
-          training.lecturers.length,
-          Icons.co_present_outlined,
-        ),
-        (
-          AdminDataType.subjects,
-          adminText('Học phần', 'Subjects'),
-          training.subjects.length,
-          Icons.menu_book_outlined,
-        ),
-        (
-          AdminDataType.courseClasses,
-          adminText('Lớp học phần', 'Course classes'),
-          training.courseClasses.length,
-          Icons.class_outlined,
-        ),
-        (
-          AdminDataType.groups,
-          adminText('Nhóm/đồ án', 'Groups/projects'),
-          GroupService.groups.length,
-          Icons.groups_outlined,
-        ),
-        (
-          AdminDataType.accounts,
-          adminText('Tài khoản', 'Accounts'),
-          AdminDataService.instance.accounts.length,
-          Icons.people_outline,
-        ),
-      ];
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(adminText('Dữ liệu hệ thống', 'System data')),
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              adminText(
-                'Tra cứu dữ liệu hiện có trong các module.',
-                'Browse data currently owned by the existing modules.',
->>>>>>> origin/Frontend
               ),
               foregroundColor: Colors.white,
               flexibleSpace: Container(

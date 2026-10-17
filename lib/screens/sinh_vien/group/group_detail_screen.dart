@@ -2,26 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-<<<<<<< HEAD
-=======
-import 'package:progroup_ai_frontend/services/auth_service.dart';
-import 'package:progroup_ai_frontend/services/course_service.dart';
-import 'package:progroup_ai_frontend/services/topic_service.dart';
->>>>>>> origin/Frontend
 import 'package:progroup_ai_frontend/models/course_model.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/models/topic_model.dart';
 import 'package:progroup_ai_frontend/models/topic_registration_model.dart';
-<<<<<<< HEAD
 import 'package:progroup_ai_frontend/screens/sinh_vien/chat/chat_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/invitation_management_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/join_request_screen.dart';
 import 'package:progroup_ai_frontend/services/auth_service.dart';
 import 'package:progroup_ai_frontend/services/student_api_service.dart';
-=======
-import 'invitation_management_screen.dart';
-import 'join_request_screen.dart';
->>>>>>> origin/Frontend
 
 class GroupDetailScreen extends StatefulWidget {
   final GroupModel group;
@@ -33,54 +22,6 @@ class GroupDetailScreen extends StatefulWidget {
 }
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
-  String currentUserName = '';
-  CourseModel? _groupCourse;
-  TopicRegistrationModel? _topicRegistration;
-  String _topicTitle = '';
-
-  Future<void> _loadData() async {
-    final user = await AuthService().getCurrentUser();
-    CourseModel? course;
-    try {
-      final courses = await CourseService().getCourses();
-      for (final c in courses) {
-        if (c.id == widget.group.courseId) {
-          course = c;
-          break;
-        }
-      }
-      if (course == null && courses.isNotEmpty) course = courses.first;
-    } catch (_) {}
-
-    TopicRegistrationModel? reg;
-    String tTitle = '';
-    try {
-      final regs = await TopicService().getTopicRegistrations();
-      for (final r in regs) {
-        if ((r['nhomId'] ?? r['groupId']) == widget.group.id) {
-          reg = TopicRegistrationModel(
-            id: r['dangKyId'] ?? r['id'] ?? 1,
-            groupId: widget.group.id,
-            topicId: r['deTaiId'] ?? r['topicId'] ?? 1,
-            status: r['trangThai'] ?? 'Chờ duyệt',
-            registeredAt: DateTime.tryParse(r['ngayDangKy']?.toString() ?? '') ?? DateTime.now(),
-          );
-          tTitle = (r['tenDeTai'] ?? r['topicTitle'] ?? 'Đề tài đồ án').toString();
-          break;
-        }
-      }
-    } catch (_) {}
-
-    if (mounted) {
-      setState(() {
-        currentUserName = user?.fullName ?? '';
-        _groupCourse = course;
-        _topicRegistration = reg;
-        _topicTitle = tTitle;
-      });
-    }
-  }
-
   late String groupName;
   TopicRegistrationModel? _topicRegistration;
   TopicModel? _registeredTopic;
@@ -91,7 +32,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   void initState() {
     super.initState();
     groupName = widget.group.name;
-<<<<<<< HEAD
     _fetchLiveDetails();
   }
 
@@ -153,26 +93,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   bool get isLeader {
     final currentName = AuthService.currentUser.fullName.toLowerCase().trim();
     return widget.group.leader.toLowerCase().trim() == currentName;
-=======
-    _loadData();
-  }
-
-  bool get isLeader {
-    return currentUserName.isNotEmpty && widget.group.leader == currentUserName;
-  }
-
-  TopicRegistrationModel? get topicRegistration {
-    return _topicRegistration;
-  }
-
-  String _getTopicTitle(int topicId) {
-    if (_topicTitle.isNotEmpty) return _topicTitle;
-    return 'Đề tài đồ án #$topicId';
-  }
-
-  CourseModel? _courseForGroup() {
-    return _groupCourse;
->>>>>>> origin/Frontend
   }
 
   void _openCourseTopics() {
@@ -190,7 +110,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     Navigator.pushNamed(context, AppRoutes.topic, arguments: course);
   }
 
-<<<<<<< HEAD
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -199,320 +118,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           content: Text(message),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-=======
-  Color _getStatusColor(BuildContext context, String status) {
-    switch (status) {
-      case 'Đã duyệt':
-        return Colors.green;
-
-      case 'Từ chối':
-        return Colors.red;
-
-      case 'Cần chỉnh sửa':
-        return Colors.orange;
-
-      case 'Chờ duyệt':
-        return Theme.of(context).colorScheme.primary;
-
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'Đã duyệt':
-        return Icons.check_circle_outline;
-
-      case 'Từ chối':
-        return Icons.cancel_outlined;
-
-      case 'Cần chỉnh sửa':
-        return Icons.edit_note_outlined;
-
-      case 'Chờ duyệt':
-        return Icons.hourglass_top_outlined;
-
-      default:
-        return Icons.info_outline;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final group = widget.group;
-    final registration = topicRegistration;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(groupName),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.chat,
-                arguments: groupName,
-              );
-            },
-            icon: const Icon(Icons.chat_bubble_outline),
-          ),
-        ],
-      ),
-
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Center(
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 48,
-                  child: Text(
-                    groupName.isEmpty
-                        ? 'G'
-                        : groupName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                if (isLeader)
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: InkWell(
-                      onTap: _changeGroupAvatar,
-                      child: CircleAvatar(
-                        radius: 17,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 17,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          Center(
-            child: Text(
-              groupName,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          if (isLeader)
-            Center(
-              child: TextButton.icon(
-                onPressed: _renameGroup,
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: Text(
-                  AppLocalizations.text('Đổi tên nhóm', en: 'Rename group'),
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 10),
-
-          Center(
-            child: Text(
-              AppLocalizations.memberCount(group.memberCount, group.maxMembers),
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-          ),
-
-          const SizedBox(height: 25),
-
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.text('Thành viên', en: 'Members'),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  ...group.members.map((member) {
-                    final leader = member == group.leader;
-
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
-                      title: Text(member),
-                      subtitle: Text(
-                        AppLocalizations.role(
-                          leader ? 'Trưởng nhóm' : 'Thành viên',
-                        ),
-                      ),
-                      trailing: leader ? const Icon(Icons.star) : null,
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.lock_outline),
-              title: Text(
-                AppLocalizations.text('Trạng thái nhóm', en: 'Group Status'),
-              ),
-              subtitle: Text(AppLocalizations.status(group.status)),
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          _buildTopicRegistrationCard(context, registration),
-
-          const SizedBox(height: 15),
-
-          if (isLeader)
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.person_add_alt_1),
-                    title: Text(
-                      AppLocalizations.text(
-                        'Quản lý lời mời',
-                        en: 'Manage Invitations',
-                      ),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => InvitationManagementScreen(
-                            groupId: group.id,
-                            groupName: groupName,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const Divider(height: 1),
-
-                  ListTile(
-                    leading: const Icon(Icons.how_to_reg_outlined),
-                    title: Text(
-                      AppLocalizations.text(
-                        'Duyệt yêu cầu tham gia',
-                        en: 'Approve Join Requests',
-                      ),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => JoinRequestScreen(
-                            groupId: group.id,
-                            groupName: groupName,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 15),
-
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.chat,
-                arguments: groupName,
-              );
-            },
-            icon: const Icon(Icons.chat),
-            label: Text(
-              AppLocalizations.text('Mở chat nhóm', en: 'Open Group Chat'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopicRegistrationCard(
-    BuildContext context,
-    TopicRegistrationModel? registration,
-  ) {
-    if (registration == null) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.topic_outlined),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.text(
-                        'Đề tài của nhóm',
-                        en: 'Group Topic',
-                      ),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              Text(
-                AppLocalizations.text(
-                  'Nhóm chưa đăng ký đề tài.',
-                  en: 'The group has not registered a topic yet.',
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              OutlinedButton.icon(
-                onPressed: _openCourseTopics,
-                icon: const Icon(Icons.search),
-                label: Text(
-                  AppLocalizations.text(
-                    'Xem danh sách đề tài',
-                    en: 'View Topics',
-                  ),
-                ),
-              ),
-            ],
-          ),
->>>>>>> origin/Frontend
         ),
       );
   }

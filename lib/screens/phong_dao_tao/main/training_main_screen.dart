@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-<<<<<<< HEAD
 import '../../../core/settings/app_settings.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../widgets/common/unified_role_bottom_nav.dart';
-=======
-import '../../../services/notification_service.dart';
->>>>>>> origin/Frontend
 import '../home/training_overview_screen.dart';
 import '../management/training_data_management_screen.dart';
 import '../notification/training_notification_screen.dart';
@@ -56,7 +52,6 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {
@@ -68,17 +63,6 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
             activeIcon: Icons.dashboard_rounded,
             inactiveIcon: Icons.dashboard_rounded,
             color: const Color(0xFF2563EB), // Blue
-=======
-    final notifications = NotificationService.instance;
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          TrainingOverviewScreen(onOpenManagement: _openManagement),
-          TrainingDataManagementScreen(
-            key: ValueKey(_selectedKind),
-            initialKind: _selectedKind,
->>>>>>> origin/Frontend
           ),
           UnifiedRoleNavItem(
             label: AppLocalizations.text('QL Đào tạo', en: 'Training'),

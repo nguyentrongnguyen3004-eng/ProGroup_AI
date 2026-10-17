@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
-=======
-import '../../../services/admin_data_service.dart';
->>>>>>> origin/Frontend
 import '../../../models/admin_account_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../admin/admin_helpers.dart';
@@ -48,13 +44,8 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     _username = TextEditingController(text: account?.username ?? '');
     _email = TextEditingController(text: account?.email ?? '');
     _phone = TextEditingController(text: account?.phone ?? '');
-<<<<<<< HEAD
     _role = account?.role ?? 'SINHVIEN';
     _status = account?.status ?? 'Đang hoạt động';
-=======
-    _role = account?.role ?? AdminDataService.roles.first;
-    _status = account?.status ?? AdminDataService.activeStatus;
->>>>>>> origin/Frontend
   }
 
   @override
@@ -68,69 +59,11 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     super.dispose();
   }
 
-<<<<<<< HEAD
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_editing && _password.text != _confirmPassword.text) {
       showAdminMessage(context, 'Mật khẩu xác nhận không khớp.', 'Password confirmation does not match.');
-=======
-  String? _required(String? value) => value == null || value.trim().isEmpty
-      ? adminText('Trường này là bắt buộc.', 'This field is required.')
-      : null;
-
-  String? _unique(String? value, String field, String duplicateMessage) {
-    final requiredError = _required(value);
-    if (requiredError != null) return requiredError;
-    final normalized = value!.trim().toLowerCase();
-    final duplicate = AdminDataService.instance.accounts.any((item) {
-      if (item.id == widget.account?.id) return false;
-      final current = switch (field) {
-        'code' => item.userCode,
-        'email' => item.email,
-        _ => item.username,
-      };
-      return current.toLowerCase() == normalized;
-    });
-    return duplicate
-        ? adminText(duplicateMessage, switch (field) {
-            'code' => 'User code already exists.',
-            'email' => 'Email already exists.',
-            _ => 'Username already exists.',
-          })
-        : null;
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    final data = AdminDataService.instance;
-    final model = AdminAccountModel(
-      id: widget.account?.id ?? 0,
-      userCode: _code.text.trim(),
-      username: _username.text.trim(),
-      fullName: _name.text.trim(),
-      email: _email.text.trim(),
-      role: _role,
-      status: _status,
-      password: _editing ? widget.account!.password : _password.text,
-      phone: _phone.text.trim(),
-      avatar: widget.account?.avatar ?? '',
-      createdAt: widget.account?.createdAt ?? DateTime.now(),
-    );
-    final error = data.validateAccount(
-      userCode: model.userCode,
-      username: model.username,
-      fullName: model.fullName,
-      email: model.email,
-      role: model.role,
-      password: _editing ? 'unchanged' : _password.text,
-      confirmPassword: _editing ? 'unchanged' : _confirmPassword.text,
-      editingId: widget.account?.id,
-      requirePassword: !_editing,
-    );
-    if (error != null) {
-      showAdminMessage(context, error, error);
->>>>>>> origin/Frontend
       return;
     }
 
@@ -193,151 +126,12 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
           ),
         ),
       ),
-<<<<<<< HEAD
       body: SafeArea(
         bottom: true,
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-=======
-    ),
-    body: Form(
-      key: _formKey,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          TextFormField(
-            controller: _name,
-            decoration: InputDecoration(
-              labelText: adminText('Họ và tên *', 'Full name *'),
-            ),
-            validator: _required,
-            textCapitalization: TextCapitalization.words,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _code,
-            readOnly: _editing,
-            decoration: InputDecoration(
-              labelText: adminText('Mã người dùng *', 'User code *'),
-            ),
-            validator: (value) => _editing
-                ? null
-                : _unique(value, 'code', 'Mã người dùng đã tồn tại.'),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _username,
-            decoration: InputDecoration(
-              labelText: adminText('Username *', 'Username *'),
-            ),
-            validator: (value) =>
-                _unique(value, 'username', 'Tên đăng nhập đã tồn tại.'),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: adminText('Email *', 'Email *'),
-            ),
-            validator: (value) {
-              final unique = _unique(value, 'email', 'Email đã tồn tại.');
-              if (unique != null) return unique;
-              if (!RegExp(
-                r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
-              ).hasMatch(value!.trim())) {
-                return adminText(
-                  'Email không đúng định dạng.',
-                  'Enter a valid email address.',
-                );
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _phone,
-            decoration: InputDecoration(
-              labelText: adminText('Số điện thoại', 'Phone number'),
-            ),
-            keyboardType: TextInputType.phone,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _role,
-            decoration: InputDecoration(
-              labelText: adminText('Vai trò *', 'Role *'),
-            ),
-            items: [
-              for (final role in AdminDataService.roles)
-                DropdownMenuItem(value: role, child: Text(adminRoleText(role))),
-            ],
-            onChanged: _self
-                ? null
-                : (value) {
-                    if (value != null) setState(() => _role = value);
-                  },
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _status,
-            decoration: InputDecoration(
-              labelText: adminText('Trạng thái *', 'Status *'),
-            ),
-            items: [
-              DropdownMenuItem(
-                value: AdminDataService.activeStatus,
-                child: Text(adminText('Đang hoạt động', 'Active')),
-              ),
-              DropdownMenuItem(
-                value: AdminDataService.lockedStatus,
-                child: Text(adminText('Đã khóa', 'Locked')),
-              ),
-            ],
-            onChanged: _self
-                ? null
-                : (value) {
-                    if (value != null) setState(() => _status = value);
-                  },
-          ),
-          if (!_editing) ...[
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _password,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: adminText('Mật khẩu *', 'Password *'),
-              ),
-              validator: (value) => value == null || value.length < 6
-                  ? adminText(
-                      'Mật khẩu phải có ít nhất 6 ký tự.',
-                      'Password must be at least 6 characters.',
-                    )
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _confirmPassword,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: adminText(
-                  'Xác nhận mật khẩu *',
-                  'Confirm password *',
-                ),
-              ),
-              validator: (value) => value != _password.text
-                  ? adminText(
-                      'Mật khẩu xác nhận không khớp.',
-                      'Passwords do not match.',
-                    )
-                  : null,
-            ),
-          ],
-          const SizedBox(height: 20),
-          Row(
->>>>>>> origin/Frontend
             children: [
               Card(
                 elevation: 0,

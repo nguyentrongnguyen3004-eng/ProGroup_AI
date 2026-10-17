@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../services/governance_api_service.dart';
 import '../../../widgets/common/unified_role_bottom_nav.dart';
-=======
-import '../../../services/notification_service.dart';
->>>>>>> origin/Frontend
 import '../home/governance_overview_screen.dart';
 import '../notification/governance_notification_screen.dart';
 import '../profile/governance_profile_screen.dart';
@@ -49,7 +45,6 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {
@@ -113,46 +108,6 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
           ),
         );
       },
-=======
-    final notices = NotificationService.instance;
-    return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: AnimatedBuilder(
-        animation: notices,
-        builder: (context, _) => NavigationBar(
-          selectedIndex: _currentIndex,
-          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-          onDestinationSelected: (i) => setState(() => _currentIndex = i),
-          destinations: [
-            const NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: 'Tổng quan',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.dataset_outlined),
-              selectedIcon: Icon(Icons.dataset),
-              label: 'Dữ liệu',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.tune_outlined),
-              selectedIcon: Icon(Icons.tune),
-              label: 'Công cụ',
-            ),
-            NavigationDestination(
-              icon: _Bell(notices.unreadCount),
-              selectedIcon: _Bell(notices.unreadCount, selected: true),
-              label: 'Thông báo',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Cá nhân',
-            ),
-          ],
-        ),
-      ),
->>>>>>> origin/Frontend
     );
   }
 }

@@ -5,13 +5,8 @@ import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/create_group_screen.dart';
-<<<<<<< HEAD
 import 'package:progroup_ai_frontend/services/api_service.dart';
 import 'package:progroup_ai_frontend/services/auth_service.dart';
-=======
-import 'package:progroup_ai_frontend/services/auth_service.dart';
-import 'package:progroup_ai_frontend/services/group_service.dart';
->>>>>>> origin/Frontend
 
 class CourseGroupScreen extends StatefulWidget {
   final CourseModel course;
@@ -24,20 +19,13 @@ class CourseGroupScreen extends StatefulWidget {
 
 class _CourseGroupScreenState extends State<CourseGroupScreen> {
   CourseModel get course => widget.course;
-<<<<<<< HEAD
   List<GroupModel> _groups = [];
   bool _isLoading = true;
   String? _errorMessage;
-=======
-  List<GroupModel> _courseGroups = [];
-  bool _isLoading = true;
-  String? _currentUserName;
->>>>>>> origin/Frontend
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
     _loadGroups();
   }
 
@@ -95,58 +83,15 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
       if (group.leader.toLowerCase().trim() == studentName) return group;
       for (final m in group.members) {
         if (m.toLowerCase().trim() == studentName) return group;
-=======
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      final user = await AuthService().getCurrentUser();
-      _currentUserName = user?.fullName ?? '';
-
-      final groups = await GroupService().getGroupsByCourse(course.id);
-      if (mounted) {
-        setState(() {
-          _courseGroups = groups;
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isLoading = false);
       }
     }
-  }
 
-  List<GroupModel> get courseGroups => _courseGroups;
-
-  GroupModel? get currentGroup {
-    if (_currentUserName == null || _currentUserName!.isEmpty) return null;
-    for (final group in _courseGroups) {
-      if (group.members.contains(_currentUserName) || group.leader == _currentUserName) {
-        return group;
->>>>>>> origin/Frontend
-      }
-    }
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final groups = _groups;
-=======
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.text('Nhóm lớp học phần', en: 'Course Groups')),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-    final groups = courseGroups;
->>>>>>> origin/Frontend
     final myGroup = currentGroup;
 
     return Scaffold(
@@ -225,13 +170,6 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     );
   }
 
-<<<<<<< HEAD
-=======
-  Future<void> _refresh() async {
-    await _loadData();
-  }
-
->>>>>>> origin/Frontend
   Widget _buildCourseHeader(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
@@ -636,7 +574,6 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
     );
   }
 
-<<<<<<< HEAD
   Future<void> _joinGroup(GroupModel group) async {
     try {
       await ApiService.instance.post('/api/groups/${group.id}/join', {});
@@ -644,13 +581,6 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
       _loadGroups();
     } catch (e) {
       _showMessage('Thông báo: $e');
-=======
-  void _joinGroup(GroupModel group) {
-    final studentName = _currentUserName ?? '';
-
-    if (group.members.contains(studentName)) {
-      return;
->>>>>>> origin/Frontend
     }
   }
 

@@ -89,18 +89,14 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       Navigator.pushReplacementNamed(context, destination, arguments: user);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
 
       setState(() => loading = false);
-      
-      // Lấy message thực tế nếu là ApiException (vì ApiException override toString())
-      String errorMessage = e.toString();
-      
       showMessage(
         AppLocalizations.text(
-          'Lỗi: $errorMessage',
-          en: 'Error: $errorMessage',
+          'Không thể đăng nhập lúc này. Vui lòng thử lại.',
+          en: 'Unable to sign in right now. Please try again.',
         ),
       );
     }

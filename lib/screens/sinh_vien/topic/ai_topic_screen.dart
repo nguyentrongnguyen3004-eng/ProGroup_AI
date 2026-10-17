@@ -1,24 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
 import '../../../models/course_model.dart';
 import '../../../models/lecturer_topic_suggestion_model.dart';
 import '../../../services/gemini_service.dart';
 import '../../../services/student_api_service.dart';
 import 'propose_topic_screen.dart';
-=======
-import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-import 'package:progroup_ai_frontend/models/topic_model.dart';
-import 'package:progroup_ai_frontend/services/topic_service.dart';
-import 'package:progroup_ai_frontend/models/ai_chat_message_model.dart';
-import 'package:progroup_ai_frontend/models/ai_feedback_model.dart';
-import 'package:progroup_ai_frontend/models/ai_topic_recommendation_model.dart';
-import 'package:progroup_ai_frontend/models/ai_topic_request_model.dart';
-import 'package:progroup_ai_frontend/services/ai_feedback_service.dart';
-import 'package:progroup_ai_frontend/services/ai_topic_recommendation_service.dart';
->>>>>>> origin/Frontend
 
 class AiTopicScreen extends StatefulWidget {
   final dynamic recommendationService;
@@ -88,52 +76,9 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
     super.dispose();
   }
 
-<<<<<<< HEAD
   Future<void> _generate() async {
     final courseName = _selectedCourse?.name ?? 'Đồ án Chuyên ngành';
     final classCode = _selectedCourse?.classCode ?? 'N01';
-=======
-  AiTopicRequestModel _currentRequest(String message) {
-    return AiTopicRequestModel(
-      message: message,
-      learningModules: Set.unmodifiable(_selectedModules),
-      applicationFields: Set.unmodifiable(_selectedFields),
-      level: _selectedLevel,
-      platform: _selectedPlatform,
-      technology: _technologyController.text.trim(),
-      priorities: Set.unmodifiable(_selectedPriorities),
-    );
-  }
-
-  Future<void> _sendMessage([String? preset]) async {
-    final text = (preset ?? _messageController.text).trim();
-    if (text.isEmpty || _isTyping) return;
-
-    final request = _currentRequest(text);
-    setState(() {
-      _messages.add(
-        AiChatMessageModel(id: _nextMessageId++, text: text, isUser: true),
-      );
-      _messageController.clear();
-      _isTyping = true;
-    });
-    _scrollToBottom();
-
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    List<TopicModel> topics = [];
-    try {
-      topics = await TopicService().getLecturerTopics();
-    } catch (_) {}
-
-    final recommendations = widget.recommendationService.recommend(
-      request: request,
-      topics: topics,
-      limit: 3,
-    );
-    final response = recommendations.isEmpty
-        ? 'Hiện chưa có đề tài trong danh mục để đối chiếu. Bạn hãy thử điều chỉnh tiêu chí.'
-        : 'Mình đã xếp hạng ${recommendations.length} đề tài theo tiêu chí bạn chọn. Điểm tổng hợp kết hợp 60% điểm tiêu chí và 40% độ tương đồng văn bản.';
->>>>>>> origin/Frontend
 
     setState(() {
       _loading = true;

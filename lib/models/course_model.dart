@@ -26,7 +26,6 @@ class CourseModel {
   });
 
   factory CourseModel.fromJson(Map<String, dynamic> json) {
-<<<<<<< HEAD
     final id = json['id'] as int? ?? json['lopHocPhanId'] as int? ?? 0;
     final courseId = json['courseId'] as int? ?? json['hocPhanId'] as int? ?? id;
     final code = json['code'] as String? ??
@@ -106,38 +105,6 @@ class CourseModel {
       studentCount: studentCount ?? this.studentCount,
       groupCount: groupCount ?? this.groupCount,
       topicCount: topicCount ?? this.topicCount,
-=======
-    String lecturerName = json['giangVienTen'] ?? json['lecturer'] ?? '';
-    if (json['giangVienHocVi'] != null && json['giangVienHocVi'].toString().isNotEmpty && lecturerName.isNotEmpty && !lecturerName.startsWith(json['giangVienHocVi'].toString())) {
-      lecturerName = '${json['giangVienHocVi']}. $lecturerName';
-    }
-    if (lecturerName.isEmpty) {
-      lecturerName = 'Chưa phân công';
-    }
-
-    String status = 'Đang mở';
-    if (json['trangThai'] is String) {
-      status = json['trangThai'];
-    } else if (json['trangThai'] is bool) {
-      status = json['trangThai'] ? 'Đang mở' : 'Đã đóng';
-    }
-
-    String semesterStr = json['semester'] ?? '';
-    if (json['tenHocKy'] != null) {
-      semesterStr = json['namHoc'] != null && json['namHoc'].toString().isNotEmpty
-          ? '${json['tenHocKy']} - ${json['namHoc']}'
-          : json['tenHocKy'].toString();
-    }
-
-    return CourseModel(
-      id: json['lopHocPhanId'] ?? json['id'] ?? 0,
-      code: json['maHocPhan'] ?? json['code'] ?? '',
-      name: json['tenHocPhan'] ?? json['name'] ?? '',
-      classCode: json['maLopHocPhan'] ?? json['classCode'] ?? '',
-      semester: semesterStr,
-      lecturer: lecturerName,
-      status: status,
->>>>>>> origin/Frontend
     );
   }
 }

@@ -90,11 +90,8 @@ class _LecturerCourseSettingsScreenState
   @override
   Widget build(BuildContext context) {
     final current = widget.course;
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
 
-=======
->>>>>>> origin/Frontend
     return Scaffold(
       appBar: AppBar(
         title: const Text(

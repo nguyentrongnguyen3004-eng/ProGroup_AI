@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
-=======
-import '../../../services/admin_data_service.dart';
->>>>>>> origin/Frontend
 import '../../admin/admin_helpers.dart';
 
 class AdminRoleScreen extends StatelessWidget {
@@ -60,7 +56,6 @@ class AdminRoleScreen extends StatelessWidget {
           adminText('Quản lý vai trò', 'Role Management'),
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-<<<<<<< HEAD
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -68,36 +63,6 @@ class AdminRoleScreen extends StatelessWidget {
               colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-=======
-        const SizedBox(height: 6),
-        Text(
-          adminText(
-            'Bảng quyền hạn tra cứu trong ứng dụng.',
-            'Permission reference matrix in the system.',
-          ),
-        ),
-        const SizedBox(height: 12),
-        for (final role in AdminDataService.roles)
-          Card(
-            child: ExpansionTile(
-              leading: Icon(
-                _icon(role),
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              title: Text(adminRoleText(role)),
-              subtitle: Text(
-                '${AdminDataService.instance.accounts.where((account) => account.role == role).length} ${adminText('tài khoản', 'accounts')}',
-              ),
-              children: [
-                for (final permission
-                    in AdminDataService.permissions[role] ?? const <String>[])
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.check_circle_outline),
-                    title: Text(_permission(context, permission)),
-                  ),
-              ],
->>>>>>> origin/Frontend
             ),
           ),
         ),

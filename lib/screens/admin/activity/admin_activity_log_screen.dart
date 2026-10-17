@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../models/admin_activity_model.dart';
-=======
-import '../../../services/admin_data_service.dart';
->>>>>>> origin/Frontend
 import '../../admin/admin_helpers.dart';
 
 class AdminActivityLogScreen extends StatefulWidget {
@@ -38,7 +34,6 @@ class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
   }
 
   @override
-<<<<<<< HEAD
   Widget build(BuildContext context) {
     final q = _query.text.trim().toLowerCase();
     final entries = _activities.where((item) {
@@ -55,31 +50,6 @@ class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
         title: Text(
           adminText('Nhật ký hoạt động', 'Activity Log'),
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-=======
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: AdminDataService.instance,
-    builder: (context, _) {
-      final all = AdminDataService.instance.activities;
-      final actions = all.map((item) => item.action).toSet().toList()..sort();
-      final entries = all.where((item) {
-        final q = _query.text.trim().toLowerCase();
-        final matchesQuery =
-            q.isEmpty ||
-            [
-              item.actor,
-              item.action,
-              item.target,
-              item.description,
-              item.role,
-            ].any((value) => value.toLowerCase().contains(q));
-        return matchesQuery &&
-            (_action == 'Tất cả' || item.action == _action) &&
-            (_role == 'Tất cả' || item.role == _role);
-      }).toList()..sort((a, b) => b.time.compareTo(a.time));
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(adminText('Nhật ký hoạt động', 'Activity log')),
->>>>>>> origin/Frontend
         ),
         foregroundColor: Colors.white,
         flexibleSpace: Container(
@@ -115,70 +85,6 @@ class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
                 ),
               ),
             ),
-<<<<<<< HEAD
-=======
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _action,
-                      decoration: InputDecoration(
-                        labelText: adminText('Hành động', 'Action'),
-                      ),
-                      items: [
-                        DropdownMenuItem<String>(
-                          value: 'Tất cả',
-                          child: Text(adminText('Tất cả', 'All')),
-                        ),
-                        for (final action in actions)
-                          DropdownMenuItem<String>(
-                            value: action,
-                            child: Text(adminActivityActionText(action)),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) setState(() => _action = value);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _role,
-                      decoration: InputDecoration(
-                        labelText: adminText('Vai trò', 'Role'),
-                      ),
-                      items: [
-                        DropdownMenuItem<String>(
-                          value: 'Tất cả',
-                          child: Text(adminText('Tất cả', 'All')),
-                        ),
-                        for (final role in AdminDataService.roles)
-                          DropdownMenuItem<String>(
-                            value: role,
-                            child: Text(adminRoleText(role)),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) setState(() => _role = value);
-                      },
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: adminText('Đặt lại bộ lọc', 'Reset filters'),
-                    onPressed: () => setState(() {
-                      _action = 'Tất cả';
-                      _role = 'Tất cả';
-                      _query.clear();
-                    }),
-                    icon: const Icon(Icons.filter_alt_off_outlined),
-                  ),
-                ],
-              ),
-            ),
->>>>>>> origin/Frontend
             Expanded(
               child: entries.isEmpty
                   ? Center(

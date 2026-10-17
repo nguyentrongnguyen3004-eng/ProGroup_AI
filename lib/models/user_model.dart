@@ -21,7 +21,6 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-<<<<<<< HEAD
       id: json['nguoiDungId'] as int? ?? json['id'] as int? ?? 1,
       username: json['tenDangNhap'] as String? ?? json['username'] as String? ?? '',
       fullName: json['hoTen'] as String? ?? json['fullName'] as String? ?? '',
@@ -53,29 +52,5 @@ class UserModel {
       mssv: mssv ?? this.mssv,
       avatarUrl: avatarUrl ?? this.avatarUrl,
     );
-=======
-      id: json['id'] ?? 0,
-      username: json['username'] ?? '',
-      fullName: json['fullName'] ?? '',
-      email: json['email'] ?? '',
-      role: json['role'] ?? '',
-      roleName: json['roleName'] ?? '',
-      mssv: json['mssv'],
-      avatarUrl: json['avatarUrl'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'username': username,
-      'fullName': fullName,
-      'email': email,
-      'role': role,
-      'roleName': roleName,
-      'mssv': mssv,
-      'avatarUrl': avatarUrl,
-    };
->>>>>>> origin/Frontend
   }
 }

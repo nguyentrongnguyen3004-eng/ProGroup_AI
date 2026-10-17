@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import 'api_service.dart';
 
 class MockService {
@@ -63,6 +62,3 @@ class MockService {
     }
   }
 }
-=======
-// All mock services have been fully replaced with live production API services.
->>>>>>> origin/Frontend

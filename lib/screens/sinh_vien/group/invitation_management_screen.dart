@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
 import '../../../models/group_invitation_model.dart';
 import '../../../services/student_api_service.dart';
-=======
-import '../../../models/group_invitation_model.dart';
-import '../../../services/group_service.dart';
->>>>>>> origin/Frontend
 
 class InvitationManagementScreen extends StatefulWidget {
   final int groupId;
@@ -26,7 +21,6 @@ class InvitationManagementScreen extends StatefulWidget {
 
 class _InvitationManagementScreenState
     extends State<InvitationManagementScreen> {
-<<<<<<< HEAD
   List<GroupInvitationModel> _invitations = [];
   bool _isLoading = true;
 
@@ -50,16 +44,6 @@ class _InvitationManagementScreenState
       setState(() => _isLoading = false);
       _showMessage('Không thể tải danh sách lời mời: $e');
     }
-=======
-  final List<GroupInvitationModel> _invitations = [];
-
-  List<GroupInvitationModel> get invitations {
-    return _invitations
-        .where((item) => item.groupId == widget.groupId)
-        .toList()
-        .reversed
-        .toList();
->>>>>>> origin/Frontend
   }
 
   int get pendingCount {
@@ -75,206 +59,27 @@ class _InvitationManagementScreenState
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
-<<<<<<< HEAD
       );
   }
 
   void _showInviteDialog() {
-=======
-      ),
-    );
-  }
-
-  Widget _buildInvitationCard(GroupInvitationModel invitation) {
-    final isPending = invitation.status == 'Chờ xử lý';
-
-    final isAccepted = invitation.status == 'Đã chấp nhận';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 25,
-                  child: Text(
-                    invitation.inviteeName.isNotEmpty
-                        ? invitation.inviteeName.substring(0, 1).toUpperCase()
-                        : 'S',
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        invitation.inviteeName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'MSSV: ${invitation.inviteeMssv}',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                    ],
-                  ),
-                ),
-                _buildStatusBadge(invitation.status),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _formatDate(invitation.createdAt),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                if (isPending)
-                  TextButton.icon(
-                    onPressed: () {
-                      _cancelInvitation(invitation);
-                    },
-                    icon: const Icon(Icons.close, size: 18, color: Colors.red),
-                    label: const Text(
-                      'Hủy lời mời',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  )
-                else if (isAccepted)
-                  const Text(
-                    'Đã vào nhóm',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(String status) {
-    Color color;
-
-    switch (status) {
-      case 'Đã chấp nhận':
-        color = Colors.green;
-        break;
-      case 'Đã từ chối':
-        color = Colors.red;
-        break;
-      case 'Đã hủy':
-        color = Colors.grey;
-        break;
-      default:
-        color = Colors.orange;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 42,
-              backgroundColor:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
-              child: Icon(
-                Icons.mail_outline,
-                size: 42,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Chưa có lời mời nào',
-              style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Nhấn "Mời thành viên" để mời bạn bè vào nhóm đồ án của bạn.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showInviteDialog() {
-    final nameController = TextEditingController();
->>>>>>> origin/Frontend
     final mssvController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-<<<<<<< HEAD
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Text(AppLocalizations.text('Mời thành viên mới', en: 'Invite Member')),
-=======
-          title: const Text('Mời thành viên mới'),
->>>>>>> origin/Frontend
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-<<<<<<< HEAD
                 controller: mssvController,
                 decoration: InputDecoration(
                   labelText: AppLocalizations.text('Mã số sinh viên (MSSV)', en: 'Student ID'),
                   prefixIcon: const Icon(Icons.badge_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-=======
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Họ và tên',
-                  hintText: 'Nhập họ tên sinh viên',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: mssvController,
-                decoration: const InputDecoration(
-                  labelText: 'Mã số sinh viên',
-                  hintText: 'Nhập MSSV',
-                  prefixIcon: Icon(Icons.badge_outlined),
->>>>>>> origin/Frontend
                 ),
               ),
             ],
@@ -282,7 +87,6 @@ class _InvitationManagementScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-<<<<<<< HEAD
               child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
             ),
             FilledButton(
@@ -304,53 +108,6 @@ class _InvitationManagementScreenState
                 } catch (e) {
                   _showMessage('Lỗi: $e');
                 }
-=======
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final mssv = mssvController.text.trim();
-                if (name.isEmpty || mssv.isEmpty) return;
-
-                final exists = _invitations.any(
-                  (item) =>
-                      item.groupId == widget.groupId &&
-                      item.inviteeMssv == mssv &&
-                      item.status == 'Chờ xử lý',
-                );
-
-                if (exists) {
-                  Navigator.pop(dialogContext);
-                  _showMessage('Sinh viên này đã có lời mời đang chờ.');
-                  return;
-                }
-
-                try {
-                  final studentId = int.tryParse(mssv) ?? 0;
-                  if (studentId > 0) {
-                    await GroupService().addMember(widget.groupId, studentId);
-                  }
-                } catch (_) {}
-
-                setState(() {
-                  _invitations.add(
-                    GroupInvitationModel(
-                      id: DateTime.now().millisecondsSinceEpoch,
-                      groupId: widget.groupId,
-                      groupName: widget.groupName,
-                      inviter: 'Trưởng nhóm',
-                      inviteeName: name,
-                      inviteeMssv: mssv,
-                      status: 'Chờ xử lý',
-                      createdAt: DateTime.now(),
-                    ),
-                  );
-                });
-
-                Navigator.pop(dialogContext);
-                _showMessage('Đã gửi lời mời đến $name.');
->>>>>>> origin/Frontend
               },
               child: Text(AppLocalizations.text('Gửi lời mời', en: 'Send Invitation')),
             ),
@@ -371,7 +128,6 @@ class _InvitationManagementScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-<<<<<<< HEAD
               child: Text(AppLocalizations.text('Không', en: 'No')),
             ),
             FilledButton(
@@ -388,17 +144,6 @@ class _InvitationManagementScreenState
                 } catch (e) {
                   _showMessage('Lỗi: $e');
                 }
-=======
-              child: const Text('Không'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  invitation.status = 'Đã hủy';
-                });
-                Navigator.pop(dialogContext);
-                _showMessage('Đã hủy lời mời.');
->>>>>>> origin/Frontend
               },
               child: Text(AppLocalizations.text('Hủy lời mời', en: 'Cancel')),
             ),
@@ -408,7 +153,6 @@ class _InvitationManagementScreenState
     );
   }
 
-<<<<<<< HEAD
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -666,18 +410,5 @@ class _InvitationManagementScreenState
         ],
       ),
     );
-=======
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-
-    return '$day/$month/${date.year} • $hour:$minute';
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
->>>>>>> origin/Frontend
   }
 }

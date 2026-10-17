@@ -2,13 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-<<<<<<< HEAD
 import 'package:progroup_ai_frontend/models/course_model.dart';
-=======
-import 'package:progroup_ai_frontend/services/group_service.dart';
-import 'package:progroup_ai_frontend/services/auth_service.dart';
-import 'package:progroup_ai_frontend/models/user_model.dart';
->>>>>>> origin/Frontend
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/services/student_api_service.dart';
 import 'package:progroup_ai_frontend/widgets/group_card.dart';
@@ -21,7 +15,6 @@ class GroupScreen extends StatefulWidget {
 }
 
 class _GroupScreenState extends State<GroupScreen> {
-<<<<<<< HEAD
   int? _selectedCourseId;
   String _searchQuery = '';
   bool _isLoading = true;
@@ -30,12 +23,6 @@ class _GroupScreenState extends State<GroupScreen> {
   List<GroupModel> _groups = [];
   List<CourseModel> _courses = [];
 
-=======
-  List<GroupModel> myGroupsList = [];
-  UserModel? currentUser;
-  bool isLoading = true;
-
->>>>>>> origin/Frontend
   @override
   void initState() {
     super.initState();
@@ -43,7 +30,6 @@ class _GroupScreenState extends State<GroupScreen> {
   }
 
   Future<void> _loadData() async {
-<<<<<<< HEAD
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -85,35 +71,13 @@ class _GroupScreenState extends State<GroupScreen> {
 
       return true;
     }).toList();
-=======
-    try {
-      final user = await AuthService().getCurrentUser();
-      final groups = await GroupService().getMyGroups();
-      if (mounted) {
-        setState(() {
-          currentUser = user;
-          myGroupsList = groups;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() { isLoading = false; });
-    }
->>>>>>> origin/Frontend
   }
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
     final canPop = ModalRoute.of(context)?.canPop == true;
     final filteredGroups = _filteredGroups;
-=======
-    
-    if (isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    final groups = myGroupsList;
-
->>>>>>> origin/Frontend
 
     return Scaffold(
       appBar: canPop

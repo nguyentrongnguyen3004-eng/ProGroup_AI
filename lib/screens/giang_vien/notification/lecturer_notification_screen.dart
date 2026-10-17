@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-<<<<<<< HEAD
 import '../../../services/lecturer_api_service.dart';
 import 'lecturer_notification_detail_screen.dart';
-=======
-import '../../../services/notification_service.dart';
->>>>>>> origin/Frontend
 
 class LecturerNotificationScreen extends StatefulWidget {
   const LecturerNotificationScreen({super.key});
@@ -78,12 +74,8 @@ class _LecturerNotificationScreenState extends State<LecturerNotificationScreen>
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
     final canPop = ModalRoute.of(context)?.canPop == true;
-=======
-    final notifications = NotificationService.instance;
->>>>>>> origin/Frontend
 
     final allItems = _notifications;
     final unreadCount = allItems.where((item) => item['isRead'] != true).length;
@@ -279,7 +271,6 @@ class _LecturerNotificationScreenState extends State<LecturerNotificationScreen>
               ),
             ],
           ),
-<<<<<<< HEAD
         ),
       );
     }
@@ -374,141 +365,6 @@ class _LecturerNotificationScreenState extends State<LecturerNotificationScreen>
                           decoration: BoxDecoration(
                             color: iconColor.withValues(
                               alpha: isRead ? 0.12 : 0.22,
-=======
-          body: items.isEmpty
-              ? _EmptyNotifications(
-                  title: AppLocalizations.text(
-                    'Chưa có thông báo',
-                    en: 'No notifications',
-                  ),
-                  message: AppLocalizations.text(
-                    'Không có thông báo mới.',
-                    en: 'There are no new notifications.',
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  itemCount: items.length,
-                  separatorBuilder: (_, index) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    final icon = item['icon'];
-                    final id = item['id'];
-                    final title = item['title'] as String? ?? '';
-                    final content = (item['content'] ?? item['message'] ?? '') as String;
-                    final time = (item['time'] ?? item['createdAt'] ?? '') as String;
-                    final isRead = item['isRead'] == true || item['read'] == true;
-
-                    return Card(
-                      clipBehavior: Clip.antiAlias,
-                      color: isRead
-                          ? colors.surface
-                          : Color.lerp(
-                              colors.primaryContainer,
-                              colors.surface,
-                              Theme.of(context).brightness == Brightness.light
-                                  ? 0.58
-                                  : 0.78,
-                            ),
-                      child: InkWell(
-                        onTap: () => notifications.markAsRead(id),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            leading: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: isRead
-                                      ? colors.surfaceContainerHighest
-                                      : colors.primaryContainer,
-                                  child: Icon(
-                                    icon is IconData
-                                        ? icon
-                                        : Icons.notifications_outlined,
-                                    color: isRead
-                                        ? colors.onSurfaceVariant
-                                        : colors.onPrimaryContainer,
-                                  ),
-                                ),
-                                if (!isRead)
-                                  Positioned(
-                                    right: -1,
-                                    top: -1,
-                                    child: Container(
-                                      width: 11,
-                                      height: 11,
-                                      decoration: BoxDecoration(
-                                        color: colors.error,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: colors.surface,
-                                          width: 1.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            title: Text(
-                              title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: colors.onSurface,
-                                fontWeight: isRead
-                                    ? FontWeight.w500
-                                    : FontWeight.w700,
-                              ),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 5),
-                              child: Text(
-                                content,
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ),
-                            trailing: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  time,
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  isRead
-                                      ? AppLocalizations.text(
-                                          'Đã đọc',
-                                          en: 'Read',
-                                        )
-                                      : AppLocalizations.text(
-                                          'Chưa đọc',
-                                          en: 'Unread',
-                                        ),
-                                  style: TextStyle(
-                                    color: isRead
-                                        ? colors.onSurfaceVariant
-                                        : colors.error,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
->>>>>>> origin/Frontend
                             ),
                             borderRadius: BorderRadius.circular(14),
                           ),

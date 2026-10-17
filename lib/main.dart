@@ -174,19 +174,11 @@ class ProGroupApp extends StatelessWidget {
 
                 final course = CourseModel(
                   id: topic.courseId,
-<<<<<<< HEAD
                   code: 'LHP',
                   name: topic.title,
                   classCode: 'LHP-${topic.courseId}',
                   semester: 'HK1 2026-2027',
                   lecturer: topic.lecturerName ?? 'Giảng viên phụ trách',
-=======
-                  code: 'HP',
-                  name: 'Lớp học phần',
-                  classCode: 'HP-01',
-                  semester: 'HK1',
-                  lecturer: 'Giảng viên',
->>>>>>> origin/Frontend
                   status: 'Đang mở',
                 );
 

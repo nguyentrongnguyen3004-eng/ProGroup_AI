@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
-<<<<<<< HEAD
 import '../../../models/user_model.dart';
 import '../../../services/api_service.dart';
 import '../../../services/auth_service.dart';
@@ -12,10 +11,6 @@ import 'dart:convert';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
-=======
-import '../../../services/governance_data_service.dart';
-import '../../../models/governance_profile_model.dart';
->>>>>>> origin/Frontend
 
 class GovernanceProfileScreen extends StatefulWidget {
   const GovernanceProfileScreen({super.key});
@@ -72,17 +67,8 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-<<<<<<< HEAD
       animation: AppSettings.instance,
       builder: (context, _) {
-=======
-      animation: Listenable.merge([
-        AppSettings.instance,
-        GovernanceDataService.instance,
-      ]),
-      builder: (context, _) {
-        final governance = GovernanceDataService.current;
->>>>>>> origin/Frontend
         final settings = AppSettings.instance;
 
         return Scaffold(
@@ -459,7 +445,6 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
     );
   }
 
-<<<<<<< HEAD
   String _themeName(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.system:
@@ -468,200 +453,6 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
         return AppLocalizations.text('Sáng', en: 'Light');
       case ThemeMode.dark:
         return AppLocalizations.text('Tối', en: 'Dark');
-=======
-  // ============================================================
-  // CHANGE AVATAR
-  // ============================================================
-
-  void _changeAvatar() {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Text(
-                  AppLocalizations.text('Ảnh đại diện', en: 'Profile Picture'),
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: Text(
-                  AppLocalizations.text('Chụp ảnh', en: 'Take Photo'),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-
-                  _showMessage(
-                    AppLocalizations.text(
-                      'Chức năng chụp ảnh sẽ được tích hợp khi kết nối camera.',
-                      en: 'Camera capture will be integrated when camera support is connected.',
-                    ),
-                  );
-                },
-              ),
-
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: Text(
-                  AppLocalizations.text(
-                    'Chọn từ thư viện',
-                    en: 'Choose from Gallery',
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _pickAvatarFromGallery();
-                },
-              ),
-
-              ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: Text(
-                  AppLocalizations.text('Xóa ảnh', en: 'Remove Photo'),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-
-                  GovernanceDataService.updateAvatar('');
-
-                  _showMessage(
-                    AppLocalizations.text(
-                      'Đã xóa ảnh đại diện.',
-                      en: 'Profile picture removed.',
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _pickAvatarFromGallery() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        withData: true,
-      );
-
-      if (result == null || result.files.isEmpty || !mounted) {
-        return;
-      }
-
-      final file = result.files.single;
-      final bytes = file.bytes;
-
-      if (bytes == null || bytes.isEmpty) {
-        _showMessage(
-          AppLocalizations.text(
-            'Không đọc được ảnh đã chọn.',
-            en: 'Unable to read the selected image.',
-          ),
-        );
-        return;
-      }
-
-      final extension = file.extension?.toLowerCase() ?? '';
-
-      if (!const {'png', 'jpg', 'jpeg', 'webp', 'gif'}.contains(extension)) {
-        _showMessage(
-          AppLocalizations.text(
-            'Chỉ hỗ trợ PNG, JPG, JPEG, WEBP hoặc GIF.',
-            en: 'Only PNG, JPG, JPEG, WEBP or GIF are supported.',
-          ),
-        );
-        return;
-      }
-
-      if (bytes.length > 5 * 1024 * 1024) {
-        _showMessage(
-          AppLocalizations.text(
-            'Ảnh đại diện phải nhỏ hơn 5 MB.',
-            en: 'Profile picture must be smaller than 5 MB.',
-          ),
-        );
-        return;
-      }
-
-      final mime = switch (extension) {
-        'png' => 'image/png',
-        'webp' => 'image/webp',
-        'gif' => 'image/gif',
-        _ => 'image/jpeg',
-      };
-
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: Text(
-              AppLocalizations.text(
-                'Xem trước ảnh đại diện',
-                en: 'Preview Profile Picture',
-              ),
-            ),
-            content: Center(
-              child: CircleAvatar(
-                radius: 64,
-                backgroundImage: MemoryImage(bytes),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, false);
-                },
-                child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, true);
-                },
-                child: Text(
-                  AppLocalizations.text('Dùng ảnh này', en: 'Use This Photo'),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (confirmed != true || !mounted) {
-        return;
-      }
-
-      GovernanceDataService.updateAvatar(
-        'data:$mime;base64,${base64Encode(bytes)}',
-      );
-
-      _showMessage(
-        AppLocalizations.text(
-          'Đã cập nhật ảnh đại diện.',
-          en: 'Profile picture updated.',
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-
-      _showMessage(
-        AppLocalizations.text(
-          'Không thể mở hoặc đọc ảnh này.',
-          en: 'Unable to open or read this image.',
-        ),
-      );
->>>>>>> origin/Frontend
     }
   }
 
@@ -698,53 +489,6 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
     if (success == true && mounted) {
       _showMessage(AppLocalizations.text('Đổi mật khẩu thành công.', en: 'Password changed successfully.'));
     }
-<<<<<<< HEAD
-=======
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(
-            AppLocalizations.text(
-              'Xác nhận email mới',
-              en: 'Confirm New Email',
-            ),
-          ),
-          content: Text(
-            '${AppLocalizations.text('Bạn có muốn sử dụng email', en: 'Do you want to use the email')} $newEmail?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
-              child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, true);
-              },
-              child: Text(AppLocalizations.text('Xác nhận', en: 'Confirm')),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    GovernanceDataService.updateEmail(newEmail);
-
-    _showMessage(
-      AppLocalizations.text(
-        'Đổi email thành công.',
-        en: 'Email changed successfully.',
-      ),
-    );
->>>>>>> origin/Frontend
   }
 
   void _changeTheme() {

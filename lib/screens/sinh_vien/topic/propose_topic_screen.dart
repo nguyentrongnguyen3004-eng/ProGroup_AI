@@ -52,10 +52,6 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
       return;
     }
 
-<<<<<<< HEAD
-=======
-    // Proposal action
->>>>>>> origin/Frontend
     final result = {
       'title': title,
       'description': descriptionController.text.trim(),

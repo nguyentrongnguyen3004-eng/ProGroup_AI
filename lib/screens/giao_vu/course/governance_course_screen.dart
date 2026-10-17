@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
 import '../../../services/governance_api_service.dart';
-=======
-import '../../../core/theme/app_theme.dart';
-import '../../../services/governance_data_service.dart';
-import '../../../models/course_model.dart';
-import '../../../widgets/governance/governance_widgets.dart';
->>>>>>> origin/Frontend
 
 class GovernanceCourseScreen extends StatefulWidget {
   final bool showAppBar;
@@ -55,7 +48,6 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
     final canPop = ModalRoute.of(context)?.canPop == true;
 
@@ -91,25 +83,6 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
           color: const Color(0xFF2563EB),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-=======
-    final data = GovernanceDataService.instance;
-    return AnimatedBuilder(
-      animation: data,
-      builder: (context, _) {
-        final query = _query.trim().toLowerCase();
-        final courses = data.courses.where((course) {
-          return query.isEmpty ||
-              course.code.toLowerCase().contains(query) ||
-              course.name.toLowerCase().contains(query) ||
-              course.classCode.toLowerCase().contains(query) ||
-              course.lecturer.toLowerCase().contains(query);
-        }).toList();
-        return Scaffold(
-          appBar: widget.showAppBar
-              ? AppBar(title: const Text('Lớp học phần'))
-              : null,
-          body: Column(
->>>>>>> origin/Frontend
             children: [
               // Top Title if root tab
               if (!canPop || !widget.showAppBar)
@@ -362,50 +335,9 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
     );
   }
 
-<<<<<<< HEAD
   void _showCourseDetailDialog(Map<String, dynamic> course, dynamic id) async {
     final name = course['tenLopHocPhan'] ?? course['TenLopHocPhan'] ?? 'Lớp học phần';
     final code = course['maLopHocPhan'] ?? course['MaLopHocPhan'] ?? '';
-=======
-  Widget _courseCard(
-    BuildContext context,
-    CourseModel course,
-    GovernanceDataService data,
-  ) {
-    final studentCount = data.students
-        .where((student) => student.classCode == course.classCode)
-        .length;
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-          foregroundColor: AppTheme.primaryColor,
-          child: const Icon(Icons.school_outlined),
-        ),
-        title: Text(
-          course.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          '${course.classCode} · ${course.semester}\n${course.lecturer} · $studentCount sinh viên',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        isThreeLine: true,
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => GovernanceCourseDetailScreen(courseId: course.id),
-          ),
-        ),
-      ),
-    );
-  }
-}
->>>>>>> origin/Frontend
 
     List<dynamic> students = [];
     bool loadingStudents = true;
@@ -436,36 +368,12 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
               }
             }
 
-<<<<<<< HEAD
             return Container(
               height: MediaQuery.of(context).size.height * 0.75,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
-=======
-  @override
-  Widget build(BuildContext context) {
-    final data = GovernanceDataService.instance;
-    final course = data.courses.firstWhere((item) => item.id == courseId);
-    final students = data.students
-        .where((student) => student.classCode == course.classCode)
-        .toList();
-    final matchingLecturers = data.lecturers
-        .where((item) => item.fullName == course.lecturer)
-        .toList();
-    final lecturerCode = matchingLecturers.isEmpty
-        ? 'Chưa có dữ liệu'
-        : matchingLecturers.first.lecturerCode;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết lớp học phần')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
->>>>>>> origin/Frontend
               child: Column(
                 children: [
                   const SizedBox(height: 12),
@@ -541,39 +449,10 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
                   ),
                 ],
               ),
-<<<<<<< HEAD
             );
           },
         );
       },
-=======
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'Sinh viên thuộc lớp',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          if (students.isEmpty)
-            const Text('Chưa có sinh viên trong danh sách của lớp này.')
-          else
-            ...students.map(
-              (student) => Card(
-                child: ListTile(
-                  leading: const Icon(Icons.person_outline),
-                  title: Text(
-                    student.fullName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text('${student.studentCode} · ${student.email}'),
-                ),
-              ),
-            ),
-        ],
-      ),
->>>>>>> origin/Frontend
     );
   }
 }

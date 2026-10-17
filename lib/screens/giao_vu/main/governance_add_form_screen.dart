@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-<<<<<<< HEAD
-=======
-import '../../../services/governance_data_service.dart';
->>>>>>> origin/Frontend
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../services/admin_api_service.dart';
@@ -48,38 +44,14 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
   bool get _isEdit => widget.existingData != null;
 
   List<String> get _statusOptions {
-<<<<<<< HEAD
     return _isStudent
         ? ['Đang học', 'Bảo lưu', 'Đã tốt nghiệp']
         : ['Đang công tác', 'Nghỉ phép', 'Đã nghỉ việc'];
-=======
-    final data = GovernanceDataService.instance;
-    final values = _isStudent
-        ? data.students.map((item) => item.status)
-        : data.lecturerStatuses.values;
-    final options = values
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-    final selectedStatus = _status;
-    options.removeWhere((value) => value.trim().isEmpty);
-    final uniqueOptions = options.toSet().toList();
-    if (selectedStatus.trim().isNotEmpty &&
-        !uniqueOptions.contains(selectedStatus)) {
-      uniqueOptions.insert(0, selectedStatus);
-    }
-    return uniqueOptions;
->>>>>>> origin/Frontend
   }
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
-=======
-    final data = GovernanceDataService.instance;
->>>>>>> origin/Frontend
     if (_isStudent) {
       final existing = _existingStudent;
       _codeController.text = existing?.studentCode ?? '';
@@ -113,11 +85,7 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_isSaving) return;
 
-<<<<<<< HEAD
     setState(() => _isSaving = true);
-=======
-    final data = GovernanceDataService.instance;
->>>>>>> origin/Frontend
     final code = _codeController.text.trim();
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();

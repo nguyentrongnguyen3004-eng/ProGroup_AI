@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
-=======
-import '../../../core/theme/app_theme.dart';
-import '../../../services/governance_data_service.dart';
->>>>>>> origin/Frontend
 import '../../../models/governance_student_model.dart';
 import '../../../services/governance_api_service.dart';
 import '../main/governance_add_form_screen.dart';
@@ -67,37 +62,12 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final classes = _students
         .map((s) => s.classCode)
         .where((c) => c.isNotEmpty)
         .toSet()
         .toList()
       ..sort();
-=======
-    final data = GovernanceDataService.instance;
-    return AnimatedBuilder(
-      animation: data,
-      builder: (context, _) {
-        final classes =
-            data.students.map((item) => item.classCode).toSet().toList()
-              ..sort();
-        final statuses =
-            data.students.map((item) => item.status).toSet().toList()..sort();
-        final students = data.students.where((student) {
-          final query = _query.trim().toLowerCase();
-          final matchesQuery =
-              query.isEmpty ||
-              student.studentCode.toLowerCase().contains(query) ||
-              student.fullName.toLowerCase().contains(query) ||
-              student.email.toLowerCase().contains(query) ||
-              student.classCode.toLowerCase().contains(query) ||
-              student.status.toLowerCase().contains(query);
-          return matchesQuery &&
-              (_classFilter == 'Tất cả' || student.classCode == _classFilter) &&
-              (_statusFilter == 'Tất cả' || student.status == _statusFilter);
-        }).toList();
->>>>>>> origin/Frontend
 
     final query = _query.trim().toLowerCase();
     final filtered = _students.where((student) {
@@ -450,52 +420,4 @@ class GovernanceStudentDetailScreen extends StatelessWidget {
       ),
     );
   }
-<<<<<<< HEAD
-=======
-
-  Future<void> _edit(BuildContext context) async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => GovernanceAddFormScreen(
-          kind: GovernanceAddKind.student,
-          existingData: student,
-        ),
-      ),
-    );
-    if (saved == true && context.mounted) Navigator.pop(context);
-  }
-
-  Future<void> _delete(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Xóa sinh viên?'),
-        content: Text(
-          'Bạn có chắc muốn xóa ${student.fullName} '
-          '(MSSV: ${student.studentCode})?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(dialogContext).colorScheme.error,
-            ),
-            child: const Text('Xóa'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    GovernanceDataService.instance.removeStudent(student.id);
-    Navigator.pop(context);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Đã xóa sinh viên thành công.')),
-    );
-  }
->>>>>>> origin/Frontend
 }

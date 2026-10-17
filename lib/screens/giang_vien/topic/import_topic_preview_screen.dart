@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/topic_model.dart';
-<<<<<<< HEAD
 import '../../../services/lecturer_api_service.dart';
-=======
-import '../../../services/topic_service.dart';
->>>>>>> origin/Frontend
 
 class TopicImportPreviewRow {
   final int rowNumber;
@@ -109,7 +105,6 @@ class _ImportTopicPreviewScreenState extends State<ImportTopicPreviewScreen> {
         return;
       }
 
-<<<<<<< HEAD
       final assignedCourseIds = LecturerApiService.instance.cachedCourses
           .map((course) => course.courseId)
           .toSet();
@@ -126,27 +121,9 @@ class _ImportTopicPreviewScreenState extends State<ImportTopicPreviewScreen> {
             widget.courseScopeId == topic.courseId;
 
         if (!isInAssignedCourse || !isInRequestedCourse) {
-=======
-      int importedCount = 0;
-      int errorCount = 0;
-
-      for (final row in validRows) {
-        final topic = row.topic!;
-        try {
-          await TopicService().createTopic({
-            'dotDangKyId': topic.courseId,
-            'tenDeTai': topic.title,
-            'moTa': topic.description,
-            'mucTieu': topic.objective,
-            'phamVi': topic.scope,
-            'congNgheDuKien': topic.technology,
-          });
-          importedCount++;
-        } catch (_) {
->>>>>>> origin/Frontend
           errorCount++;
+          continue;
         }
-<<<<<<< HEAD
 
         try {
           await LecturerApiService.instance.createTopic(
@@ -161,20 +138,14 @@ class _ImportTopicPreviewScreenState extends State<ImportTopicPreviewScreen> {
         } catch (_) {
           errorCount++;
         }
-=======
->>>>>>> origin/Frontend
       }
 
       if (importedCount == 0) {
         _reportImportFailure(
-<<<<<<< HEAD
           AppLocalizations.text(
             'Không còn dòng hợp lệ để import. Hãy kiểm tra lại dữ liệu.',
             en: 'No valid rows left to import. Please check data.',
           ),
-=======
-          'Không thể lưu đề tài nào. Vui lòng kiểm tra lại kết nối hoặc định dạng file.',
->>>>>>> origin/Frontend
         );
         return;
       }
@@ -184,19 +155,13 @@ class _ImportTopicPreviewScreenState extends State<ImportTopicPreviewScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-<<<<<<< HEAD
             AppLocalizations.text(
               'Đã import $importedCount đề tài, '
               '$errorCount dòng lỗi.',
               en: 'Imported $importedCount topics, '
                   '$errorCount error rows.',
             ),
-=======
-            'Đã import $importedCount đề tài thành công, '
-            '$errorCount dòng lỗi.',
->>>>>>> origin/Frontend
           ),
-          backgroundColor: Colors.green,
         ),
       );
 

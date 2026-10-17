@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-<<<<<<< HEAD
 import '../../../services/admin_api_service.dart';
 import '../../../widgets/common/common_notification_detail_screen.dart';
-=======
-import '../../../models/training_notification_model.dart';
-import '../../../services/notification_service.dart';
->>>>>>> origin/Frontend
 
 class TrainingNotificationScreen extends StatefulWidget {
   const TrainingNotificationScreen({super.key});
@@ -79,7 +74,6 @@ class _TrainingNotificationScreenState extends State<TrainingNotificationScreen>
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
     final canPop = ModalRoute.of(context)?.canPop == true;
 
@@ -272,30 +266,6 @@ class _TrainingNotificationScreenState extends State<TrainingNotificationScreen>
                   backgroundColor: const Color(0xFF2563EB),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-=======
-    final notifications = NotificationService.instance;
-    return AnimatedBuilder(
-      animation: notifications,
-      builder: (context, _) {
-        final items = notifications.notifications.map((m) => TrainingNotificationModel(
-          id: m['id'] is int ? m['id'] as int : int.tryParse(m['id'].toString()) ?? 0,
-          type: (m['type'] ?? 'Hệ thống').toString(),
-          title: (m['title'] ?? '').toString(),
-          content: (m['content'] ?? m['message'] ?? '').toString(),
-          time: (m['time'] ?? m['createdAt'] ?? '').toString(),
-          icon: Icons.notifications_outlined,
-          isRead: m['isRead'] == true || m['read'] == true,
-        )).toList();
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(_text(context, 'Thông báo', 'Notifications')),
-            actions: [
-              IconButton(
-                tooltip: _text(
-                  context,
-                  'Đánh dấu tất cả đã đọc',
-                  'Mark all as read',
->>>>>>> origin/Frontend
                 ),
               ),
             ],

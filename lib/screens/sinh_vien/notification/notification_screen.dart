@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-<<<<<<< HEAD
 import 'package:progroup_ai_frontend/services/student_api_service.dart';
 import 'package:progroup_ai_frontend/widgets/common/common_notification_detail_screen.dart';
-=======
-import 'package:progroup_ai_frontend/services/notification_service.dart';
->>>>>>> origin/Frontend
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -101,29 +97,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    NotificationService.instance.loadNotifications();
-  }
-
-  @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
     final canPop = ModalRoute.of(context)?.canPop == true;
-=======
-    return AnimatedBuilder(
-      animation: NotificationService.instance,
-      builder: (context, _) {
-        final notifications = NotificationService.instance.notifications;
-        final filters = [
-          AppLocalizations.text('Tất cả', en: 'All'),
-          AppLocalizations.text('Nhóm', en: 'Groups'),
-          AppLocalizations.text('Đề tài', en: 'Topics'),
-          AppLocalizations.text('Hệ thống', en: 'System'),
-        ];
-        final currentType = _filterTypes[selectedFilter];
->>>>>>> origin/Frontend
 
     final unreadCount = _notifications.where((n) => n['unread'] == true).length;
     final readCount = _notifications.length - unreadCount;
@@ -135,33 +111,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
       return true;
     }).toList();
 
-<<<<<<< HEAD
     return Scaffold(
       appBar: canPop
           ? AppBar(
               title: Text(
                 AppLocalizations.text('Thông báo', en: 'Notifications'),
                 style: const TextStyle(fontWeight: FontWeight.bold),
-=======
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(
-              AppLocalizations.text('Thông báo', en: 'Notifications'),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              IconButton(
-                tooltip: AppLocalizations.text(
-                  'Đánh dấu đã đọc',
-                  en: 'Mark as read',
-                ),
-                onPressed: NotificationService.instance.unreadCount > 0
-                    ? () {
-                        NotificationService.instance.markAllAsRead();
-                      }
-                    : null,
-                icon: const Icon(Icons.done_all),
->>>>>>> origin/Frontend
               ),
               actions: [
                 if (unreadCount > 0)
@@ -184,7 +139,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-<<<<<<< HEAD
               // Hero Banner đồng bộ chuẩn Giảng viên
               if (!canPop)
                 Container(
@@ -261,17 +215,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ],
                   ),
                 ),
-=======
-              SizedBox(
-                height: 55,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: filters.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final selected = selectedFilter == index;
->>>>>>> origin/Frontend
 
               // 3 Thẻ thống kê KPI trên cùng: Tổng cộng, Chưa đọc, Đã đọc
               Padding(
@@ -314,102 +257,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ),
               ),
 
-<<<<<<< HEAD
               // Danh sách thông báo
               Expanded(
                 child: _buildListBody(colors, filteredItems),
-=======
-              const SizedBox(height: 4),
-
-              Expanded(
-                child: filtered.isEmpty
-                    ? _NotificationEmptyState(
-                        hasAnyNotifications: notifications.isNotEmpty,
-                        filterLabel: filters[selectedFilter],
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(20),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final item = filtered[index];
-
-                          final unread = item['isRead'] == false && item['read'] != true;
-                          final id = item['id'];
-
-                          return Card(
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(14),
-                              leading: CircleAvatar(
-                                backgroundColor: unread
-                                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                                    : Colors.grey.withValues(alpha: 0.1),
-                                child: Icon(
-                                  Icons.notifications_outlined,
-                                  color: unread
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Colors.grey,
-                                ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _localizedMessage(
-                                        (item['title'] ?? '') as String,
-                                      ),
-                                      style: TextStyle(
-                                        fontWeight: unread
-                                            ? FontWeight.bold
-                                            : FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  if (unread)
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _localizedMessage(
-                                        (item['content'] ?? item['message'] ?? '') as String,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      _localizedMessage(
-                                        (item['time'] ?? item['createdAt'] ?? '') as String,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.55),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              onTap: () {
-                                NotificationService.instance.markAsRead(id);
-                              },
-                            ),
-                          );
-                        },
-                      ),
->>>>>>> origin/Frontend
               ),
             ],
           ),

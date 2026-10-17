@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../widgets/common/common_notification_detail_screen.dart';
-=======
-import '../../../services/admin_data_service.dart';
-import '../../admin/admin_helpers.dart';
->>>>>>> origin/Frontend
 
 class AdminNotificationScreen extends StatefulWidget {
   const AdminNotificationScreen({super.key});
 
   @override
-<<<<<<< HEAD
   State<AdminNotificationScreen> createState() => _AdminNotificationScreenState();
 }
 
@@ -251,21 +245,6 @@ class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
 
             Expanded(
               child: _buildList(colors, filteredItems),
-=======
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: AdminDataService.instance,
-    builder: (context, _) {
-      final data = AdminDataService.instance;
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(adminText('Thông báo', 'Notifications')),
-          actions: [
-            TextButton(
-              onPressed: data.unreadCount == 0
-                  ? null
-                  : data.markAllNotificationsRead,
-              child: Text(adminText('Đọc tất cả', 'Mark all read')),
->>>>>>> origin/Frontend
             ),
           ],
         ),

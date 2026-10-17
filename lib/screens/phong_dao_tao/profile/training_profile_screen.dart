@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
-<<<<<<< HEAD
 import '../../../models/user_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../services/api_service.dart';
@@ -12,10 +11,6 @@ import 'dart:convert';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
-=======
-import '../../../services/training_data_service.dart';
-import '../../../models/training_profile_model.dart';
->>>>>>> origin/Frontend
 
 class TrainingProfileScreen extends StatefulWidget {
   const TrainingProfileScreen({super.key});
@@ -71,11 +66,6 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-=======
-    final data = TrainingDataService.instance;
-    final settings = AppSettings.instance;
->>>>>>> origin/Frontend
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {
@@ -269,18 +259,6 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
         ],
       ),
     );
-<<<<<<< HEAD
-=======
-    if (!mounted) return;
-    if (action == 'remove') {
-      TrainingDataService.instance.updateAvatar('');
-      _showMessage(
-        _text(context, 'Đã xóa ảnh đại diện.', 'Profile image removed.'),
-      );
-    } else if (action == 'choose') {
-      await _pickAvatar();
-    }
->>>>>>> origin/Frontend
   }
 
   // ============================================================
@@ -462,7 +440,6 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
               );
             },
           ),
-<<<<<<< HEAD
         ],
       ),
     );
@@ -476,37 +453,6 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
         return AppLocalizations.text('Sáng', en: 'Light');
       case ThemeMode.dark:
         return AppLocalizations.text('Tối', en: 'Dark');
-=======
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_text(context, 'Hủy', 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(_text(context, 'Dùng ảnh này', 'Use this photo')),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
-      TrainingDataService.instance.updateAvatar(
-        'data:$mime;base64,${base64Encode(bytes)}',
-      );
-      _showMessage(
-        _text(context, 'Đã cập nhật ảnh đại diện.', 'Profile image updated.'),
-      );
-    } catch (_) {
-      if (mounted) {
-        _showMessage(
-          _text(
-            context,
-            'Không thể chọn ảnh lúc này.',
-            'Unable to choose an image right now.',
-          ),
-        );
-      }
->>>>>>> origin/Frontend
     }
   }
 
@@ -528,102 +474,8 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
           role: _user.role,
           roleName: _user.roleName,
         );
-<<<<<<< HEAD
       });
       _showMessage(AppLocalizations.text('Đổi email thành công.', en: 'Email changed successfully.'));
-=======
-        return;
-      }
-      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
-        _showMessage(
-          _text(context, 'Email không hợp lệ.', 'Enter a valid email address.'),
-        );
-        return;
-      }
-      final verified = await _verifyNewEmail(email);
-      if (verified == true && mounted) {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(
-              _text(context, 'Xác nhận email mới', 'Confirm new email'),
-            ),
-            content: Text(
-              '${_text(context, 'Bạn có muốn sử dụng email', 'Use this email address?')} $email',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: Text(_text(context, 'Hủy', 'Cancel')),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: Text(_text(context, 'Xác nhận', 'Confirm')),
-              ),
-            ],
-          ),
-        );
-        if (confirmed != true || !mounted) return;
-        TrainingDataService.instance.updateEmail(email);
-        _showMessage(_text(context, 'Đã cập nhật email.', 'Email updated.'));
-      } else if (verified == false && mounted) {
-        _showMessage(
-          _text(context, 'Mã OTP không đúng.', 'The OTP code is incorrect.'),
-        );
-      }
-    } finally {
-      controller.dispose();
-    }
-  }
-
-  Future<bool?> _verifyNewEmail(String email) async {
-    final controller = TextEditingController();
-    try {
-      return await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(_text(context, 'Xác nhận email', 'Verify email')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_text(context, 'Nhập mã OTP gửi đến', 'Enter the OTP sent to')} $email',
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: InputDecoration(
-                  labelText: 'OTP',
-                  helperText: _text(
-                    context,
-                    'Mã demo: 123456',
-                    'Demo code: 123456',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(_text(context, 'Hủy', 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(
-                dialogContext,
-                controller.text.trim() == '123456',
-              ),
-              child: Text(_text(context, 'Xác nhận', 'Verify')),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      controller.dispose();
->>>>>>> origin/Frontend
     }
   }
 

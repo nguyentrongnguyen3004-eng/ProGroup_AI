@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../services/admin_api_service.dart';
-=======
-import '../../../services/admin_data_service.dart';
->>>>>>> origin/Frontend
 import '../../admin/admin_helpers.dart';
 
 import '../../../services/auth_service.dart';
@@ -21,7 +17,6 @@ class AdminUserDetailScreen extends StatefulWidget {
   final int? currentAdminId;
   final Map<String, dynamic>? user;
 
-<<<<<<< HEAD
   @override
   State<AdminUserDetailScreen> createState() => _AdminUserDetailScreenState();
 }
@@ -60,73 +55,6 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
         }
         _isLoading = false;
       });
-=======
-  Future<void> _delete(BuildContext context) async {
-    final account = AdminDataService.instance.accountById(accountId);
-    if (account == null || accountId == currentAdminId) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(adminText('Xóa tài khoản', 'Delete account')),
-        content: Text(
-          adminText(
-            'Bạn có chắc muốn xóa tài khoản này?',
-            'Are you sure you want to delete this account?',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(adminText('Hủy', 'Cancel')),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(adminText('Xóa', 'Delete')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    if (AdminDataService.instance.deleteAccount(
-      accountId,
-      currentAdminId: currentAdminId,
-    )) {
-      if (context.mounted) Navigator.pop(context, true);
-    }
-  }
-
-  Future<void> _toggleLock(BuildContext context, bool locked) async {
-    final account = AdminDataService.instance.accountById(accountId);
-    if (account == null || accountId == currentAdminId) return;
-    if (locked) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(adminText('Khóa tài khoản', 'Lock account')),
-          content: Text(
-            '${adminText('Bạn có chắc muốn khóa tài khoản', 'Lock this account')}: ${account.username}?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(adminText('Hủy', 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(adminText('Khóa', 'Lock')),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-    final changed = AdminDataService.instance.setAccountLocked(
-      accountId,
-      locked: locked,
-      currentAdminId: currentAdminId,
-    );
-    if (changed && context.mounted) {
->>>>>>> origin/Frontend
       showAdminMessage(
         context,
         currentLocked ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.',
@@ -142,28 +70,9 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
   }
 
   @override
-<<<<<<< HEAD
   Widget build(BuildContext context) {
     final user = _userData ?? widget.user;
     if (user == null) {
-=======
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: AdminDataService.instance,
-    builder: (context, _) {
-      final account = AdminDataService.instance.accountById(accountId);
-      if (account == null) {
-        return Scaffold(
-          appBar: AppBar(),
-          body: adminEmptyState(
-            context,
-            'Tài khoản không còn tồn tại.',
-            'This account no longer exists.',
-          ),
-        );
-      }
-      final isSelf = accountId == currentAdminId;
-      final isLocked = account.status == AdminDataService.lockedStatus;
->>>>>>> origin/Frontend
       return Scaffold(
         appBar: AppBar(
           title: Text(adminText('Chi tiết người dùng', 'User details')),
@@ -251,41 +160,6 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                 ),
               ),
             ),
-<<<<<<< HEAD
-=======
-            Card(
-              child: Column(
-                children: [
-                  _InfoTile(
-                    label: adminText('Mã người dùng', 'User code'),
-                    value: account.userCode,
-                  ),
-                  _InfoTile(label: 'Username', value: account.username),
-                  _InfoTile(
-                    label: adminText('Email', 'Email'),
-                    value: account.email,
-                  ),
-                  _InfoTile(
-                    label: adminText('Số điện thoại', 'Phone'),
-                    value: account.phone.isEmpty ? '—' : account.phone,
-                  ),
-                  _InfoTile(
-                    label: adminText('Ngày tạo', 'Created'),
-                    value: account.createdAt == null
-                        ? '—'
-                        : adminDateTime(account.createdAt!),
-                  ),
-                  _InfoTile(
-                    label: adminText('Hoạt động', 'Activity'),
-                    value: AdminDataService.instance.activities
-                        .where((item) => item.target == account.fullName)
-                        .length
-                        .toString(),
-                  ),
-                ],
-              ),
-            ),
->>>>>>> origin/Frontend
             const SizedBox(height: 14),
             Card(
               elevation: 0,

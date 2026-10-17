@@ -2,17 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
-<<<<<<< HEAD
 import '../../../services/auth_service.dart';
 import '../../../services/governance_api_service.dart';
 import '../course/governance_course_screen.dart';
 import '../notification/governance_notification_screen.dart';
-=======
-import '../../../services/governance_data_service.dart';
-import '../../../services/group_service.dart';
-import '../../../services/topic_service.dart';
-import '../../../widgets/governance/governance_widgets.dart';
->>>>>>> origin/Frontend
 import '../registration/governance_registration_overview_screen.dart';
 import '../tools/governance_assignment_screen.dart';
 import '../tools/governance_import_screen.dart';
@@ -94,7 +87,6 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
     final user = AuthService.currentUser;
     final userName = user.fullName.isNotEmpty ? user.fullName : 'Giáo vụ khoa';
@@ -172,18 +164,6 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
           color: const Color(0xFF2563EB),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 80),
-=======
-    final data = GovernanceDataService.instance;
-    return AnimatedBuilder(
-      animation: data,
-      builder: (context, _) {
-        final registrations = TopicService.registrations;
-        final pending = registrations.where(_isPending).length;
-        return Scaffold(
-          appBar: AppBar(title: const Text('Giáo vụ khoa')),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
->>>>>>> origin/Frontend
             children: [
               // ======================================================
               // 1. TOP HEADER: AVATAR + XIN CHÀO + CHUÔNG THÔNG BÁO BADGE
@@ -445,36 +425,11 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
                     icon: Icons.badge_rounded,
                     color: const Color(0xFF2563EB), // Blue
                   ),
-<<<<<<< HEAD
                   _StatCard(
                     title: AppLocalizations.text('Nhóm đồ án', en: 'Groups'),
                     value: '$totalGroups',
                     icon: Icons.groups_rounded,
                     color: const Color(0xFFF59E0B), // Amber
-=======
-                  GovernanceStatCard(
-                    title: 'Nhóm',
-                    value: '${GroupService.groups.length}',
-                    icon: Icons.groups_outlined,
-                    color: AppTheme.warningColor,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Đề tài',
-                    value: '${TopicService.topics.length}',
-                    icon: Icons.lightbulb_outline,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Đăng ký đã duyệt',
-                    value: '${registrations.where(_isApproved).length}',
-                    icon: Icons.task_alt,
-                    color: AppTheme.successColor,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Chờ xử lý',
-                    value: '$pending',
-                    icon: Icons.pending_actions_outlined,
-                    color: AppTheme.warningColor,
->>>>>>> origin/Frontend
                   ),
                 ],
               ),

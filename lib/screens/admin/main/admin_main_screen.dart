@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-<<<<<<< HEAD
 import '../../../core/settings/app_settings.dart';
-=======
-import '../../../services/admin_data_service.dart';
->>>>>>> origin/Frontend
 import '../../../models/user_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../widgets/common/unified_role_bottom_nav.dart';
@@ -33,15 +29,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
     _loadUnread();
-=======
-    AdminDataService.instance.recordActivity(
-      action: 'Đăng nhập',
-      target: widget.user.username,
-      description: 'Tài khoản Admin đăng nhập thành công.',
-    );
->>>>>>> origin/Frontend
   }
 
   Future<void> _loadUnread() async {
@@ -62,7 +50,6 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {
@@ -74,24 +61,6 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
             activeIcon: Icons.dashboard_rounded,
             inactiveIcon: Icons.dashboard_rounded,
             color: const Color(0xFF2563EB), // Blue
-=======
-    final data = AdminDataService.instance;
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          AdminOverviewScreen(
-            onOpenUsers: () => _openSection(1),
-            onOpenData: () => _openSection(2),
-            onOpenRoles: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AdminRoleScreen()),
-            ),
-            onOpenActivity: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AdminActivityLogScreen()),
-            ),
->>>>>>> origin/Frontend
           ),
           UnifiedRoleNavItem(
             label: AppLocalizations.text('Người dùng', en: 'Users'),

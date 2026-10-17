@@ -8,12 +8,8 @@ class TopicModel {
   final String technology;
   final String source;
   final String status;
-<<<<<<< HEAD
   final String? approvalStatus;
   final String? lecturerName;
-=======
-  final String lecturerName;
->>>>>>> origin/Frontend
 
   const TopicModel({
     required this.id,
@@ -25,7 +21,6 @@ class TopicModel {
     required this.technology,
     required this.source,
     required this.status,
-<<<<<<< HEAD
     this.approvalStatus,
     this.lecturerName,
   });
@@ -101,23 +96,6 @@ class TopicModel {
       status: status ?? this.status,
       approvalStatus: approvalStatus ?? this.approvalStatus,
       lecturerName: lecturerName ?? this.lecturerName,
-=======
-    this.lecturerName = '',
-  });
-
-  factory TopicModel.fromJson(Map<String, dynamic> json) {
-    return TopicModel(
-      id: json['deTaiId'] ?? 0,
-      courseId: json['dotDangKyId'] ?? 0,
-      title: json['tenDeTai'] ?? '',
-      description: json['moTa'] ?? '',
-      objective: json['mucTieu'] ?? '',
-      scope: json['phamVi'] ?? '',
-      technology: json['congNgheDuKien'] ?? '',
-      source: json['nguonDeTai'] ?? 'Giảng viên',
-      status: json['trangThaiDuyet'] ?? 'Chờ duyệt',
-      lecturerName: json['giangVienTen'] ?? '',
->>>>>>> origin/Frontend
     );
   }
 }

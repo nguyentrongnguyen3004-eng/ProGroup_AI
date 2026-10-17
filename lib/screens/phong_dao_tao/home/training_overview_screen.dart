@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
-<<<<<<< HEAD
 import '../../../core/theme/app_theme.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/governance_api_service.dart';
-=======
-import '../../../services/training_data_service.dart';
->>>>>>> origin/Frontend
 import '../management/training_data_management_screen.dart';
 import '../notification/training_notification_screen.dart';
 
@@ -87,10 +83,6 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-=======
-    final data = TrainingDataService.instance;
->>>>>>> origin/Frontend
     final colors = Theme.of(context).colorScheme;
     final user = AuthService.currentUser;
     final userName = user.fullName.isNotEmpty ? user.fullName : 'Phòng Đào tạo';

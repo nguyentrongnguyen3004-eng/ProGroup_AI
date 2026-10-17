@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
-=======
-import '../../../core/theme/app_theme.dart';
-import '../../../services/governance_data_service.dart';
->>>>>>> origin/Frontend
 import '../../../models/lecturer_model.dart';
 import '../../../services/governance_api_service.dart';
 import '../main/governance_add_form_screen.dart';
@@ -68,7 +63,6 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final faculties = _lecturers
         .map((item) => item.faculty)
         .where((f) => f.isNotEmpty)
@@ -117,44 +111,6 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-=======
-    final data = GovernanceDataService.instance;
-    return AnimatedBuilder(
-      animation: data,
-      builder: (context, _) {
-        final query = _query.trim().toLowerCase();
-        final statuses =
-            data.lecturers.map(data.lecturerStatus).toSet().toList()..sort();
-        final faculties =
-            data.lecturers.map((item) => item.faculty).toSet().toList()..sort();
-        final lecturers = data.lecturers.where((lecturer) {
-          final matchesQuery =
-              query.isEmpty ||
-              lecturer.lecturerCode.toLowerCase().contains(query) ||
-              lecturer.fullName.toLowerCase().contains(query) ||
-              lecturer.email.toLowerCase().contains(query) ||
-              lecturer.faculty.toLowerCase().contains(query) ||
-              lecturer.department.toLowerCase().contains(query);
-          final status = data.lecturerStatus(lecturer);
-          return matchesQuery &&
-              (_statusFilter == 'Tất cả' || status == _statusFilter) &&
-              (_facultyFilter == 'Tất cả' ||
-                  lecturer.faculty == _facultyFilter);
-        }).toList();
-        return Scaffold(
-          appBar: widget.showAppBar
-              ? AppBar(title: const Text('Quản lý giảng viên'))
-              : null,
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
->>>>>>> origin/Frontend
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const GovernanceAddFormScreen(
@@ -249,7 +205,6 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
     );
   }
 
-<<<<<<< HEAD
   Widget _filterChip(String value) {
     final isSelected = _facultyFilter == value;
     return Padding(
@@ -261,23 +216,6 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
         labelStyle: TextStyle(
           color: isSelected ? const Color(0xFF2563EB) : Colors.black87,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-=======
-  Widget _lecturerCard(
-    BuildContext context,
-    LecturerModel lecturer,
-    GovernanceDataService data,
-  ) {
-    final courseCount = data.courses
-        .where((course) => course.lecturer == lecturer.fullName)
-        .length;
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-          foregroundColor: AppTheme.primaryColor,
-          child: const Icon(Icons.badge_outlined),
->>>>>>> origin/Frontend
         ),
         onSelected: (_) => setState(() => _facultyFilter = value),
       ),
@@ -402,13 +340,6 @@ class GovernanceLecturerDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-=======
-    final data = GovernanceDataService.instance;
-    final courses = data.courses
-        .where((course) => course.lecturer == lecturer.fullName)
-        .toList();
->>>>>>> origin/Frontend
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -489,15 +420,5 @@ class GovernanceLecturerDetailScreen extends StatelessWidget {
         ],
       ),
     );
-<<<<<<< HEAD
-=======
-    if (confirmed != true || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    GovernanceDataService.instance.removeLecturer(lecturer.id);
-    Navigator.pop(context);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Đã xóa giảng viên thành công.')),
-    );
->>>>>>> origin/Frontend
   }
 }

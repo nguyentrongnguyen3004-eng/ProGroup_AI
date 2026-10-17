@@ -1,18 +1,22 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
 import '../../../core/localization/app_localizations.dart';
-<<<<<<< HEAD
 import '../../../models/course_model.dart';
 import '../../../models/lecturer_course_model.dart';
 import '../../../models/topic_model.dart';
 import '../../../services/lecturer_api_service.dart';
-=======
-import '../../../services/topic_service.dart';
->>>>>>> origin/Frontend
 
 class AddTopicScreen extends StatefulWidget {
-  final int courseId;
-  final Map<String, dynamic>? initialValues;
-  const AddTopicScreen({super.key, required this.courseId, this.initialValues});
+  final CourseModel? course;
+  final int? lecturerCourseId;
+  final Map<String, String>? initialValues;
+
+  const AddTopicScreen({
+    super.key,
+    this.course,
+    this.lecturerCourseId,
+    this.initialValues,
+  });
 
   @override
   State<AddTopicScreen> createState() => _AddTopicScreenState();
@@ -21,12 +25,12 @@ class AddTopicScreen extends StatefulWidget {
 class _AddTopicScreenState extends State<AddTopicScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _descController = TextEditingController();
-  final _targetController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _objectiveController = TextEditingController();
   final _scopeController = TextEditingController();
-  final _techController = TextEditingController();
+  final _technologyController = TextEditingController();
+  final _sourceController = TextEditingController(text: 'Giảng viên');
 
-<<<<<<< HEAD
   int? _selectedCourseId;
   late String _status;
   List<LecturerCourseModel> _assignedCourses = [];
@@ -49,15 +53,10 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
     'Chờ duyệt',
     'Tạm khóa',
   ];
-=======
-  bool _isSubmitting = false;
-
->>>>>>> origin/Frontend
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
     final values = widget.initialValues;
     _titleController.text = values?['title'] ?? '';
     _descriptionController.text = values?['description'] ?? '';
@@ -90,68 +89,29 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
         }
       });
     }
-=======
-    if (widget.initialValues != null) {
-      _titleController.text = widget.initialValues!['title'] ?? '';
-      _descController.text = widget.initialValues!['description'] ?? '';
-      _targetController.text = widget.initialValues!['objective'] ?? '';
-      _scopeController.text = widget.initialValues!['scope'] ?? '';
-      _techController.text = widget.initialValues!['technology'] ?? '';
-    }
->>>>>>> origin/Frontend
   }
 
   @override
   void dispose() {
-
     _titleController.dispose();
-    _descController.dispose();
-    _targetController.dispose();
+    _descriptionController.dispose();
+    _objectiveController.dispose();
     _scopeController.dispose();
-    _techController.dispose();
+    _technologyController.dispose();
+    _sourceController.dispose();
     super.dispose();
   }
 
-<<<<<<< HEAD
   Future<void> _save() async {
-=======
-  void _submit() async {
->>>>>>> origin/Frontend
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSubmitting = true);
-
-    try {
-      // In a real flow, dotDangKyId should be fetched from the course.
-      // Assuming courseId and dotDangKyId are mapped for now, or courseId is passed.
-      // Currently our API uses DotDangKyId, so we pass widget.courseId as a placeholder.
-      final data = {
-        'dotDangKyId': widget.courseId, 
-        'tenDeTai': _titleController.text.trim(),
-        'moTa': _descController.text.trim(),
-        'mucTieu': _targetController.text.trim(),
-        'phamVi': _scopeController.text.trim(),
-        'congNgheDuKien': _techController.text.trim(),
-      };
-
-      await TopicService().createTopic(data);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(AppLocalizations.text('Đã thêm đề tài thành công', en: 'Topic added successfully')),
-          backgroundColor: Colors.green,
-        ));
-        Navigator.pop(context, true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.red,
-        ));
-        setState(() => _isSubmitting = false);
+    LecturerCourseModel? selectedCourse;
+    for (final course in _availableCourses) {
+      if (course.courseId == _selectedCourseId) {
+        selectedCourse = course;
+        break;
       }
     }
-<<<<<<< HEAD
 
     if (selectedCourse == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,15 +164,15 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
         );
       }
     }
-=======
->>>>>>> origin/Frontend
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final courses = _availableCourses;
+
     return Scaffold(
       appBar: AppBar(
-<<<<<<< HEAD
         title: Text(
           AppLocalizations.text('Thêm đề tài mới', en: 'Add new topic'),
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -378,75 +338,11 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
               ),
             ],
           ),
-=======
-        title: Text(AppLocalizations.text('Thêm Đề Tài', en: 'Add Topic')),
-        actions: [
-          if (_isSubmitting)
-            const Center(child: Padding(padding: EdgeInsets.only(right: 16), child: CircularProgressIndicator()))
-          else
-            IconButton(
-              icon: const Icon(Icons.check),
-              onPressed: _submit,
-            ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.text('Tên đề tài *', en: 'Topic Name *'),
-                border: const OutlineInputBorder(),
-              ),
-              validator: (v) => v!.isEmpty ? 'Vui lòng nhập tên đề tài' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.text('Mô tả', en: 'Description'),
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _targetController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.text('Mục tiêu', en: 'Objectives'),
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _scopeController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.text('Phạm vi', en: 'Scope'),
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _techController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.text('Công nghệ dự kiến', en: 'Expected Technologies'),
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-          ],
->>>>>>> origin/Frontend
         ),
       ),
     );
   }
 }
-<<<<<<< HEAD
 
 class _FormCard extends StatelessWidget {
   final String title;
@@ -552,5 +448,3 @@ class _Field extends StatelessWidget {
     );
   }
 }
-=======
->>>>>>> origin/Frontend

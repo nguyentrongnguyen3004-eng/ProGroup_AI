@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import '../../../../core/routes/app_routes.dart';
-<<<<<<< HEAD
 import '../../../../services/password_reset_api_service.dart';
-=======
-import '../../../../services/auth_service.dart';
->>>>>>> origin/Frontend
 import '../../../../widgets/app_button.dart';
 import '../../../../widgets/app_text_field.dart';
 
@@ -21,11 +17,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final emailController = TextEditingController();
 
-<<<<<<< HEAD
   final service = PasswordResetApiService.instance;
-=======
-  final service = AuthService();
->>>>>>> origin/Frontend
 
   bool loading = false;
 

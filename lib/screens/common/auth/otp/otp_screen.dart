@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
-<<<<<<< HEAD
 import 'package:progroup_ai_frontend/services/password_reset_api_service.dart';
-=======
-import 'package:progroup_ai_frontend/services/auth_service.dart';
->>>>>>> origin/Frontend
 import 'package:progroup_ai_frontend/widgets/app_button.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -22,11 +18,7 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> {
   final otpController = TextEditingController();
 
-<<<<<<< HEAD
   final service = PasswordResetApiService.instance;
-=======
-  final service = AuthService();
->>>>>>> origin/Frontend
 
   bool loading = false;
 

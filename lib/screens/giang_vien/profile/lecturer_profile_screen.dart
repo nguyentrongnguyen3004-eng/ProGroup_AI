@@ -6,15 +6,11 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
-<<<<<<< HEAD
 import '../../../models/lecturer_model.dart';
 import '../../../services/lecturer_api_service.dart';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
-=======
-import '../../../services/lecturer_service.dart';
->>>>>>> origin/Frontend
 
 class LecturerProfileScreen extends StatefulWidget {
   const LecturerProfileScreen({super.key});
@@ -49,15 +45,8 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    LecturerService.instance.loadProfile();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-<<<<<<< HEAD
       animation: AppSettings.instance,
       builder: (context, _) {
         final defaultLecturer = const LecturerModel(
@@ -72,14 +61,6 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         final lecturer = (_lecturer ?? defaultLecturer).copyWith(
           avatar: _customAvatar.isNotEmpty ? _customAvatar : null,
         );
-=======
-      animation: Listenable.merge([
-        AppSettings.instance,
-        LecturerService.instance,
-      ]),
-      builder: (context, _) {
-        final lecturer = LecturerService.instance.current;
->>>>>>> origin/Frontend
         final settings = AppSettings.instance;
 
         return Scaffold(
@@ -585,7 +566,6 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
   void _changeAvatar() {
     ProfileAvatarPickerHelper.show(
       context: context,
-<<<<<<< HEAD
       onAvatarSelected: (newAvatar) {
         setState(() {
           _customAvatar = newAvatar;
@@ -595,91 +575,6 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         setState(() {
           _customAvatar = '';
         });
-=======
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Text(
-                  AppLocalizations.text(
-                    'Ảnh đại diện',
-                    en: 'Profile Picture',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              ListTile(
-                leading: const Icon(
-                  Icons.camera_alt_outlined,
-                ),
-                title: Text(
-                  AppLocalizations.text(
-                    'Chụp ảnh',
-                    en: 'Take Photo',
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _showMessage(
-                    AppLocalizations.text(
-                      'Chức năng chụp ảnh sẽ được tích hợp khi kết nối camera.',
-                      en: 'Camera capture will be integrated when camera support is connected.',
-                    ),
-                  );
-                },
-              ),
-
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library_outlined,
-                ),
-                title: Text(
-                  AppLocalizations.text(
-                    'Chọn từ thư viện',
-                    en: 'Choose from Gallery',
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _pickAvatarFromGallery();
-                },
-              ),
-
-              ListTile(
-                leading: const Icon(
-                  Icons.delete_outline,
-                ),
-                title: Text(
-                  AppLocalizations.text(
-                    'Xóa ảnh',
-                    en: 'Remove Photo',
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-
-                  LecturerService.instance.updateAvatar('');
-
-                  _showMessage(
-                    AppLocalizations.text(
-                      'Đã xóa ảnh đại diện.',
-                      en: 'Profile picture removed.',
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
->>>>>>> origin/Frontend
       },
     );
   }
@@ -791,15 +686,9 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         return;
       }
 
-<<<<<<< HEAD
       setState(() {
         _customAvatar = 'data:$mime;base64,${base64Encode(bytes)}';
       });
-=======
-      LecturerService.instance.updateAvatar(
-        'data:$mime;base64,${base64Encode(bytes)}',
-      );
->>>>>>> origin/Frontend
 
       _showMessage(
         AppLocalizations.text(
@@ -839,180 +728,6 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         ),
       );
     }
-<<<<<<< HEAD
-=======
-
-    await _verifyNewEmail(newEmail);
-  }
-
-  Future<void> _verifyNewEmail(String newEmail) async {
-    final otpController = TextEditingController();
-
-    final verified = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(
-            AppLocalizations.text(
-              'Xác thực email',
-              en: 'Verify Email',
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                AppLocalizations.text(
-                  'Mã OTP đã được gửi đến email mới.',
-                  en: 'An OTP has been sent to the new email.',
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: otpController,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.text(
-                    'Mã OTP',
-                    en: 'OTP Code',
-                  ),
-                  hintText: '123456',
-                  prefixIcon: const Icon(
-                    Icons.verified_user_outlined,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                AppLocalizations.text(
-                  'Demo OTP: 123456',
-                  en: 'Demo OTP: 123456',
-                ),
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
-              child: Text(
-                AppLocalizations.text(
-                  'Hủy',
-                  en: 'Cancel',
-                ),
-              ),
-            ),
-            FilledButton(
-              onPressed: () {
-                final otp = otpController.text.trim();
-
-                if (!RegExp(r'^\d{6}$').hasMatch(otp)) {
-                  _showDialogMessage(
-                    AppLocalizations.text(
-                      'OTP phải gồm đúng 6 chữ số.',
-                      en: 'OTP must contain exactly 6 digits.',
-                    ),
-                  );
-                  return;
-                }
-
-                if (otp != '123456') {
-                  _showDialogMessage(
-                    AppLocalizations.text(
-                      'OTP không đúng.',
-                      en: 'Incorrect OTP.',
-                    ),
-                  );
-                  return;
-                }
-
-                Navigator.pop(
-                  dialogContext,
-                  true,
-                );
-              },
-              child: Text(
-                AppLocalizations.text(
-                  'Xác nhận',
-                  en: 'Confirm',
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    otpController.dispose();
-
-    if (verified != true || !mounted) {
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(
-            AppLocalizations.text(
-              'Xác nhận email mới',
-              en: 'Confirm New Email',
-            ),
-          ),
-          content: Text(
-            '${AppLocalizations.text(
-              'Bạn có muốn sử dụng email',
-              en: 'Do you want to use the email',
-            )} $newEmail?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
-              child: Text(
-                AppLocalizations.text(
-                  'Hủy',
-                  en: 'Cancel',
-                ),
-              ),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, true);
-              },
-              child: Text(
-                AppLocalizations.text(
-                  'Xác nhận',
-                  en: 'Confirm',
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    LecturerService.instance.updateEmail(newEmail);
-
-    _showMessage(
-      AppLocalizations.text(
-        'Đổi email thành công.',
-        en: 'Email changed successfully.',
-      ),
-    );
->>>>>>> origin/Frontend
   }
 
   // ============================================================

@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../services/governance_data_service.dart';
-import '../../../services/notification_service.dart';
+import '../../../data/mock/mock_governance_data.dart';
+import '../../../data/mock/mock_governance_notifications.dart';
 import '../../../models/course_model.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
@@ -485,10 +485,11 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
   }
 
   void _notifyImportFailure(String message) {
-    NotificationService.instance.addNotification(
+    MockGovernanceNotifications.instance.addNotification(
       type: 'Import dữ liệu',
+      icon: Icons.error_outline,
       title: 'Import dữ liệu cần kiểm tra',
-      message: message,
+      content: message,
     );
   }
 
@@ -565,7 +566,7 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
       return;
     }
 
-    final data = GovernanceDataService.instance;
+    final data = MockGovernanceData.instance;
     final seenCodes = <String>{};
     for (var index = 1; index < records.length; index++) {
       final line = index + 1;
@@ -679,7 +680,7 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final data = GovernanceDataService.instance;
+    final data = MockGovernanceData.instance;
     switch (_kind) {
       case GovernanceImportKind.students:
         final nextId = data.nextStudentId;
@@ -747,10 +748,11 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
         ),
       ),
     );
-    NotificationService.instance.addNotification(
+    MockGovernanceNotifications.instance.addNotification(
       type: 'Import dữ liệu',
+      icon: Icons.file_download_done_outlined,
       title: 'Import dữ liệu thành công',
-      message:
+      content:
           'Đã import $importedCount ${_kind.label.toLowerCase()} vào dữ liệu Giáo vụ khoa.',
     );
     setState(_clearPreview);
@@ -832,7 +834,7 @@ class GovernanceImportHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = GovernanceDataService.instance;
+    final data = MockGovernanceData.instance;
     return AnimatedBuilder(
       animation: data,
       builder: (context, _) {

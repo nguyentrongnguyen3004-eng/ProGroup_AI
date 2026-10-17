@@ -17,22 +17,14 @@ class LecturerModel {
     required this.avatar,
   });
 
-  LecturerModel copyWith({
-    int? id,
-    String? lecturerCode,
-    String? fullName,
-    String? email,
-    String? faculty,
-    String? department,
-    String? avatar,
-  }) {
+  LecturerModel copyWith({String? email, String? avatar}) {
     return LecturerModel(
-      id: id ?? this.id,
-      lecturerCode: lecturerCode ?? this.lecturerCode,
-      fullName: fullName ?? this.fullName,
+      id: id,
+      lecturerCode: lecturerCode,
+      fullName: fullName,
       email: email ?? this.email,
-      faculty: faculty ?? this.faculty,
-      department: department ?? this.department,
+      faculty: faculty,
+      department: department,
       avatar: avatar ?? this.avatar,
     );
   }

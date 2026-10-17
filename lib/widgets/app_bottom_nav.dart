@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../core/localization/app_localizations.dart';
-=======
-import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
-import 'package:progroup_ai_frontend/services/notification_service.dart';
-
->>>>>>> origin/Frontend
 class AppBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -21,16 +15,9 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final selectedIndex = currentIndex >= 0 && currentIndex < 5 ? currentIndex : 0;
-=======
-    return AnimatedBuilder(
-      animation: NotificationService.instance,
-      builder: (context, _) {
-        final unreadCount = NotificationService.instance.unreadCount;
->>>>>>> origin/Frontend
 
         final items = [
           _NavItemData(

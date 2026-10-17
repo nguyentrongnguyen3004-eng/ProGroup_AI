@@ -1,17 +1,7 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../services/admin_api_service.dart';
 import '../../../services/governance_api_service.dart';
-=======
-import '../../../models/admin_account_model.dart';
-import '../../../models/course_model.dart';
-import '../../../models/group_model.dart';
-import '../../../models/training_subject_model.dart';
-import '../../../services/admin_data_service.dart';
-import '../../../services/group_service.dart';
-import '../../../services/training_data_service.dart';
->>>>>>> origin/Frontend
 import '../../admin/admin_helpers.dart';
 import 'admin_data_management_screen.dart';
 
@@ -35,45 +25,10 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
   List<Map<String, dynamic>> _data = [];
   String _query = '';
 
-<<<<<<< HEAD
   @override
   void initState() {
     super.initState();
     _loadData();
-=======
-  List<_Record> _records() {
-    final training = TrainingDataService.instance;
-    return switch (widget.type) {
-      AdminDataType.students =>
-        training.students
-            .map(
-              (item) => _Record(
-                item.fullName,
-                '${item.studentCode} · ${item.email}',
-                '${item.classCode} · ${adminStatusText(item.status)}',
-              ),
-            )
-            .toList(),
-      AdminDataType.lecturers =>
-        training.lecturers
-            .map(
-              (item) => _Record(
-                item.fullName,
-                '${item.lecturerCode} · ${item.email}',
-                '${item.faculty} · ${item.department}',
-              ),
-            )
-            .toList(),
-      AdminDataType.subjects =>
-        training.subjects.map((item) => _subject(item)).toList(),
-      AdminDataType.courseClasses =>
-        training.courseClasses.map((item) => _course(item)).toList(),
-      AdminDataType.groups =>
-        GroupService.groups.map((item) => _group(item)).toList(),
-      AdminDataType.accounts =>
-        AdminDataService.instance.accounts.map((item) => _account(item)).toList(),
-    };
->>>>>>> origin/Frontend
   }
 
   Future<void> _loadData() async {
@@ -113,7 +68,6 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
   }
 
   @override
-<<<<<<< HEAD
   Widget build(BuildContext context) {
     final query = _query.trim().toLowerCase();
     final filtered = _data.where((item) {
@@ -148,24 +102,6 @@ class _AdminDataDetailScreenState extends State<AdminDataDetailScreen> {
       body: SafeArea(
         bottom: true,
         child: Column(
-=======
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: Listenable.merge([
-      TrainingDataService.instance,
-      AdminDataService.instance,
-    ]),
-    builder: (context, _) {
-      final records = _records()
-          .where(
-            (item) => '${item.title} ${item.subtitle} ${item.extra}'
-                .toLowerCase()
-                .contains(_query.toLowerCase()),
-          )
-          .toList();
-      return Scaffold(
-        appBar: AppBar(title: Text(widget.title)),
-        body: Column(
->>>>>>> origin/Frontend
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),

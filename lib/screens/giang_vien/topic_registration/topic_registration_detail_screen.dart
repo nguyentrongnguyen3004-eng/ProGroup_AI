@@ -6,13 +6,7 @@ import '../../../models/group_model.dart';
 import '../../../models/lecturer_course_model.dart';
 import '../../../models/topic_model.dart';
 import '../../../models/topic_registration_model.dart';
-<<<<<<< HEAD
 import '../../../services/lecturer_api_service.dart';
-=======
-import '../../../services/course_service.dart';
-import '../../../services/group_service.dart';
-import '../../../services/topic_service.dart';
->>>>>>> origin/Frontend
 
 class TopicRegistrationDetailScreen extends StatefulWidget {
   final TopicRegistrationModel registration;
@@ -29,9 +23,6 @@ class _TopicRegistrationDetailScreenState
   late TopicRegistrationModel _current;
   bool _isLoading = true;
   bool _isUpdating = false;
-  GroupModel? _group;
-  TopicModel? _topic;
-  LecturerCourseModel? _course;
 
   GroupModel? _group;
   TopicModel? _topic;
@@ -41,7 +32,6 @@ class _TopicRegistrationDetailScreenState
   void initState() {
     super.initState();
     _current = widget.registration;
-<<<<<<< HEAD
     _loadData();
   }
 
@@ -96,59 +86,11 @@ class _TopicRegistrationDetailScreenState
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
-=======
-    _loadDetails();
-  }
-
-  Future<void> _loadDetails() async {
-    try {
-      final g = await GroupService().getGroupById(widget.registration.groupId);
-      if (mounted) setState(() => _group = g);
-    } catch (_) {}
-
-    try {
-      final t = await TopicService().getTopicDetail(widget.registration.topicId);
-      if (mounted) setState(() => _topic = t);
-    } catch (_) {}
-
-    try {
-      final classes = await CourseService().getMyClasses();
-      final courseId = _group?.courseId ?? widget.registration.groupId;
-      for (final c in classes) {
-        if (c.id == courseId) {
-          if (mounted) {
-            setState(() {
-              _course = LecturerCourseModel(
-                id: c.id,
-                courseId: c.id,
-                code: c.code,
-                name: c.name,
-                classCode: c.classCode,
-                semester: c.semester,
-                studentCount: 30,
-                groupCount: 1,
-                topicCount: 1,
-                groupRegistrationStart: '',
-                groupRegistrationEnd: '',
-                topicRegistrationStart: '',
-                topicRegistrationEnd: '',
-                minMembers: 1,
-                maxMembers: 5,
-                status: c.status,
-              );
-            });
-          }
-          break;
-        }
-      }
-    } catch (_) {}
->>>>>>> origin/Frontend
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-<<<<<<< HEAD
     final registration = _current;
     final isPending = registration.status.trim() == 'Chờ duyệt';
 
@@ -269,103 +211,6 @@ class _TopicRegistrationDetailScreenState
                   ],
                 ],
               ),
-=======
-    final registration = _current ?? widget.registration;
-    final group = _group ?? GroupModel(
-      id: registration.groupId,
-      courseId: 1,
-      name: 'Nhóm #${registration.groupId}',
-      leader: 'Trưởng nhóm',
-      memberCount: 3,
-      maxMembers: 5,
-      status: 'Đang hoạt động',
-      members: ['Trưởng nhóm'],
-    );
-    final topic = _topic ?? TopicModel(
-      id: registration.topicId,
-      courseId: 1,
-      title: 'Đề tài #${registration.topicId}',
-      description: 'Mô tả đề tài đồ án',
-      objective: 'Mục tiêu đề tài',
-      scope: 'Phạm vi nghiên cứu',
-      technology: 'Flutter, .NET',
-      source: 'Giảng viên',
-      status: 'Đang mở',
-    );
-    final course = _course ?? const LecturerCourseModel(
-      id: 1,
-      courseId: 1,
-      code: 'HP01',
-      name: 'Lớp học phần',
-      classCode: 'HP-01',
-      semester: 'HK1',
-      studentCount: 30,
-      groupCount: 6,
-      topicCount: 6,
-      groupRegistrationStart: '',
-      groupRegistrationEnd: '',
-      topicRegistrationStart: '',
-      topicRegistrationEnd: '',
-      minMembers: 1,
-      maxMembers: 5,
-      status: 'Đang hoạt động',
-    );
-    final matches = _topic != null && _group != null;
-    final pending = registration.status.trim() == 'Chờ duyệt';
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết đăng ký đề tài')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-        children: [
-          if (!matches)
-            const _Fallback(
-              message:
-                  'Đang tải hoặc dữ liệu đề tài/nhóm đang được đồng bộ...',
-            ),
-          _RegistrationCard(registration: registration),
-          const SizedBox(height: 12),
-          _GroupCard(group: group, registration: registration, course: course),
-          const SizedBox(height: 12),
-          _TopicCard(
-            topic: topic,
-            registration: registration,
-            group: group,
-            matches: matches,
-          ),
-          const SizedBox(height: 12),
-          _CourseCard(
-            course: course,
-            group: group,
-            topic: topic,
-            matches: matches,
-          ),
-          if (pending) ...[
-            const SizedBox(height: 20),
-            _actions(),
-          ] else if (registration.status.trim() == 'Chờ duyệt') ...[
-            const SizedBox(height: 16),
-            Text(
-              'Không thể xử lý khi nhóm, đề tài chưa cùng học phần được phân công.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.error,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 16),
-            Text(
-              'Đăng ký này đã được xử lý.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ],
->>>>>>> origin/Frontend
       ),
     );
   }
@@ -447,7 +292,6 @@ class _TopicRegistrationDetailScreenState
     );
 
     if (!mounted || reason == null) return;
-<<<<<<< HEAD
 
     setState(() => _isUpdating = true);
     try {
@@ -481,38 +325,6 @@ class _TopicRegistrationDetailScreenState
         ),
       );
     }
-=======
-    await _saveStatus('Từ chối', rejectionReason: reason);
-  }
-
-  Future<void> _saveStatus(String status, {String? rejectionReason}) async {
-    final latest = _current ?? widget.registration;
-
-    setState(() => _isUpdating = true);
-    final isApprove = status == 'Đã duyệt';
-    try {
-      await TopicService().decideRegistration(
-        latest.id,
-        approve: isApprove,
-        note: rejectionReason,
-      );
-    } catch (_) {}
-
-    if (!mounted) return;
-    setState(() {
-      _current = latest.copyWith(
-        status: status,
-        rejectionReason: rejectionReason,
-      );
-      _isUpdating = false;
-    });
-
-    _message(
-      isApprove
-          ? 'Đã duyệt đăng ký đề tài.'
-          : 'Đã từ chối đăng ký đề tài.',
-    );
->>>>>>> origin/Frontend
   }
 }
 

@@ -1,16 +1,7 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
 import '../../../services/governance_api_service.dart';
-=======
-import '../../../core/theme/app_theme.dart';
-import '../../../services/governance_data_service.dart';
-import '../../../services/notification_service.dart';
-import '../../../models/course_model.dart';
-import '../../../models/lecturer_model.dart';
-import '../../../widgets/governance/governance_widgets.dart';
->>>>>>> origin/Frontend
 
 class GovernanceAssignmentScreen extends StatefulWidget {
   const GovernanceAssignmentScreen({super.key});
@@ -103,7 +94,6 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -138,41 +128,6 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-=======
-    final data = GovernanceDataService.instance;
-    return AnimatedBuilder(
-      animation: data,
-      builder: (context, _) {
-        if (data.courses.isEmpty || data.lecturers.isEmpty) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Phân công giảng viên')),
-            body: const Center(
-              child: Text('Cần có lớp học phần và giảng viên để phân công.'),
-            ),
-          );
-        }
-        final selectedCourses = data.courses
-            .where((item) => item.id == _courseId)
-            .toList();
-        final course = selectedCourses.isEmpty
-            ? data.courses.first
-            : selectedCourses.first;
-        final selectedLecturers = data.lecturers
-            .where((item) => item.id == _lecturerId)
-            .toList();
-        final assignedLecturers = data.lecturers
-            .where((item) => item.fullName == course.lecturer)
-            .toList();
-        final lecturer = selectedLecturers.isNotEmpty
-            ? selectedLecturers.first
-            : assignedLecturers.isNotEmpty
-            ? assignedLecturers.first
-            : data.lecturers.first;
-        return Scaffold(
-          appBar: AppBar(title: const Text('Phân công giảng viên')),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
->>>>>>> origin/Frontend
             children: [
               const Icon(Icons.error_outline_rounded, size: 48, color: Color(0xFFEF4444)),
               const SizedBox(height: 12),
@@ -425,7 +380,6 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
     );
   }
 
-<<<<<<< HEAD
   Widget _infoRow(ColorScheme colors, String label, String value, {bool highlight = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -442,24 +396,6 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
             ),
           ),
         ],
-=======
-  void _confirm(
-    GovernanceDataService data,
-    CourseModel course,
-    LecturerModel lecturer,
-  ) {
-    data.assignLecturer(course.id, lecturer.fullName);
-    NotificationService.instance.addNotification(
-      type: 'Phân công',
-      title: 'Phân công giảng viên được cập nhật',
-      message: '${lecturer.fullName} phụ trách lớp ${course.classCode}.',
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${lecturer.fullName} phụ trách lớp ${course.classCode}.',
-        ),
->>>>>>> origin/Frontend
       ),
     );
   }

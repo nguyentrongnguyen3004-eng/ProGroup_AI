@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 
-class CommonNotificationDetailScreen extends StatelessWidget {
+class CommonNotificationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> notification;
   final VoidCallback? onMarkRead;
 
@@ -13,12 +13,28 @@ class CommonNotificationDetailScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Kích hoạt đánh dấu đã đọc khi mở chi tiết
-    onMarkRead?.call();
+  State<CommonNotificationDetailScreen> createState() =>
+      _CommonNotificationDetailScreenState();
+}
 
+class _CommonNotificationDetailScreenState
+    extends State<CommonNotificationDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.onMarkRead != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          widget.onMarkRead?.call();
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final item = notification;
+    final item = widget.notification;
     final type = (item['type'] ?? item['loai'] ?? 'Thông báo').toString();
     final title = (item['title'] ?? item['tieuDe'] ?? '').toString();
     final content = (item['content'] ?? item['noiDung'] ?? '').toString();

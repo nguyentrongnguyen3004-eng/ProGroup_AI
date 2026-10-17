@@ -1,8 +1,5 @@
-﻿import 'package:flutter/material.dart';
-import '../../../core/localization/app_localizations.dart';
-import '../../../services/admin_service.dart';
+import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/admin_api_service.dart';
@@ -10,17 +7,12 @@ import '../../../services/auth_service.dart';
 import '../notification/admin_notification_screen.dart';
 import '../user/admin_user_detail_screen.dart';
 
-=======
->>>>>>> origin/Frontend
 class AdminOverviewScreen extends StatefulWidget {
   final VoidCallback? onOpenUsers;
   final VoidCallback? onOpenData;
   final VoidCallback? onOpenRoles;
   final VoidCallback? onOpenActivity;
-<<<<<<< HEAD
   final VoidCallback? onOpenNotifications;
-=======
->>>>>>> origin/Frontend
 
   const AdminOverviewScreen({
     super.key,
@@ -28,10 +20,7 @@ class AdminOverviewScreen extends StatefulWidget {
     this.onOpenData,
     this.onOpenRoles,
     this.onOpenActivity,
-<<<<<<< HEAD
     this.onOpenNotifications,
-=======
->>>>>>> origin/Frontend
   });
 
   @override
@@ -40,20 +29,15 @@ class AdminOverviewScreen extends StatefulWidget {
 
 class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   bool _isLoading = true;
-<<<<<<< HEAD
   String? _errorMessage;
 
   Map<String, dynamic> _overview = {};
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _notifications = [];
-=======
-  Map<String, dynamic>? _stats;
->>>>>>> origin/Frontend
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
     _loadData();
   }
 
@@ -92,32 +76,10 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }
-=======
-    _fetchStats();
-  }
-
-  Future<void> _fetchStats() async {
-    setState(() => _isLoading = true);
-    try {
-      final data = await AdminService().getStats();
-      if (mounted) {
-        setState(() {
-          _stats = data;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
->>>>>>> origin/Frontend
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-<<<<<<< HEAD
     final user = AuthService.currentUser;
     final userName = user.fullName.isNotEmpty ? user.fullName : 'Quản trị viên';
     final initials = _getInitials(userName);
@@ -737,89 +699,10 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
           ),
         ),
       ],
-=======
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.text('Tổng Quan Quản Trị', en: 'Admin Overview')),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchStats,
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _fetchStats,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Text(
-                    AppLocalizations.text('Số Liệu Thống Kê Hệ Thống', en: 'System Statistics'),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildStatCard(
-                        'Tổng người dùng',
-                        '${_stats?['totalUsers'] ?? 0}',
-                        Icons.people,
-                        Colors.blue,
-                        colors,
-                      ),
-                      _buildStatCard(
-                        'Sinh viên',
-                        '${_stats?['totalStudents'] ?? 0}',
-                        Icons.school,
-                        Colors.green,
-                        colors,
-                      ),
-                      _buildStatCard(
-                        'Giảng viên',
-                        '${_stats?['totalLecturers'] ?? 0}',
-                        Icons.person_pin,
-                        Colors.orange,
-                        colors,
-                      ),
-                      _buildStatCard(
-                        'Lớp học phần',
-                        '${_stats?['totalCourses'] ?? 0}',
-                        Icons.class_,
-                        Colors.purple,
-                        colors,
-                      ),
-                      _buildStatCard(
-                        'Đề tài đồ án',
-                        '${_stats?['totalTopics'] ?? 0}',
-                        Icons.topic,
-                        Colors.teal,
-                        colors,
-                      ),
-                      _buildStatCard(
-                        'Nhóm đồ án',
-                        '${_stats?['totalGroups'] ?? 0}',
-                        Icons.groups,
-                        Colors.indigo,
-                        colors,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
->>>>>>> origin/Frontend
     );
   }
+}
 
-<<<<<<< HEAD
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -861,34 +744,6 @@ class _StatCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
-=======
-  Widget _buildStatCard(String title, String value, IconData icon, Color accentColor, ColorScheme colors) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              backgroundColor: accentColor.withValues(alpha: 0.15),
-              child: Icon(icon, color: accentColor),
-            ),
-            const Spacer(),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
->>>>>>> origin/Frontend
             ),
             child: Icon(icon, color: color, size: 22),
           ),
@@ -989,7 +844,6 @@ class _ActionCard extends StatelessWidget {
       ),
     );
   }
-<<<<<<< HEAD
 }
 
 class _UserSummaryCard extends StatelessWidget {
@@ -1095,6 +949,4 @@ class _UserSummaryCard extends StatelessWidget {
       ),
     );
   }
-=======
->>>>>>> origin/Frontend
 }

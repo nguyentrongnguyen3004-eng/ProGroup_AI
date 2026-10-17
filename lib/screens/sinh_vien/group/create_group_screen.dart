@@ -1,15 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
-<<<<<<< HEAD
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/services/api_service.dart';
 import 'package:progroup_ai_frontend/services/auth_service.dart';
 import 'package:progroup_ai_frontend/services/student_api_service.dart';
-=======
-import 'package:progroup_ai_frontend/services/group_service.dart';
->>>>>>> origin/Frontend
 
 class CreateGroupScreen extends StatefulWidget {
   final CourseModel course;
@@ -23,10 +19,7 @@ class CreateGroupScreen extends StatefulWidget {
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final TextEditingController groupNameController = TextEditingController();
 
-<<<<<<< HEAD
   static const int maxGroupsPerCourse = 10;
-=======
->>>>>>> origin/Frontend
   bool isCreating = false;
 
   @override
@@ -35,28 +28,16 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     super.dispose();
   }
 
-<<<<<<< HEAD
-=======
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
-    );
-  }
-
->>>>>>> origin/Frontend
   Future<void> _createGroup() async {
     if (isCreating) return;
 
     final groupName = groupNameController.text.trim();
     if (groupName.isEmpty) {
       _showError(
-        AppLocalizations.text('Vui lòng nhập tên nhóm.', en: 'Please enter a group name.')
+        AppLocalizations.text(
+          'Vui lòng nhập tên nhóm.',
+          en: 'Please enter a group name.',
+        ),
       );
       return;
     }
@@ -64,7 +45,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     setState(() => isCreating = true);
 
     try {
-<<<<<<< HEAD
       int dotDangKyId = widget.course.id;
       try {
         final periods = await ApiService.instance.get('/api/dot-dang-ky?lopHocPhanId=${widget.course.id}');
@@ -107,27 +87,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     );
   }
 
-=======
-      await GroupService().createGroup(widget.course.id, groupName);
-      if (!mounted) return;
-      
-      _showSuccess(
-        AppLocalizations.text('Tạo nhóm "\" thành công.', en: 'Group created successfully.')
-      );
-      Navigator.pop(context, true);
-    } catch (e) {
-      if (!mounted) return;
-      _showError(e.toString());
-      setState(() => isCreating = false);
-    }
-  }
-
->>>>>>> origin/Frontend
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-<<<<<<< HEAD
         title: Text(
           AppLocalizations.text('Tạo nhóm', en: 'Create Group'),
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
@@ -295,39 +258,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               ),
             ],
           ),
-=======
-        title: Text(AppLocalizations.text('Tạo Nhóm', en: 'Create Group')),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: groupNameController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.text('Tên nhóm', en: 'Group Name'),
-                hintText: AppLocalizations.text('Nhập tên nhóm', en: 'Enter group name'),
-                border: const OutlineInputBorder(),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _createGroup(),
-            ),
-            const SizedBox(height: 25),
-            ElevatedButton.icon(
-              onPressed: isCreating ? null : _createGroup,
-              icon: isCreating 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.group_add),
-              label: Text(
-                AppLocalizations.text('TẠO NHÓM', en: 'CREATE GROUP')
-              ),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ],
->>>>>>> origin/Frontend
         ),
       ),
     );

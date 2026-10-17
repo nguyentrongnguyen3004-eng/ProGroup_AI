@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
-<<<<<<< HEAD
 import 'package:progroup_ai_frontend/screens/sinh_vien/chat/chat_screen.dart';
-=======
-import 'package:progroup_ai_frontend/services/course_service.dart';
->>>>>>> origin/Frontend
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/course_group_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/topic_screen.dart';
 
@@ -130,7 +126,6 @@ class CourseDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 18),
 
-<<<<<<< HEAD
             // ======================================================
             // COURSE INFO CARD
             // ======================================================
@@ -360,146 +355,6 @@ class CourseDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-=======
-  Widget _buildCourseInfo(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            _infoRow(
-              context,
-              Icons.person_outline,
-              'Giảng viên',
-              'Lecturer',
-              course.lecturer,
-            ),
-            _infoRow(
-              context,
-              Icons.calendar_month_outlined,
-              'Học kỳ',
-              'Semester',
-              course.semester,
-            ),
-            _infoRow(
-              context,
-              Icons.school_outlined,
-              'Mã lớp',
-              'Class Code',
-              course.classCode,
-            ),
-            _infoRow(
-              context,
-              Icons.info_outline,
-              'Trạng thái',
-              'Status',
-              AppLocalizations.status(course.status),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow(
-    BuildContext context,
-    IconData icon,
-    String viLabel,
-    String enLabel,
-    String value,
-  ) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 21, color: primaryColor),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              AppLocalizations.text(viLabel, en: enLabel),
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Flexible(child: Text(value, textAlign: TextAlign.right)),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // REGISTRATION INFORMATION
-  // ============================================================
-
-  Widget _buildRegistrationInfo(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: CourseService().getRegistrationPeriod(course.id),
-      builder: (context, snapshot) {
-        final period = snapshot.data;
-        String groupSize = '3 - 5 sinh viên';
-        String regDates = '01/09/2026 - 30/11/2026';
-        String topicDeadline = '30/11/2026';
-
-        if (period != null) {
-          final min = period['minMembers'] ?? 3;
-          final max = period['maxMembers'] ?? 5;
-          groupSize = '$min - $max sinh viên';
-
-          if (period['ngayBatDau'] != null && period['ngayKetThuc'] != null) {
-            try {
-              final start = DateTime.parse(period['ngayBatDau'].toString());
-              final end = DateTime.parse(period['ngayKetThuc'].toString());
-              regDates =
-                  '${start.day.toString().padLeft(2, '0')}/${start.month.toString().padLeft(2, '0')}/${start.year} - ${end.day.toString().padLeft(2, '0')}/${end.month.toString().padLeft(2, '0')}/${end.year}';
-              topicDeadline =
-                  '${end.day.toString().padLeft(2, '0')}/${end.month.toString().padLeft(2, '0')}/${end.year}';
-            } catch (_) {}
-          }
-        }
-
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppLocalizations.text(
-                    'Thông tin đăng ký',
-                    en: 'Registration Information',
-                  ),
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 15),
-                _registrationRow(
-                  context,
-                  Icons.groups_outlined,
-                  'Số thành viên nhóm',
-                  'Group size',
-                  groupSize,
-                ),
-                _registrationRow(
-                  context,
-                  Icons.event_available_outlined,
-                  'Đăng ký nhóm',
-                  'Group registration',
-                  regDates,
-                ),
-                _registrationRow(
-                  context,
-                  Icons.lightbulb_outline,
-                  'Hạn đăng ký đề tài',
-                  'Topic deadline',
-                  topicDeadline,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
->>>>>>> origin/Frontend
     );
   }
 }

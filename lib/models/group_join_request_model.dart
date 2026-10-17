@@ -6,7 +6,6 @@ class GroupJoinRequestModel {
   final String studentMssv;
   final String studentEmail;
   String status;
-  final String message;
   final DateTime createdAt;
 
   GroupJoinRequestModel({
@@ -17,7 +16,6 @@ class GroupJoinRequestModel {
     required this.studentMssv,
     required this.studentEmail,
     required this.status,
-    this.message = '',
     required this.createdAt,
   });
 

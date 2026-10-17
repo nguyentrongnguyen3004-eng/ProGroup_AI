@@ -1,16 +1,7 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 import '../../../core/localization/app_localizations.dart';
 import '../../../services/governance_api_service.dart';
-=======
-import '../../../core/theme/app_theme.dart';
-import '../../../models/course_model.dart';
-import '../../../services/governance_data_service.dart';
-import '../../../services/group_service.dart';
-import '../../../services/topic_service.dart';
-import '../../../widgets/governance/governance_widgets.dart';
->>>>>>> origin/Frontend
 
 class GovernanceRegistrationOverviewScreen extends StatefulWidget {
   const GovernanceRegistrationOverviewScreen({super.key});
@@ -73,7 +64,6 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final approvedCount = _registrations.where(_isApproved).length;
     final pendingCount = _registrations.where(_isPending).length;
 
@@ -91,77 +81,6 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-=======
-    final data = GovernanceDataService.instance;
-    return AnimatedBuilder(
-      animation: data,
-      builder: (context, _) {
-        final groups = GroupService.groups;
-        final registrations = TopicService.registrations;
-        final approved = registrations.where(_isApproved).length;
-        final pending = registrations.where(_isPending).length;
-        return Scaffold(
-          appBar: AppBar(title: const Text('Theo dõi đăng ký đồ án')),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.2,
-                children: [
-                  GovernanceStatCard(
-                    title: 'Lớp học phần',
-                    value: '${data.courses.length}',
-                    icon: Icons.school_outlined,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Sinh viên',
-                    value: '${data.students.length}',
-                    icon: Icons.people_outline,
-                    color: AppTheme.successColor,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Nhóm',
-                    value: '${groups.length}',
-                    icon: Icons.groups_outlined,
-                    color: AppTheme.warningColor,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Đề tài',
-                    value: '${TopicService.topics.length}',
-                    icon: Icons.lightbulb_outline,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Đăng ký đã duyệt',
-                    value: '$approved',
-                    icon: Icons.task_alt,
-                    color: AppTheme.successColor,
-                  ),
-                  GovernanceStatCard(
-                    title: 'Chờ xử lý',
-                    value: '$pending',
-                    icon: Icons.pending_actions_outlined,
-                    color: AppTheme.warningColor,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-              Text(
-                'Tình hình theo lớp',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              ...data.courses.map(
-                (course) => _courseStatus(course, groups, registrations),
-              ),
-            ],
->>>>>>> origin/Frontend
           ),
         ),
         actions: [

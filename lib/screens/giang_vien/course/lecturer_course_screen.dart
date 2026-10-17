@@ -1,18 +1,10 @@
-<<<<<<< HEAD
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../models/lecturer_course_model.dart';
 import '../../../services/lecturer_api_service.dart';
-=======
-﻿import 'package:flutter/material.dart';
-import '../../../core/localization/app_localizations.dart';
-import '../../../models/course_model.dart';
-import '../../../services/course_service.dart';
->>>>>>> origin/Frontend
 import '../../../widgets/lecturer/lecturer_course_card.dart';
 import 'lecturer_course_detail_screen.dart';
-import '../../../models/lecturer_course_model.dart';
 
 class LecturerCourseScreen extends StatefulWidget {
   const LecturerCourseScreen({super.key});
@@ -22,20 +14,13 @@ class LecturerCourseScreen extends StatefulWidget {
 }
 
 class _LecturerCourseScreenState extends State<LecturerCourseScreen> {
-<<<<<<< HEAD
   bool _isLoading = true;
   String? _errorMessage;
   List<LecturerCourseModel> _courses = [];
-=======
-  List<CourseModel> _courses = [];
-  bool _isLoading = true;
-  String? _error;
->>>>>>> origin/Frontend
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
     _loadCourses();
   }
 
@@ -46,14 +31,6 @@ class _LecturerCourseScreenState extends State<LecturerCourseScreen> {
     });
     try {
       final courses = await LecturerApiService.instance.fetchCourses();
-=======
-    _fetchCourses();
-  }
-
-  Future<void> _fetchCourses() async {
-    try {
-      final courses = await CourseService().getMyClasses();
->>>>>>> origin/Frontend
       if (mounted) {
         setState(() {
           _courses = courses;
@@ -63,11 +40,7 @@ class _LecturerCourseScreenState extends State<LecturerCourseScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-<<<<<<< HEAD
           _errorMessage = e.toString().replaceAll('Exception: ', '');
-=======
-          _error = e.toString();
->>>>>>> origin/Frontend
           _isLoading = false;
         });
       }
@@ -78,37 +51,7 @@ class _LecturerCourseScreenState extends State<LecturerCourseScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: Text(AppLocalizations.text('Lớp Học Phần', en: 'Courses'))),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_error != null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(AppLocalizations.text('Lớp Học Phần', en: 'Courses'))),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_error!, style: TextStyle(color: colors.error)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() { _isLoading = true; _error = null; });
-                  _fetchCourses();
-                },
-                child: Text(AppLocalizations.text('Thử lại', en: 'Retry')),
-              )
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
-<<<<<<< HEAD
       body: SafeArea(
         bottom: true,
         child: Column(
@@ -258,49 +201,6 @@ class _LecturerCourseScreenState extends State<LecturerCourseScreen> {
                         AppLocalizations.text(
                           'Chưa có lớp học phần được phân công.',
                           en: 'No assigned course classes yet.',
-=======
-      appBar: AppBar(
-        title: Text(AppLocalizations.text('Lớp Học Phần', en: 'Courses')),
-      ),
-      body: _courses.isEmpty
-          ? Center(
-              child: Text(
-                AppLocalizations.text('Chưa có lớp học phần nào.', en: 'No courses available.'),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _courses.length,
-              itemBuilder: (context, index) {
-                final course = _courses[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: LecturerCourseCard(
-                    course: course,
-                    onTap: () {
-                      LecturerCourseModel fakeModel = LecturerCourseModel(
-                        id: course.id,
-                        courseId: course.id,
-                        code: course.code,
-                        name: course.name,
-                        classCode: course.code,
-                        semester: course.semester,
-                        studentCount: 40,
-                        groupCount: 0,
-                        topicCount: 0,
-                        groupRegistrationStart: '2024-01-01',
-                        groupRegistrationEnd: '2024-01-01',
-                        topicRegistrationStart: '2024-01-01',
-                        topicRegistrationEnd: '2024-01-01',
-                        minMembers: 3,
-                        maxMembers: 5,
-                        status: 'Đang mở'
-                      );
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LecturerCourseDetailScreen(course: fakeModel),
->>>>>>> origin/Frontend
                         ),
                         style: TextStyle(color: colors.onSurfaceVariant),
                         textAlign: TextAlign.center,
