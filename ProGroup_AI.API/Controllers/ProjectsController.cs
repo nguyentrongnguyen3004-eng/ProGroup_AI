@@ -10,7 +10,7 @@ using ProGroup_AI.API.Models;
 namespace ProGroup_AI.API.Controllers;
 
 [ApiController]
-[Route("api/de-tai")]
+[Route("api/projects")]
 [Authorize]
 public sealed class ProjectsController : ControllerBase
 {
@@ -302,4 +302,24 @@ public class DecideRegistrationRequest
 {
     public bool DongY { get; set; }
     public string? GhiChu { get; set; }
+}
+
+public class CreateProjectRequest
+{
+    public int DotDangKyId { get; set; }
+    public string TenDeTai { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
+    public string? MucTieu { get; set; }
+    public string? PhamVi { get; set; }
+    public string? CongNgheDuKien { get; set; }
+}
+
+public class UpdateProjectRequest
+{
+    public string TenDeTai { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
+    public string? MucTieu { get; set; }
+    public string? PhamVi { get; set; }
+    public string? CongNgheDuKien { get; set; }
+    public string? TrangThai { get; set; }
 }

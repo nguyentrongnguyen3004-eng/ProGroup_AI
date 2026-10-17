@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ProGroup_AI.API.Models;
 
@@ -30,7 +30,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<AIRequest> AIRequests { get; set; }
     public DbSet<DotImport> DotImports { get; set; }
     public DbSet<LoiImport> LoiImports { get; set; }
-    public DbSet<ThongBao> ThongBaos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

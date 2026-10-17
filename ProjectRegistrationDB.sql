@@ -1,4 +1,4 @@
-﻿﻿/* ============================================================
+﻿/* ============================================================
    1. TẠO DATABASE
    ============================================================ */
 
@@ -858,38 +858,7 @@ GO
 
 
 /* ============================================================
-   21. BẢNG THÔNG BÁO
-   ============================================================ */
-
-CREATE TABLE ThongBaos
-(
-    ThongBaoId INT IDENTITY(1,1) PRIMARY KEY,
-
-    NguoiDungId INT NOT NULL,
-
-    TieuDe NVARCHAR(200) NOT NULL,
-
-    NoiDung NVARCHAR(1000) NOT NULL,
-
-    LoaiThongBao NVARCHAR(50) NOT NULL DEFAULT N'Hệ thống',
-
-    DaDoc BIT NOT NULL DEFAULT 0,
-
-    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
-
-    LienKetId INT NULL,
-
-    LoaiLienKet NVARCHAR(50) NULL,
-
-    CONSTRAINT FK_ThongBaos_NguoiDungs
-        FOREIGN KEY (NguoiDungId)
-        REFERENCES NguoiDungs(NguoiDungId)
-);
-GO
-
-
-/* ============================================================
-   22. INDEX
+   21. INDEX
    ============================================================ */
 
 CREATE INDEX IX_SinhViens_KhoaId
@@ -1050,558 +1019,416 @@ VALUES ('PHONGDAOTAO', N'Phòng Đào tạo', N'Quản lý học phần');
 ---
 
 -- 2. KHOA
+
 IF NOT EXISTS (SELECT 1 FROM Khoas WHERE MaKhoa = 'CNTT')
-    INSERT INTO Khoas (MaKhoa, TenKhoa, TrangThai) VALUES ('CNTT', N'Khoa Công nghệ Thông tin', 1);
-IF NOT EXISTS (SELECT 1 FROM Khoas WHERE MaKhoa = 'KTPM')
-    INSERT INTO Khoas (MaKhoa, TenKhoa, TrangThai) VALUES ('KTPM', N'Khoa Kỹ thuật Phần mềm', 1);
-IF NOT EXISTS (SELECT 1 FROM Khoas WHERE MaKhoa = 'HTTT')
-    INSERT INTO Khoas (MaKhoa, TenKhoa, TrangThai) VALUES ('HTTT', N'Khoa Hệ thống Thông tin', 1);
-IF NOT EXISTS (SELECT 1 FROM Khoas WHERE MaKhoa = 'KHMT')
-    INSERT INTO Khoas (MaKhoa, TenKhoa, TrangThai) VALUES ('KHMT', N'Khoa Khoa học Máy tính', 1);
+INSERT INTO Khoas (MaKhoa, TenKhoa, TrangThai)
+VALUES ('CNTT', N'Công nghệ thông tin', 1);
 
-DECLARE @KhoaCNTTId INT = (SELECT KhoaId FROM Khoas WHERE MaKhoa = 'CNTT');
-DECLARE @KhoaKTPMId INT = (SELECT KhoaId FROM Khoas WHERE MaKhoa = 'KTPM');
-DECLARE @KhoaHTTTId INT = (SELECT KhoaId FROM Khoas WHERE MaKhoa = 'HTTT');
-DECLARE @KhoaKHMTId INT = (SELECT KhoaId FROM Khoas WHERE MaKhoa = 'KHMT');
+DECLARE @KhoaId INT =
+(SELECT TOP 1 KhoaId FROM Khoas WHERE MaKhoa = 'CNTT');
 
 ---
 
--- 3. HỌC KỲ
-IF NOT EXISTS (SELECT 1 FROM HocKys WHERE TenHocKy = N'Học kỳ 1' AND NamHoc = '2026-2027')
-    INSERT INTO HocKys (TenHocKy, NamHoc, NgayBatDau, NgayKetThuc, TrangThai)
-    VALUES (N'Học kỳ 1', '2026-2027', '2026-09-01', '2027-01-31', 1);
+-- 3. TAI KHOAN DEMO
 
-DECLARE @HocKyId INT = (SELECT TOP 1 HocKyId FROM HocKys WHERE TenHocKy = N'Học kỳ 1' AND NamHoc = '2026-2027');
+/*
+Hash bên dưới là BCrypt hash thường dùng cho mật khẩu
+"password". Chỉ dùng demo nếu AuthService xác minh bằng
+BCrypt tương thích. Nếu dự án dùng cơ chế khác, phải đổi
+hash theo đúng AuthService.cs.
 
----
+```
+Tài khoản demo: mật khẩu "123456"
+```
 
--- 4. HỌC PHẦN
-IF NOT EXISTS (SELECT 1 FROM HocPhans WHERE MaHocPhan = 'LTDD')
-    INSERT INTO HocPhans (MaHocPhan, TenHocPhan, SoTinChi, KhoaId, MoTa, TrangThai)
-    VALUES ('LTDD', N'Lập trình di động', 3, @KhoaCNTTId, N'Phát triển ứng dụng di động đa nền tảng với Flutter và Native.', 1);
+*/
 
-IF NOT EXISTS (SELECT 1 FROM HocPhans WHERE MaHocPhan = 'CNPM')
-    INSERT INTO HocPhans (MaHocPhan, TenHocPhan, SoTinChi, KhoaId, MoTa, TrangThai)
-    VALUES ('CNPM', N'Công nghệ phần mềm', 3, @KhoaKTPMId, N'Quy trình xây dựng phần mềm, thiết kế kiến trúc và quản lý dự án.', 1);
+DECLARE @PasswordHash NVARCHAR(500) =
+N'$2b$12$3l0Sgmr43kRU5Ie78igHvOH72BSXBx/xJmhx6gy47gOxG8lxYExXW';
 
-IF NOT EXISTS (SELECT 1 FROM HocPhans WHERE MaHocPhan = 'CSDL')
-    INSERT INTO HocPhans (MaHocPhan, TenHocPhan, SoTinChi, KhoaId, MoTa, TrangThai)
-    VALUES ('CSDL', N'Cơ sở dữ liệu', 3, @KhoaHTTTId, N'Thiết kế CSDL quan hệ, tối ưu truy vấn SQL và quản trị dữ liệu.', 1);
+DECLARE @VaiTroAdmin INT =
+(SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'ADMIN');
+DECLARE @VaiTroSV INT =
+(SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'SINHVIEN');
+DECLARE @VaiTroGV INT =
+(SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'GIANGVIEN');
+DECLARE @VaiTroGVK INT =
+(SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'GIAOVUKHOA');
+DECLARE @VaiTroPDT INT =
+(SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'PHONGDAOTAO');
 
-IF NOT EXISTS (SELECT 1 FROM HocPhans WHERE MaHocPhan = 'AI')
-    INSERT INTO HocPhans (MaHocPhan, TenHocPhan, SoTinChi, KhoaId, MoTa, TrangThai)
-    VALUES ('AI', N'Trí tuệ nhân tạo', 3, @KhoaKHMTId, N'Các mô hình học máy Machine Learning, Deep Learning và GenAI.', 1);
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'admin.demo')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('admin.demo', @PasswordHash, '[admin.demo@example.com](mailto:admin.demo@example.com)',
+N'Quản trị viên Demo', @VaiTroAdmin, 1);
 
-IF NOT EXISTS (SELECT 1 FROM HocPhans WHERE MaHocPhan = 'KTPM')
-    INSERT INTO HocPhans (MaHocPhan, TenHocPhan, SoTinChi, KhoaId, MoTa, TrangThai)
-    VALUES ('KTPM', N'Kiểm thử phần mềm', 3, @KhoaKTPMId, N'Quy trình kiểm thử đơn vị, kiểm thử tích hợp và tự động hóa kiểm thử.', 1);
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'gvk.demo')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('gvk.demo', @PasswordHash, '[gvk.demo@example.com](mailto:gvk.demo@example.com)',
+N'Giáo vụ Khoa Demo', @VaiTroGVK, 1);
 
-DECLARE @HpLTDD INT = (SELECT HocPhanId FROM HocPhans WHERE MaHocPhan = 'LTDD');
-DECLARE @HpCNPM INT = (SELECT HocPhanId FROM HocPhans WHERE MaHocPhan = 'CNPM');
-DECLARE @HpCSDL INT = (SELECT HocPhanId FROM HocPhans WHERE MaHocPhan = 'CSDL');
-DECLARE @HpAI   INT = (SELECT HocPhanId FROM HocPhans WHERE MaHocPhan = 'AI');
-DECLARE @HpKTPM INT = (SELECT HocPhanId FROM HocPhans WHERE MaHocPhan = 'KTPM');
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'pdt.demo')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('pdt.demo', @PasswordHash, '[pdt.demo@example.com](mailto:pdt.demo@example.com)',
+N'Phòng Đào tạo Demo', @VaiTroPDT, 1);
 
----
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'GV001')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('GV001', @PasswordHash, '[gv001@example.com](mailto:gv001@example.com)',
+N'Nguyễn Văn Giảng', @VaiTroGV, 1);
 
--- 5. TÀI KHOẢN NGƯỜI DÙNG (23 TÀI KHOẢN - MẬT KHẨU "123456")
-DECLARE @PasswordHash NVARCHAR(500) = N'$2b$12$3l0Sgmr43kRU5Ie78igHvOH72BSXBx/xJmhx6gy47gOxG8lxYExXW';
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'SV001')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('SV001', @PasswordHash, '[sv001@example.com](mailto:sv001@example.com)',
+N'Trần Minh An', @VaiTroSV, 1);
 
-DECLARE @VaiTroAdmin INT = (SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'ADMIN');
-DECLARE @VaiTroSV    INT = (SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'SINHVIEN');
-DECLARE @VaiTroGV    INT = (SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'GIANGVIEN');
-DECLARE @VaiTroGVK   INT = (SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'GIAOVUKHOA');
-DECLARE @VaiTroPDT   INT = (SELECT VaiTroId FROM VaiTros WHERE MaVaiTro = 'PHONGDAOTAO');
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'SV002')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('SV002', @PasswordHash, '[sv002@example.com](mailto:sv002@example.com)',
+N'Lê Hoàng Bình', @VaiTroSV, 1);
 
--- Quản trị, Giáo vụ, Phòng đào tạo
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'admin01')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('admin01', @PasswordHash, 'admin01@example.com', N'Quản Trị Viên Hệ Thống', @VaiTroAdmin, 1);
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'SV003')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('SV003', @PasswordHash, '[sv003@example.com](mailto:sv003@example.com)',
+N'Phạm Gia Huy', @VaiTroSV, 1);
 
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'giaovu01')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('giaovu01', @PasswordHash, 'giaovu01@example.com', N'Nguyễn Thị Giáo Vụ', @VaiTroGVK, 1);
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'SV004')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('SV004', @PasswordHash, '[sv004@example.com](mailto:sv004@example.com)',
+N'Võ Ngọc Mai', @VaiTroSV, 1);
 
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'daotao01')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('daotao01', @PasswordHash, 'daotao01@example.com', N'Trần Văn Đào Tạo', @VaiTroPDT, 1);
-
--- 5 Giảng viên
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'gv001')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('gv001', @PasswordHash, 'gv001@example.com', N'Nguyễn Văn Giảng', @VaiTroGV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'gv002')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('gv002', @PasswordHash, 'gv002@example.com', N'Trần Thị Mai', @VaiTroGV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'gv003')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('gv003', @PasswordHash, 'gv003@example.com', N'Lê Hoàng Nam', @VaiTroGV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'gv004')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('gv004', @PasswordHash, 'gv004@example.com', N'Vũ Hải Đăng', @VaiTroGV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'gv005')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('gv005', @PasswordHash, 'gv005@example.com', N'Đặng Phương Thảo', @VaiTroGV, 1);
-
--- 15 Sinh viên (sv001 -> sv015)
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv001')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv001', @PasswordHash, 'sv001@example.com', N'Trần Minh An', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv002')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv002', @PasswordHash, 'sv002@example.com', N'Lê Hoàng Bình', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv003')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv003', @PasswordHash, 'sv003@example.com', N'Phạm Gia Huy', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv004')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv004', @PasswordHash, 'sv004@example.com', N'Võ Ngọc Mai', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv005')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv005', @PasswordHash, 'sv005@example.com', N'Đặng Quốc Khánh', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv006')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv006', @PasswordHash, 'sv006@example.com', N'Bùi Thanh Trúc', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv007')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv007', @PasswordHash, 'sv007@example.com', N'Nguyễn Hữu Tài', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv008')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv008', @PasswordHash, 'sv008@example.com', N'Trần Quang Vinh', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv009')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv009', @PasswordHash, 'sv009@example.com', N'Đỗ Thu Thảo', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv010')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv010', @PasswordHash, 'sv010@example.com', N'Phan Hoàng Long', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv011')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv011', @PasswordHash, 'sv011@example.com', N'Hoàng Yến Nhi', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv012')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv012', @PasswordHash, 'sv012@example.com', N'Lý Cẩm Tú', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv013')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv013', @PasswordHash, 'sv013@example.com', N'Đỗ Phương Anh', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv014')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv014', @PasswordHash, 'sv014@example.com', N'Huỳnh Tấn Sang', @VaiTroSV, 1);
-
-IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'sv015')
-    INSERT INTO NguoiDungs (TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
-    VALUES ('sv015', @PasswordHash, 'sv015@example.com', N'Trịnh Minh Triết', @VaiTroSV, 1);
+IF NOT EXISTS (SELECT 1 FROM NguoiDungs WHERE TenDangNhap = 'SV005')
+INSERT INTO NguoiDungs
+(TenDangNhap, MatKhauHash, Email, HoTen, VaiTroId, TrangThai)
+VALUES ('SV005', @PasswordHash, '[sv005@example.com](mailto:sv005@example.com)',
+N'Đặng Quốc Khánh', @VaiTroSV, 1);
 
 ---
 
--- 6. THÔNG TIN GIẢNG VIÊN (5 GIẢNG VIÊN)
+-- 4. HOC KY
+
+IF NOT EXISTS (
+SELECT 1 FROM HocKys
+WHERE TenHocKy = N'Học kỳ 1' AND NamHoc = '2026-2027'
+)
+INSERT INTO HocKys
+(TenHocKy, NamHoc, NgayBatDau, NgayKetThuc, TrangThai)
+VALUES (N'Học kỳ 1', '2026-2027',
+'2026-09-01', '2027-01-31', 1);
+
+DECLARE @HocKyId INT =
+(
+SELECT TOP 1 HocKyId FROM HocKys
+WHERE TenHocKy = N'Học kỳ 1' AND NamHoc = '2026-2027'
+);
+
+---
+
+-- 5. SINH VIEN
+
+IF NOT EXISTS (SELECT 1 FROM SinhViens WHERE MSSV = 'SV001')
+INSERT INTO SinhViens (NguoiDungId, MSSV, KhoaId, NgaySinh, GioiTinh)
+SELECT NguoiDungId, 'SV001', @KhoaId, '2005-01-15', N'Nam'
+FROM NguoiDungs WHERE TenDangNhap = 'SV001';
+
+IF NOT EXISTS (SELECT 1 FROM SinhViens WHERE MSSV = 'SV002')
+INSERT INTO SinhViens (NguoiDungId, MSSV, KhoaId, NgaySinh, GioiTinh)
+SELECT NguoiDungId, 'SV002', @KhoaId, '2005-03-20', N'Nam'
+FROM NguoiDungs WHERE TenDangNhap = 'SV002';
+
+IF NOT EXISTS (SELECT 1 FROM SinhViens WHERE MSSV = 'SV003')
+INSERT INTO SinhViens (NguoiDungId, MSSV, KhoaId, NgaySinh, GioiTinh)
+SELECT NguoiDungId, 'SV003', @KhoaId, '2005-06-10', N'Nam'
+FROM NguoiDungs WHERE TenDangNhap = 'SV003';
+
+IF NOT EXISTS (SELECT 1 FROM SinhViens WHERE MSSV = 'SV004')
+INSERT INTO SinhViens (NguoiDungId, MSSV, KhoaId, NgaySinh, GioiTinh)
+SELECT NguoiDungId, 'SV004', @KhoaId, '2005-08-12', N'Nữ'
+FROM NguoiDungs WHERE TenDangNhap = 'SV004';
+
+IF NOT EXISTS (SELECT 1 FROM SinhViens WHERE MSSV = 'SV005')
+INSERT INTO SinhViens (NguoiDungId, MSSV, KhoaId, NgaySinh, GioiTinh)
+SELECT NguoiDungId, 'SV005', @KhoaId, '2005-11-05', N'Nữ'
+FROM NguoiDungs WHERE TenDangNhap = 'SV005';
+
+---
+
+-- 6. GIANG VIEN
+
 IF NOT EXISTS (SELECT 1 FROM GiangViens WHERE MaGiangVien = 'GV001')
-    INSERT INTO GiangViens (NguoiDungId, MaGiangVien, KhoaId, HocVi, ChuyenMon)
-    SELECT NguoiDungId, 'GV001', @KhoaCNTTId, N'Tiến sĩ', N'Phát triển phần mềm & Di động'
-    FROM NguoiDungs WHERE TenDangNhap = 'gv001';
+INSERT INTO GiangViens
+(NguoiDungId, MaGiangVien, KhoaId, HocVi, ChuyenMon)
+SELECT NguoiDungId, 'GV001', @KhoaId, N'Thạc sĩ',
+N'Phát triển phần mềm'
+FROM NguoiDungs WHERE TenDangNhap = 'GV001';
 
-IF NOT EXISTS (SELECT 1 FROM GiangViens WHERE MaGiangVien = 'GV002')
-    INSERT INTO GiangViens (NguoiDungId, MaGiangVien, KhoaId, HocVi, ChuyenMon)
-    SELECT NguoiDungId, 'GV002', @KhoaKTPMId, N'Thạc sĩ', N'Công nghệ phần mềm & UI/UX'
-    FROM NguoiDungs WHERE TenDangNhap = 'gv002';
-
-IF NOT EXISTS (SELECT 1 FROM GiangViens WHERE MaGiangVien = 'GV003')
-    INSERT INTO GiangViens (NguoiDungId, MaGiangVien, KhoaId, HocVi, ChuyenMon)
-    SELECT NguoiDungId, 'GV003', @KhoaKHMTId, N'Phó Giáo sư', N'Trí tuệ nhân tạo & Dữ liệu lớn'
-    FROM NguoiDungs WHERE TenDangNhap = 'gv003';
-
-IF NOT EXISTS (SELECT 1 FROM GiangViens WHERE MaGiangVien = 'GV004')
-    INSERT INTO GiangViens (NguoiDungId, MaGiangVien, KhoaId, HocVi, ChuyenMon)
-    SELECT NguoiDungId, 'GV004', @KhoaHTTTId, N'Tiến sĩ', N'Cơ sở dữ liệu & Hệ thống thông tin'
-    FROM NguoiDungs WHERE TenDangNhap = 'gv004';
-
-IF NOT EXISTS (SELECT 1 FROM GiangViens WHERE MaGiangVien = 'GV005')
-    INSERT INTO GiangViens (NguoiDungId, MaGiangVien, KhoaId, HocVi, ChuyenMon)
-    SELECT NguoiDungId, 'GV005', @KhoaCNTTId, N'Thạc sĩ', N'An toàn thông tin & Mạng máy tính'
-    FROM NguoiDungs WHERE TenDangNhap = 'gv005';
-
-DECLARE @GV1 INT = (SELECT GiangVienId FROM GiangViens WHERE MaGiangVien = 'GV001');
-DECLARE @GV2 INT = (SELECT GiangVienId FROM GiangViens WHERE MaGiangVien = 'GV002');
-DECLARE @GV3 INT = (SELECT GiangVienId FROM GiangViens WHERE MaGiangVien = 'GV003');
-DECLARE @GV4 INT = (SELECT GiangVienId FROM GiangViens WHERE MaGiangVien = 'GV004');
-DECLARE @GV5 INT = (SELECT GiangVienId FROM GiangViens WHERE MaGiangVien = 'GV005');
-
----
-
--- 7. THÔNG TIN SINH VIÊN (15 SINH VIÊN)
-INSERT INTO SinhViens (NguoiDungId, MSSV, KhoaId, NgaySinh, GioiTinh)
-SELECT nd.NguoiDungId, UPPER(nd.TenDangNhap), @KhoaCNTTId, '2005-01-15', N'Nam'
-FROM NguoiDungs nd
-WHERE nd.TenDangNhap IN ('sv001','sv002','sv003','sv007','sv008','sv010','sv014','sv015')
-  AND NOT EXISTS (SELECT 1 FROM SinhViens WHERE NguoiDungId = nd.NguoiDungId);
-
-INSERT INTO SinhViens (NguoiDungId, MSSV, KhoaId, NgaySinh, GioiTinh)
-SELECT nd.NguoiDungId, UPPER(nd.TenDangNhap), @KhoaCNTTId, '2005-08-20', N'Nữ'
-FROM NguoiDungs nd
-WHERE nd.TenDangNhap IN ('sv004','sv005','sv006','sv009','sv011','sv012','sv013')
-  AND NOT EXISTS (SELECT 1 FROM SinhViens WHERE NguoiDungId = nd.NguoiDungId);
+DECLARE @GiangVienId INT =
+(SELECT TOP 1 GiangVienId FROM GiangViens
+WHERE MaGiangVien = 'GV001');
 
 DECLARE @SV1 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV001');
 DECLARE @SV2 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV002');
 DECLARE @SV3 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV003');
 DECLARE @SV4 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV004');
 DECLARE @SV5 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV005');
-DECLARE @SV6 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV006');
-DECLARE @SV7 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV007');
-DECLARE @SV8 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV008');
-DECLARE @SV9 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV009');
-DECLARE @SV10 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV010');
-DECLARE @SV11 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV011');
-DECLARE @SV12 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV012');
-DECLARE @SV13 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV013');
-DECLARE @SV14 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV014');
-DECLARE @SV15 INT = (SELECT SinhVienId FROM SinhViens WHERE MSSV = 'SV015');
 
 ---
 
--- 8. LỚP HỌC PHẦN (6 LỚP)
-IF NOT EXISTS (SELECT 1 FROM LopHocPhans WHERE MaLopHocPhan = 'LTDD-01')
-    INSERT INTO LopHocPhans (MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId, KhoaId, SoLuongToiDa, TrangThai)
-    VALUES ('LTDD-01', N'Lập trình di động - Nhóm 01', @HpLTDD, @HocKyId, @KhoaCNTTId, 50, 1);
+-- 7. HOC PHAN
 
-IF NOT EXISTS (SELECT 1 FROM LopHocPhans WHERE MaLopHocPhan = 'LTDD-02')
-    INSERT INTO LopHocPhans (MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId, KhoaId, SoLuongToiDa, TrangThai)
-    VALUES ('LTDD-02', N'Lập trình di động - Nhóm 02', @HpLTDD, @HocKyId, @KhoaCNTTId, 50, 1);
+IF NOT EXISTS (SELECT 1 FROM HocPhans WHERE MaHocPhan = 'LTDD')
+INSERT INTO HocPhans
+(MaHocPhan, TenHocPhan, SoTinChi, KhoaId, MoTa, TrangThai)
+VALUES ('LTDD', N'Lập trình di động', 3, @KhoaId,
+N'Phát triển ứng dụng di động', 1);
 
-IF NOT EXISTS (SELECT 1 FROM LopHocPhans WHERE MaLopHocPhan = 'CNPM-01')
-    INSERT INTO LopHocPhans (MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId, KhoaId, SoLuongToiDa, TrangThai)
-    VALUES ('CNPM-01', N'Công nghệ phần mềm - Nhóm 01', @HpCNPM, @HocKyId, @KhoaKTPMId, 50, 1);
+IF NOT EXISTS (SELECT 1 FROM HocPhans WHERE MaHocPhan = 'CNPM')
+INSERT INTO HocPhans
+(MaHocPhan, TenHocPhan, SoTinChi, KhoaId, MoTa, TrangThai)
+VALUES ('CNPM', N'Công nghệ phần mềm', 3, @KhoaId,
+N'Phân tích và phát triển phần mềm', 1);
 
-IF NOT EXISTS (SELECT 1 FROM LopHocPhans WHERE MaLopHocPhan = 'CNPM-02')
-    INSERT INTO LopHocPhans (MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId, KhoaId, SoLuongToiDa, TrangThai)
-    VALUES ('CNPM-02', N'Công nghệ phần mềm - Nhóm 02', @HpCNPM, @HocKyId, @KhoaKTPMId, 50, 1);
-
-IF NOT EXISTS (SELECT 1 FROM LopHocPhans WHERE MaLopHocPhan = 'CSDL-01')
-    INSERT INTO LopHocPhans (MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId, KhoaId, SoLuongToiDa, TrangThai)
-    VALUES ('CSDL-01', N'Cơ sở dữ liệu - Nhóm 01', @HpCSDL, @HocKyId, @KhoaHTTTId, 60, 1);
-
-IF NOT EXISTS (SELECT 1 FROM LopHocPhans WHERE MaLopHocPhan = 'AI-01')
-    INSERT INTO LopHocPhans (MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId, KhoaId, SoLuongToiDa, TrangThai)
-    VALUES ('AI-01', N'Trí tuệ nhân tạo - Nhóm 01', @HpAI, @HocKyId, @KhoaKHMTId, 50, 1);
-
-DECLARE @LhpLTDD1 INT = (SELECT LopHocPhanId FROM LopHocPhans WHERE MaLopHocPhan = 'LTDD-01');
-DECLARE @LhpLTDD2 INT = (SELECT LopHocPhanId FROM LopHocPhans WHERE MaLopHocPhan = 'LTDD-02');
-DECLARE @LhpCNPM1 INT = (SELECT LopHocPhanId FROM LopHocPhans WHERE MaLopHocPhan = 'CNPM-01');
-DECLARE @LhpCNPM2 INT = (SELECT LopHocPhanId FROM LopHocPhans WHERE MaLopHocPhan = 'CNPM-02');
-DECLARE @LhpCSDL1 INT = (SELECT LopHocPhanId FROM LopHocPhans WHERE MaLopHocPhan = 'CSDL-01');
-DECLARE @LhpAI1   INT = (SELECT LopHocPhanId FROM LopHocPhans WHERE MaLopHocPhan = 'AI-01');
+DECLARE @HocPhanLTDD INT =
+(SELECT HocPhanId FROM HocPhans WHERE MaHocPhan = 'LTDD');
+DECLARE @HocPhanCNPM INT =
+(SELECT HocPhanId FROM HocPhans WHERE MaHocPhan = 'CNPM');
 
 ---
 
--- 9. PHÂN CÔNG GIẢNG VIÊN PHỤ TRÁCH LỚP HỌC PHẦN
-IF @LhpLTDD1 IS NOT NULL AND @GV1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM PhanCongGiangViens WHERE LopHocPhanId = @LhpLTDD1)
-    INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId, VaiTro, TrangThai) VALUES (@LhpLTDD1, @GV1, N'Giảng viên phụ trách', 1);
+-- 8. LOP HOC PHAN
 
-IF @LhpLTDD2 IS NOT NULL AND @GV2 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM PhanCongGiangViens WHERE LopHocPhanId = @LhpLTDD2)
-    INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId, VaiTro, TrangThai) VALUES (@LhpLTDD2, @GV2, N'Giảng viên phụ trách', 1);
+IF NOT EXISTS (
+SELECT 1 FROM LopHocPhans
+WHERE MaLopHocPhan = 'LTDD-01' AND HocKyId = @HocKyId
+)
+INSERT INTO LopHocPhans
+(MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId,
+KhoaId, SoLuongToiDa, TrangThai)
+VALUES ('LTDD-01', N'Lập trình di động - Nhóm 01',
+@HocPhanLTDD, @HocKyId, @KhoaId, 40, 1);
 
-IF @LhpCNPM1 IS NOT NULL AND @GV1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM PhanCongGiangViens WHERE LopHocPhanId = @LhpCNPM1)
-    INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId, VaiTro, TrangThai) VALUES (@LhpCNPM1, @GV1, N'Giảng viên phụ trách', 1);
+IF NOT EXISTS (
+SELECT 1 FROM LopHocPhans
+WHERE MaLopHocPhan = 'CNPM-01' AND HocKyId = @HocKyId
+)
+INSERT INTO LopHocPhans
+(MaLopHocPhan, TenLopHocPhan, HocPhanId, HocKyId,
+KhoaId, SoLuongToiDa, TrangThai)
+VALUES ('CNPM-01', N'Công nghệ phần mềm - Nhóm 01',
+@HocPhanCNPM, @HocKyId, @KhoaId, 40, 1);
 
-IF @LhpCNPM2 IS NOT NULL AND @GV2 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM PhanCongGiangViens WHERE LopHocPhanId = @LhpCNPM2)
-    INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId, VaiTro, TrangThai) VALUES (@LhpCNPM2, @GV2, N'Giảng viên phụ trách', 1);
-
-IF @LhpCSDL1 IS NOT NULL AND @GV4 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM PhanCongGiangViens WHERE LopHocPhanId = @LhpCSDL1)
-    INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId, VaiTro, TrangThai) VALUES (@LhpCSDL1, @GV4, N'Giảng viên phụ trách', 1);
-
-IF @LhpAI1 IS NOT NULL AND @GV3 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM PhanCongGiangViens WHERE LopHocPhanId = @LhpAI1)
-    INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId, VaiTro, TrangThai) VALUES (@LhpAI1, @GV3, N'Giảng viên phụ trách', 1);
-
----
-
--- 10. GHI DANH SINH VIÊN VÀO LỚP HỌC PHẦN
-INSERT INTO SinhVienLopHocPhans (LopHocPhanId, SinhVienId, TrangThai)
-SELECT @LhpLTDD1, sv.SinhVienId, 1
-FROM SinhViens sv JOIN NguoiDungs nd ON sv.NguoiDungId = nd.NguoiDungId
-WHERE nd.TenDangNhap IN ('sv001','sv002','sv003','sv004','sv005')
-  AND NOT EXISTS (SELECT 1 FROM SinhVienLopHocPhans WHERE LopHocPhanId = @LhpLTDD1 AND SinhVienId = sv.SinhVienId);
-
-INSERT INTO SinhVienLopHocPhans (LopHocPhanId, SinhVienId, TrangThai)
-SELECT @LhpLTDD2, sv.SinhVienId, 1
-FROM SinhViens sv JOIN NguoiDungs nd ON sv.NguoiDungId = nd.NguoiDungId
-WHERE nd.TenDangNhap IN ('sv006','sv007','sv008','sv009','sv010')
-  AND NOT EXISTS (SELECT 1 FROM SinhVienLopHocPhans WHERE LopHocPhanId = @LhpLTDD2 AND SinhVienId = sv.SinhVienId);
-
-INSERT INTO SinhVienLopHocPhans (LopHocPhanId, SinhVienId, TrangThai)
-SELECT @LhpCNPM1, sv.SinhVienId, 1
-FROM SinhViens sv JOIN NguoiDungs nd ON sv.NguoiDungId = nd.NguoiDungId
-WHERE nd.TenDangNhap IN ('sv001','sv002','sv003','sv004','sv005')
-  AND NOT EXISTS (SELECT 1 FROM SinhVienLopHocPhans WHERE LopHocPhanId = @LhpCNPM1 AND SinhVienId = sv.SinhVienId);
-
-INSERT INTO SinhVienLopHocPhans (LopHocPhanId, SinhVienId, TrangThai)
-SELECT @LhpCNPM2, sv.SinhVienId, 1
-FROM SinhViens sv JOIN NguoiDungs nd ON sv.NguoiDungId = nd.NguoiDungId
-WHERE nd.TenDangNhap IN ('sv011','sv012','sv013','sv014','sv015')
-  AND NOT EXISTS (SELECT 1 FROM SinhVienLopHocPhans WHERE LopHocPhanId = @LhpCNPM2 AND SinhVienId = sv.SinhVienId);
+DECLARE @LopLTDD INT =
+(
+SELECT LopHocPhanId FROM LopHocPhans
+WHERE MaLopHocPhan = 'LTDD-01' AND HocKyId = @HocKyId
+);
+DECLARE @LopCNPM INT =
+(
+SELECT LopHocPhanId FROM LopHocPhans
+WHERE MaLopHocPhan = 'CNPM-01' AND HocKyId = @HocKyId
+);
 
 ---
 
--- 11. ĐỢT ĐĂNG KÝ ĐỒ ÁN (6 ĐỢT MỞ)
-IF @LhpLTDD1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpLTDD1)
-    INSERT INTO DotDangKyDoAns (LopHocPhanId, TenDot, NgayBatDau, NgayKetThuc, MinMembers, MaxMembers, TrangThai)
-    VALUES (@LhpLTDD1, N'Đợt đăng ký đồ án Lập trình di động N01', DATEADD(day, -7, GETDATE()), DATEADD(day, 30, GETDATE()), 3, 5, N'Đang mở');
+-- 9. PHAN CONG GIANG VIEN
 
-IF @LhpLTDD2 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpLTDD2)
-    INSERT INTO DotDangKyDoAns (LopHocPhanId, TenDot, NgayBatDau, NgayKetThuc, MinMembers, MaxMembers, TrangThai)
-    VALUES (@LhpLTDD2, N'Đợt đăng ký đồ án Lập trình di động N02', DATEADD(day, -7, GETDATE()), DATEADD(day, 30, GETDATE()), 3, 5, N'Đang mở');
+IF NOT EXISTS (
+SELECT 1 FROM PhanCongGiangViens
+WHERE LopHocPhanId = @LopLTDD AND GiangVienId = @GiangVienId
+)
+INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId)
+VALUES (@LopLTDD, @GiangVienId);
 
-IF @LhpCNPM1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpCNPM1)
-    INSERT INTO DotDangKyDoAns (LopHocPhanId, TenDot, NgayBatDau, NgayKetThuc, MinMembers, MaxMembers, TrangThai)
-    VALUES (@LhpCNPM1, N'Đợt đăng ký đồ án Công nghệ phần mềm N01', DATEADD(day, -7, GETDATE()), DATEADD(day, 30, GETDATE()), 3, 5, N'Đang mở');
-
-IF @LhpCNPM2 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpCNPM2)
-    INSERT INTO DotDangKyDoAns (LopHocPhanId, TenDot, NgayBatDau, NgayKetThuc, MinMembers, MaxMembers, TrangThai)
-    VALUES (@LhpCNPM2, N'Đợt đăng ký đồ án Công nghệ phần mềm N02', DATEADD(day, -7, GETDATE()), DATEADD(day, 30, GETDATE()), 3, 5, N'Đang mở');
-
-IF @LhpCSDL1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpCSDL1)
-    INSERT INTO DotDangKyDoAns (LopHocPhanId, TenDot, NgayBatDau, NgayKetThuc, MinMembers, MaxMembers, TrangThai)
-    VALUES (@LhpCSDL1, N'Đợt đăng ký đồ án Cơ sở dữ liệu', DATEADD(day, -7, GETDATE()), DATEADD(day, 30, GETDATE()), 2, 4, N'Đang mở');
-
-IF @LhpAI1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpAI1)
-    INSERT INTO DotDangKyDoAns (LopHocPhanId, TenDot, NgayBatDau, NgayKetThuc, MinMembers, MaxMembers, TrangThai)
-    VALUES (@LhpAI1, N'Đợt đăng ký đồ án Trí tuệ nhân tạo', DATEADD(day, -7, GETDATE()), DATEADD(day, 30, GETDATE()), 2, 4, N'Đang mở');
-
-DECLARE @Dot1 INT = (SELECT TOP 1 DotDangKyId FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpLTDD1);
-DECLARE @Dot2 INT = (SELECT TOP 1 DotDangKyId FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpLTDD2);
-DECLARE @Dot3 INT = (SELECT TOP 1 DotDangKyId FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpCNPM1);
-DECLARE @Dot4 INT = (SELECT TOP 1 DotDangKyId FROM DotDangKyDoAns WHERE LopHocPhanId = @LhpCNPM2);
+IF NOT EXISTS (
+SELECT 1 FROM PhanCongGiangViens
+WHERE LopHocPhanId = @LopCNPM AND GiangVienId = @GiangVienId
+)
+INSERT INTO PhanCongGiangViens (LopHocPhanId, GiangVienId)
+VALUES (@LopCNPM, @GiangVienId);
 
 ---
 
--- 12. ĐỀ TÀI ĐỒ ÁN (12 ĐỀ TÀI PHONG PHÚ)
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Ứng dụng quản lý đăng ký nhóm đồ án')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot1, N'Ứng dụng quản lý đăng ký nhóm đồ án', N'Hệ thống quản lý nhóm và phân công đề tài trực tuyến cho sinh viên.', N'Tối ưu hóa quy trình đăng ký đồ án môn học.', N'Mobile App và Backend API.', N'Flutter, ASP.NET Core, SQL Server', N'Giảng viên', @GV1, N'Đã đăng ký', N'Đã duyệt');
+-- 10. SINH VIEN DANG KY LOP HOC PHAN
 
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Hệ thống quản lý công việc nhóm')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot1, N'Hệ thống quản lý công việc nhóm', N'Quản lý công việc dạng Kanban, phân công nhiệm vụ và đánh giá tiến độ thành viên.', N'Nâng cao hiệu suất làm việc nhóm.', N'Mobile App & Web Admin.', N'Flutter, ASP.NET Core, SQL Server', N'Giảng viên', @GV1, N'Chưa sử dụng', N'Đã duyệt');
+INSERT INTO SinhVienLopHocPhans (SinhVienId, LopHocPhanId)
+SELECT x.SinhVienId, @LopLTDD
+FROM (VALUES (@SV1), (@SV2), (@SV3), (@SV4), (@SV5)) x(SinhVienId)
+WHERE x.SinhVienId IS NOT NULL
+AND NOT EXISTS (
+SELECT 1 FROM SinhVienLopHocPhans sl
+WHERE sl.SinhVienId = x.SinhVienId
+AND sl.LopHocPhanId = @LopLTDD
+);
 
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Ứng dụng gợi ý đề tài bằng AI')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot1, N'Ứng dụng gợi ý đề tài bằng AI', N'Trợ lý ảo phân tích năng lực và sở thích của sinh viên để đề xuất đề tài phù hợp.', N'Hỗ trợ sinh viên định hướng nghiên cứu.', N'Mobile App.', N'Flutter, Gemini API, Python FastAPI', N'Giảng viên', @GV1, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Ứng dụng thương mại điện tử đa nền tảng')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot2, N'Ứng dụng thương mại điện tử đa nền tảng', N'Nền tảng mua sắm trực tuyến hỗ trợ giỏ hàng, thanh toán qua cổng điện tử và tracking giao hàng.', N'Xây dựng sàn TMĐT hoàn chỉnh.', N'Mobile App và Web Quản trị.', N'Flutter, ASP.NET Core, SQL Server', N'Giảng viên', @GV2, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Ứng dụng quản lý chi tiêu cá nhân thông minh')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot2, N'Ứng dụng quản lý chi tiêu cá nhân thông minh', N'Theo dõi ngân sách, ghi chép thu chi hằng ngày và lập biểu đồ phân tích tài chính.', N'Hỗ trợ quản lý dòng tiền cá nhân hiệu quả.', N'Mobile App.', N'Flutter, SQLite, Syncfusion Charts', N'Giảng viên', @GV2, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Ứng dụng học từ vựng tiếng Anh theo Spaced Repetition')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot1, N'Ứng dụng học từ vựng tiếng Anh theo Spaced Repetition', N'Ứng dụng ghi nhớ từ vựng với thuật toán lặp lại ngắt quãng khoa học.', N'Tối ưu hóa khả năng ghi nhớ ngoại ngữ lâu dài.', N'Mobile App.', N'Flutter, Firebase, RESTful API', N'Giảng viên', @GV1, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Hệ thống quản lý thư viện số trường đại học')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot3, N'Hệ thống quản lý thư viện số trường đại học', N'Mượn trả giáo trình trực tuyến, đọc tài liệu PDF có bản quyền và nhắc hạn trả sách.', N'Hiện đại hóa thư viện đại học.', N'Web & Mobile App.', N'React, ASP.NET Core, SQL Server', N'Giảng viên', @GV1, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Nền tảng kết nối thực tập và tuyển dụng sinh viên IT')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot4, N'Nền tảng kết nối thực tập và tuyển dụng sinh viên IT', N'Kết nối nhà tuyển dụng công nghệ với sinh viên CNTT tìm kiếm cơ hội thực tập.', N'Cầu nối việc làm sinh viên.', N'Web & Mobile App.', N'Flutter, Node.js, PostgreSQL', N'Giảng viên', @GV2, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Ứng dụng quản lý nhà trọ và hợp đồng cho thuê')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot2, N'Ứng dụng quản lý nhà trọ và hợp đồng cho thuê', N'Quản lý danh sách phòng, chỉ số điện nước, xuất hóa đơn và gửi thông báo tự động.', N'Minh bạch hóa quản lý nhà trọ.', N'Mobile App.', N'Flutter, Firebase Cloud Firestore', N'Giảng viên', @GV2, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Hệ thống đặt lịch khám bệnh trực tuyến cho phòng khám')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot1, N'Hệ thống đặt lịch khám bệnh trực tuyến cho phòng khám', N'Đặt lịch hẹn theo chuyên khoa và bác sĩ, nhắc lịch tự động và lưu hồ sơ bệnh án.', N'Giảm tải xếp hàng tại cơ sở y tế.', N'Mobile & Web.', N'Flutter, ASP.NET Core, Redis', N'Giảng viên', @GV1, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Hệ thống điểm danh sinh viên bằng nhận diện khuôn mặt')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot4, N'Hệ thống điểm danh sinh viên bằng nhận diện khuôn mặt', N'Ứng dụng AI điểm danh tự động sinh viên qua camera lớp học, đối chiếu danh sách lớp.', N'Điểm danh tự động chính xác cao.', N'Mobile & AI Service.', N'Flutter, Python FastAPI, OpenCV', N'Giảng viên', @GV3, N'Chưa sử dụng', N'Đã duyệt');
-
-IF NOT EXISTS (SELECT 1 FROM DeTaiDoAns WHERE TenDeTai = N'Chatbot AI tư vấn quy chế và lộ trình học tập')
-    INSERT INTO DeTaiDoAns (DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi, CongNgheDuKien, NguonDeTai, GiangVienId, TrangThai, TrangThaiDuyet)
-    VALUES (@Dot1, N'Chatbot AI tư vấn quy chế và lộ trình học tập', N'Trợ lý ảo giải đáp thắc mắc về tín chỉ, học phần tiên quyết và định hướng chuẩn đầu ra.', N'Hỗ trợ sinh viên 24/7.', N'Mobile App.', N'Flutter, Gemini API, Vector DB', N'Giảng viên', @GV3, N'Chưa sử dụng', N'Đã duyệt');
+INSERT INTO SinhVienLopHocPhans (SinhVienId, LopHocPhanId)
+SELECT x.SinhVienId, @LopCNPM
+FROM (VALUES (@SV1), (@SV2), (@SV3), (@SV4), (@SV5)) x(SinhVienId)
+WHERE x.SinhVienId IS NOT NULL
+AND NOT EXISTS (
+SELECT 1 FROM SinhVienLopHocPhans sl
+WHERE sl.SinhVienId = x.SinhVienId
+AND sl.LopHocPhanId = @LopCNPM
+);
 
 ---
 
--- 13. NHÓM ĐỒ ÁN VÀ THÀNH VIÊN NHÓM
--- Nhóm 1: Nhóm Demo 01 (Lớp LTDD-01)
-IF NOT EXISTS (SELECT 1 FROM NhomDoAns WHERE TenNhom = N'Nhóm Demo 01')
-BEGIN
-    INSERT INTO NhomDoAns (DotDangKyId, TenNhom, TruongNhomId, SoLuongToiDa, TrangThai)
-    VALUES (@Dot1, N'Nhóm Demo 01', @SV1, 5, N'Đang hoạt động');
-    DECLARE @NhomId1 INT = SCOPE_IDENTITY();
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId1, @SV1, N'Trưởng nhóm', N'Đã tham gia');
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId1, @SV2, N'Thành viên', N'Đã tham gia');
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId1, @SV3, N'Thành viên', N'Đã tham gia');
-END;
+-- 11. DOT DANG KY DO AN DANG MO
 
--- Nhóm 2: Nhóm Mobile Pro (Lớp LTDD-02)
-IF NOT EXISTS (SELECT 1 FROM NhomDoAns WHERE TenNhom = N'Nhóm Mobile Pro')
-BEGIN
-    INSERT INTO NhomDoAns (DotDangKyId, TenNhom, TruongNhomId, SoLuongToiDa, TrangThai)
-    VALUES (@Dot2, N'Nhóm Mobile Pro', @SV6, 5, N'Đang hoạt động');
-    DECLARE @NhomId2 INT = SCOPE_IDENTITY();
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId2, @SV6, N'Trưởng nhóm', N'Đã tham gia');
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId2, @SV7, N'Thành viên', N'Đã tham gia');
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId2, @SV8, N'Thành viên', N'Đã tham gia');
-END;
+IF NOT EXISTS (
+SELECT 1 FROM DotDangKyDoAns
+WHERE LopHocPhanId = @LopLTDD
+AND TenDot = N'Đợt đăng ký đồ án Demo 2026'
+)
+INSERT INTO DotDangKyDoAns
+(LopHocPhanId, TenDot, NgayBatDau, NgayKetThuc,
+MinMembers, MaxMembers, TrangThai)
+VALUES
+(@LopLTDD, N'Đợt đăng ký đồ án Demo 2026',
+DATEADD(DAY, -7, SYSDATETIME()),
+DATEADD(DAY, 60, SYSDATETIME()),
+3, 5, N'Đang mở');
 
--- Nhóm 3: Nhóm Agile Dev (Lớp CNPM-02)
-IF NOT EXISTS (SELECT 1 FROM NhomDoAns WHERE TenNhom = N'Nhóm Agile Dev')
-BEGIN
-    INSERT INTO NhomDoAns (DotDangKyId, TenNhom, TruongNhomId, SoLuongToiDa, TrangThai)
-    VALUES (@Dot4, N'Nhóm Agile Dev', @SV11, 5, N'Đang hoạt động');
-    DECLARE @NhomId3 INT = SCOPE_IDENTITY();
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId3, @SV11, N'Trưởng nhóm', N'Đã tham gia');
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId3, @SV12, N'Thành viên', N'Đã tham gia');
-    INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai) VALUES (@NhomId3, @SV13, N'Thành viên', N'Đã tham gia');
-END;
+DECLARE @DotId INT =
+(
+SELECT TOP 1 DotDangKyId FROM DotDangKyDoAns
+WHERE LopHocPhanId = @LopLTDD
+AND TenDot = N'Đợt đăng ký đồ án Demo 2026'
+);
 
 ---
 
--- 14. ĐĂNG KÝ ĐỀ TÀI CỦA NHÓM
-DECLARE @N1 INT = (SELECT TOP 1 NhomId FROM NhomDoAns WHERE TenNhom = N'Nhóm Demo 01');
-DECLARE @DT1 INT = (SELECT TOP 1 DeTaiId FROM DeTaiDoAns WHERE TenDeTai = N'Ứng dụng quản lý đăng ký nhóm đồ án');
-IF @N1 IS NOT NULL AND @DT1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM DangKyDeTais WHERE NhomId = @N1)
-BEGIN
-    INSERT INTO DangKyDeTais (NhomId, DeTaiId, NgayDangKy, TrangThai, NgayDuyet, GiangVienDuyetId, GhiChu)
-    VALUES (@N1, @DT1, DATEADD(day, -3, GETDATE()), N'Đã duyệt', DATEADD(day, -2, GETDATE()), @GV1, N'Đề tài phù hợp với năng lực nhóm.');
-END;
+-- 12. NHOM DO AN
+
+IF NOT EXISTS (
+SELECT 1 FROM NhomDoAns
+WHERE DotDangKyId = @DotId AND TenNhom = N'Nhóm Demo 01'
+)
+INSERT INTO NhomDoAns
+(DotDangKyId, TenNhom, TruongNhomId, TrangThai)
+VALUES (@DotId, N'Nhóm Demo 01', @SV1, N'Đang hoạt động');
+
+DECLARE @NhomId INT =
+(
+SELECT TOP 1 NhomId FROM NhomDoAns
+WHERE DotDangKyId = @DotId AND TenNhom = N'Nhóm Demo 01'
+);
+
+IF NOT EXISTS (
+SELECT 1 FROM ThanhVienNhoms
+WHERE NhomId = @NhomId AND SinhVienId = @SV1
+)
+INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai)
+VALUES (@NhomId, @SV1, N'Trưởng nhóm', N'Đã tham gia');
+
+IF NOT EXISTS (
+SELECT 1 FROM ThanhVienNhoms
+WHERE NhomId = @NhomId AND SinhVienId = @SV2
+)
+INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai)
+VALUES (@NhomId, @SV2, N'Thành viên', N'Đã tham gia');
+
+IF NOT EXISTS (
+SELECT 1 FROM ThanhVienNhoms
+WHERE NhomId = @NhomId AND SinhVienId = @SV3
+)
+INSERT INTO ThanhVienNhoms (NhomId, SinhVienId, VaiTro, TrangThai)
+VALUES (@NhomId, @SV3, N'Thành viên', N'Đã tham gia');
 
 ---
 
--- 15. THÔNG BÁO HỆ THỐNG VÀ HỌC VỤ (21 THÔNG BÁO)
-DELETE FROM ThongBaos;
+-- 13. DE TAI DO AN
 
-INSERT INTO ThongBaos (NguoiDungId, TieuDe, NoiDung, LoaiThongBao, DaDoc, CreatedAt)
-SELECT u.NguoiDungId,
-       N'Mở đợt đăng ký đồ án môn học HK1 (2026 - 2027)',
-       N'Đợt đăng ký đồ án môn học đã chính thức mở. Sinh viên vui lòng hoàn tất việc lập nhóm và đăng ký đề tài trước hạn quy định.',
-       N'Hệ thống',
-       0,
-       DATEADD(day, -2, GETDATE())
-FROM NguoiDungs u
-WHERE u.TenDangNhap LIKE 'sv%';
+IF NOT EXISTS (
+SELECT 1 FROM DeTaiDoAns
+WHERE DotDangKyId = @DotId
+AND TenDeTai = N'Ứng dụng quản lý đăng ký nhóm đồ án'
+)
+INSERT INTO DeTaiDoAns
+(DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi,
+CongNgheDuKien, NguonDeTai, GiangVienId,
+TrangThai, TrangThaiDuyet)
+VALUES
+(@DotId,
+N'Ứng dụng quản lý đăng ký nhóm đồ án',
+N'Xây dựng ứng dụng hỗ trợ sinh viên đăng ký nhóm và đề tài.',
+N'Giảm thao tác thủ công trong quá trình đăng ký.',
+N'Sinh viên, giảng viên và quản lý đăng ký.',
+N'Flutter, ASP.NET Core Web API, SQL Server',
+N'Giảng viên', @GiangVienId,
+N'Chưa sử dụng', N'Đã duyệt');
 
-INSERT INTO ThongBaos (NguoiDungId, TieuDe, NoiDung, LoaiThongBao, DaDoc, CreatedAt)
-SELECT u.NguoiDungId,
-       N'Thông báo phân công hướng dẫn đồ án môn học',
-       N'Khoa đã hoàn tất phân công giảng viên phụ trách các lớp học phần học kỳ mới. Quý Thầy/Cô vui lòng kiểm tra danh sách lớp phân công.',
-       N'Học vụ',
-       0,
-       DATEADD(day, -3, GETDATE())
-FROM NguoiDungs u
-WHERE u.TenDangNhap LIKE 'gv%';
+IF NOT EXISTS (
+SELECT 1 FROM DeTaiDoAns
+WHERE DotDangKyId = @DotId
+AND TenDeTai = N'Hệ thống quản lý công việc nhóm'
+)
+INSERT INTO DeTaiDoAns
+(DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi,
+CongNgheDuKien, NguonDeTai, GiangVienId,
+TrangThai, TrangThaiDuyet)
+VALUES
+(@DotId,
+N'Hệ thống quản lý công việc nhóm',
+N'Quản lý công việc và tiến độ thực hiện đồ án.',
+N'Hỗ trợ phân công nhiệm vụ và theo dõi tiến độ.',
+N'Nhóm sinh viên thực hiện đồ án môn học.',
+N'Flutter, ASP.NET Core, SQL Server',
+N'Giảng viên', @GiangVienId,
+N'Chưa sử dụng', N'Đã duyệt');
 
-INSERT INTO ThongBaos (NguoiDungId, TieuDe, NoiDung, LoaiThongBao, DaDoc, CreatedAt)
-SELECT u.NguoiDungId,
-       N'Có đơn đăng ký đề tài mới cần duyệt',
-       N'Nhóm sinh viên đã gửi yêu cầu đăng ký đề tài đồ án môn học. Giảng viên vui lòng kiểm tra và duyệt trên hệ thống.',
-       N'Đề tài',
-       0,
-       DATEADD(hour, -5, GETDATE())
-FROM NguoiDungs u
-WHERE u.TenDangNhap = 'gv001';
-
--- Bổ sung thông báo cho các vai trò còn lại
-INSERT INTO ThongBaos (NguoiDungId, TieuDe, NoiDung, LoaiThongBao, DaDoc, CreatedAt)
-SELECT nd.NguoiDungId, N'Đề xuất đề tài mới từ sinh viên', N'Sinh viên vừa gửi đề xuất đề tài mới cần Giáo vụ khoa kiểm duyệt danh mục.', N'Hệ thống', 0, GETDATE()
-FROM NguoiDungs nd WHERE nd.TenDangNhap IN ('gvk.demo','giaovu01')
-  AND NOT EXISTS (SELECT 1 FROM ThongBaos WHERE NguoiDungId = nd.NguoiDungId AND TieuDe = N'Đề xuất đề tài mới từ sinh viên');
-
-INSERT INTO ThongBaos (NguoiDungId, TieuDe, NoiDung, LoaiThongBao, DaDoc, CreatedAt)
-SELECT nd.NguoiDungId, N'Báo cáo tiến độ đăng ký đồ án toàn trường', N'Đã có 85% sinh viên hoàn thành ghép nhóm và đăng ký đề tài trong đợt 1.', N'Thống kê', 0, GETDATE()
-FROM NguoiDungs nd WHERE nd.TenDangNhap IN ('pdt.demo','daotao01')
-  AND NOT EXISTS (SELECT 1 FROM ThongBaos WHERE NguoiDungId = nd.NguoiDungId AND TieuDe = N'Báo cáo tiến độ đăng ký đồ án toàn trường');
-
-INSERT INTO ThongBaos (NguoiDungId, TieuDe, NoiDung, LoaiThongBao, DaDoc, CreatedAt)
-SELECT nd.NguoiDungId, N'Hệ thống sao lưu định kỳ', N'Cơ sở dữ liệu ProjectRegistrationDB đã được sao lưu toàn vẹn thành công lúc 02:00.', N'Hệ thống', 1, GETDATE()
-FROM NguoiDungs nd WHERE nd.TenDangNhap IN ('admin.demo','admin01')
-  AND NOT EXISTS (SELECT 1 FROM ThongBaos WHERE NguoiDungId = nd.NguoiDungId AND TieuDe = N'Hệ thống sao lưu định kỳ');
-
--- Bổ sung Lịch sử Import & Lỗi import (Giáo vụ khoa & Phòng đào tạo)
-DECLARE @UserGVK_Seed INT = (SELECT TOP 1 NguoiDungId FROM NguoiDungs WHERE TenDangNhap IN ('gvk.demo','giaovu01'));
-DECLARE @UserPDT_Seed INT = (SELECT TOP 1 NguoiDungId FROM NguoiDungs WHERE TenDangNhap IN ('pdt.demo','daotao01'));
-
-IF NOT EXISTS (SELECT 1 FROM DotImports WHERE TenFile = N'Danh_sach_sinh_vien_K21_CNTT.xlsx')
-    INSERT INTO DotImports (LoaiDuLieu, TenFile, NguoiImportId, TongSoDong, SoDongThanhCong, SoDongLoi, TrangThai, CreatedAt)
-    VALUES (N'SINHVIEN', N'Danh_sach_sinh_vien_K21_CNTT.xlsx', @UserGVK_Seed, 120, 120, 0, N'Hoàn thành', '2026-09-01 08:30:00');
-
-IF NOT EXISTS (SELECT 1 FROM DotImports WHERE TenFile = N'Danh_sach_giang_vien_hoc_ky_1_2026.xlsx')
-    INSERT INTO DotImports (LoaiDuLieu, TenFile, NguoiImportId, TongSoDong, SoDongThanhCong, SoDongLoi, TrangThai, CreatedAt)
-    VALUES (N'GIANGVIEN', N'Danh_sach_giang_vien_hoc_ky_1_2026.xlsx', @UserPDT_Seed, 45, 45, 0, N'Hoàn thành', '2026-09-02 09:15:00');
-
-DECLARE @DotImportLoi_Seed INT;
-IF NOT EXISTS (SELECT 1 FROM DotImports WHERE TenFile = N'Phan_cong_lop_hoc_phan_dot_1.xlsx')
-BEGIN
-    INSERT INTO DotImports (LoaiDuLieu, TenFile, NguoiImportId, TongSoDong, SoDongThanhCong, SoDongLoi, TrangThai, CreatedAt)
-    VALUES (N'LOPHOCPHAN', N'Phan_cong_lop_hoc_phan_dot_1.xlsx', @UserGVK_Seed, 50, 48, 2, N'Hoàn thành có lỗi', '2026-09-05 14:20:00');
-    SET @DotImportLoi_Seed = SCOPE_IDENTITY();
-END
-ELSE
-    SET @DotImportLoi_Seed = (SELECT DotImportId FROM DotImports WHERE TenFile = N'Phan_cong_lop_hoc_phan_dot_1.xlsx');
-
-IF NOT EXISTS (SELECT 1 FROM LoiImports WHERE DotImportId = @DotImportLoi_Seed)
-BEGIN
-    INSERT INTO LoiImports (DotImportId, SoDong, TenCot, NoiDungLoi, CreatedAt)
-    VALUES 
-    (@DotImportLoi_Seed, 15, N'MaGiangVien', N'Mã giảng viên "GV999" không tồn tại trong hệ thống.', '2026-09-05 14:20:01'),
-    (@DotImportLoi_Seed, 28, N'MaLopHocPhan', N'Lớp học phần "LTDD-99" bị trùng lặp mã.', '2026-09-05 14:20:02');
-END
-
--- Bổ sung Lịch sử AI Requests & PasswordResetOtps
-DECLARE @UserSV1_Seed INT = (SELECT TOP 1 NguoiDungId FROM NguoiDungs WHERE TenDangNhap IN ('sv001','SV001'));
-DECLARE @UserGV1_Seed INT = (SELECT TOP 1 NguoiDungId FROM NguoiDungs WHERE TenDangNhap IN ('gv001','GV001'));
-
-IF NOT EXISTS (SELECT 1 FROM AIRequests WHERE ChucNangAI = N'Gợi ý đề tài')
-    INSERT INTO AIRequests (NguoiDungId, ChucNangAI, Prompt, Response, TrangThai, CreatedAt)
-    VALUES (@UserSV1_Seed, N'Gợi ý đề tài', 
-            N'Tôi muốn làm đề tài về ứng dụng di động Flutter có ứng dụng AI nhận diện giọng nói.', 
-            N'Gợi ý đề tài: 1. Ứng dụng ghi chú thông minh chuyển đổi giọng nói thành văn bản. 2. Trợ lý học ngoại ngữ phát âm chuẩn.', 
-            N'Thành công', GETDATE());
-
-IF NOT EXISTS (SELECT 1 FROM AIRequests WHERE ChucNangAI = N'Đánh giá mục tiêu đề tài')
-    INSERT INTO AIRequests (NguoiDungId, ChucNangAI, Prompt, Response, TrangThai, CreatedAt)
-    VALUES (@UserGV1_Seed, N'Đánh giá mục tiêu đề tài', 
-            N'Đánh giá tính khả thi đề tài: Hệ thống nhận diện biển số xe tự động bằng YOLOv8 trong 15 tuần.', 
-            N'Đề tài có tính ứng dụng cao, khối lượng công việc phù hợp với nhóm 3 sinh viên chuyên ngành KHMT/CNTT.', 
-            N'Thành công', GETDATE());
-
-IF NOT EXISTS (SELECT 1 FROM PasswordResetOtps WHERE NguoiDungId = @UserSV1_Seed)
-    INSERT INTO PasswordResetOtps (NguoiDungId, OtpCodeHash, ExpiredAt, SoLanThu, IsUsed, CreatedAt)
-    VALUES (@UserSV1_Seed, N'123456', DATEADD(MINUTE, 15, GETDATE()), 0, 0, GETDATE());
+IF NOT EXISTS (
+SELECT 1 FROM DeTaiDoAns
+WHERE DotDangKyId = @DotId
+AND TenDeTai = N'Ứng dụng gợi ý đề tài bằng AI'
+)
+INSERT INTO DeTaiDoAns
+(DotDangKyId, TenDeTai, MoTa, MucTieu, PhamVi,
+CongNgheDuKien, NguonDeTai, GiangVienId,
+TrangThai, TrangThaiDuyet)
+VALUES
+(@DotId,
+N'Ứng dụng gợi ý đề tài bằng AI',
+N'Ứng dụng AI để đề xuất đề tài theo nhu cầu sinh viên.',
+N'Tạo gợi ý đề tài phù hợp với định hướng người dùng.',
+N'Gợi ý và tra cứu đề tài đồ án.',
+N'Flutter, ASP.NET Core, AI API',
+N'Giảng viên', @GiangVienId,
+N'Chưa sử dụng', N'Đã duyệt');
 
 COMMIT TRANSACTION;
 GO
 
 ---
 
--- 16. KIỂM TRA DỮ LIỆU SAU KHI INSERT
-SELECT NguoiDungId, TenDangNhap, HoTen, Email, VaiTroId, TrangThai FROM NguoiDungs ORDER BY NguoiDungId;
-SELECT SinhVienId, MSSV, KhoaId FROM SinhViens ORDER BY SinhVienId;
-SELECT GiangVienId, MaGiangVien, HocVi, ChuyenMon FROM GiangViens ORDER BY GiangVienId;
-SELECT LopHocPhanId, MaLopHocPhan, TenLopHocPhan FROM LopHocPhans ORDER BY LopHocPhanId;
-SELECT DotDangKyId, TenDot, TrangThai, MinMembers, MaxMembers FROM DotDangKyDoAns ORDER BY DotDangKyId;
-SELECT DeTaiId, TenDeTai, NguonDeTai, TrangThai, TrangThaiDuyet FROM DeTaiDoAns ORDER BY DeTaiId;
-SELECT NhomId, TenNhom, TruongNhomId, TrangThai FROM NhomDoAns ORDER BY NhomId;
-SELECT ThongBaoId, NguoiDungId, TieuDe, LoaiThongBao, DaDoc FROM ThongBaos ORDER BY ThongBaoId;
+-- 14. KIEM TRA DU LIEU SAU KHI INSERT
+
+SELECT TenDangNhap, HoTen, Email, VaiTroId, TrangThai
+FROM NguoiDungs
+ORDER BY NguoiDungId;
+
+SELECT MSSV, NguoiDungId, KhoaId
+FROM SinhViens
+ORDER BY SinhVienId;
+
+SELECT MaLopHocPhan, TenLopHocPhan, HocKyId
+FROM LopHocPhans;
+
+SELECT DotDangKyId, TenDot, TrangThai, MinMembers, MaxMembers
+FROM DotDangKyDoAns;
+
+SELECT NhomId, TenNhom, DotDangKyId, TruongNhomId
+FROM NhomDoAns;
+
+SELECT DeTaiId, TenDeTai, TrangThai, TrangThaiDuyet
+FROM DeTaiDoAns;
 GO
 
 select * from NguoiDungs

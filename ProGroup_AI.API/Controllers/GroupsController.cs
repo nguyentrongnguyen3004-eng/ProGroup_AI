@@ -17,7 +17,6 @@ public sealed class GroupsController : ControllerBase
     private readonly ApplicationDbContext _db;
     public GroupsController(ApplicationDbContext db) => _db = db;
 
-<<<<<<< HEAD
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int? lopHocPhanId)
     {
@@ -33,45 +32,6 @@ public sealed class GroupsController : ControllerBase
         }
 
         var groups = await query.OrderBy(g => g.NhomId).ToListAsync();
-=======
-    [HttpGet("course/{courseId:int}")]
-    public async Task<IActionResult> GetByCourse(int courseId)
-    {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
-
-        // Kiểm tra quyền: Giảng viên dạy lớp, hoặc Sinh viên thuộc lớp, hoặc Admin
-        var isAdmin = User.IsInRole("ADMIN");
-        var isLecturer = User.IsInRole("GIANGVIEN");
-        var isStudent = User.IsInRole("SINHVIEN");
-
-        if (!isAdmin)
-        {
-            if (isLecturer)
-            {
-                var giangVienId = await _db.GiangViens.Where(x => x.NguoiDungId == userId).Select(x => (int?)x.GiangVienId).FirstOrDefaultAsync();
-                if (giangVienId == null) return Forbid();
-                var teaches = await _db.PhanCongGiangViens.AnyAsync(x => x.GiangVienId == giangVienId && x.LopHocPhanId == courseId && x.TrangThai);
-                if (!teaches) return Forbid();
-            }
-            else if (isStudent)
-            {
-                var studentId = await _db.SinhViens.Where(x => x.NguoiDungId == userId).Select(x => (int?)x.SinhVienId).FirstOrDefaultAsync();
-                if (studentId == null) return Forbid();
-                var isEnrolled = await _db.SinhVienLopHocPhans.AnyAsync(x => x.SinhVienId == studentId && x.LopHocPhanId == courseId && x.TrangThai);
-                if (!isEnrolled) return Forbid();
-            }
-        }
-
-        var periodIds = await _db.DotDangKyDoAns.Where(x => x.LopHocPhanId == courseId).Select(x => x.DotDangKyId).ToListAsync();
-
-        var groups = await _db.NhomDoAns.AsNoTracking()
-            .Where(g => periodIds.Contains(g.DotDangKyId) && g.TrangThai != "Đã hủy")
-            .Include(g => g.DotDangKy).ThenInclude(d => d!.LopHocPhan)
-            .Include(g => g.TruongNhom).ThenInclude(s => s!.NguoiDung)
-            .Include(g => g.ThanhVienNhoms).ThenInclude(m => m.SinhVien).ThenInclude(s => s!.NguoiDung)
-            .ToListAsync();
-
->>>>>>> origin/Backend
         return Ok(groups.Select(ToResponse));
     }
 
@@ -82,18 +42,14 @@ public sealed class GroupsController : ControllerBase
         var studentAccess = await ResolveCurrentStudent();
         if (studentAccess.Error is not null) return studentAccess.Error;
         var studentId = studentAccess.StudentId!.Value;
-
         var ids = await _db.NhomDoAns.AsNoTracking()
-            .Where(g => g.TrangThai != "Đã hủy" && (g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")))
+            .Where(g => g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia"))
             .Select(g => g.NhomId).ToListAsync();
-
-        var groups = await _db.NhomDoAns.AsNoTracking()
-            .Where(g => ids.Contains(g.NhomId))
+        var groups = await _db.NhomDoAns.AsNoTracking().Where(g => ids.Contains(g.NhomId))
             .Include(g => g.DotDangKy).ThenInclude(d => d!.LopHocPhan)
             .Include(g => g.TruongNhom).ThenInclude(s => s!.NguoiDung)
             .Include(g => g.ThanhVienNhoms).ThenInclude(m => m.SinhVien).ThenInclude(s => s!.NguoiDung)
             .ToListAsync();
-
         return Ok(groups.Select(ToResponse));
     }
 
@@ -102,9 +58,9 @@ public sealed class GroupsController : ControllerBase
     {
         var group = await LoadGroup(id);
         if (group is null) return NotFound();
-
         var isAdmin = User.IsInRole("ADMIN");
         var isLecturer = User.IsInRole("GIANGVIEN");
+        var isOfficeStaff = User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA");
         var staffCanView = isAdmin;
 
         if (isLecturer && group.DotDangKy is not null &&
@@ -115,6 +71,9 @@ public sealed class GroupsController : ControllerBase
                 x.GiangVien != null && x.GiangVien.NguoiDungId == userId);
         }
 
+        // The current schema has no faculty/office scope mapping for these roles.
+        if (isOfficeStaff && !isAdmin) return Forbid();
+
         int? studentId = null;
         if (!staffCanView && !isLecturer)
         {
@@ -122,16 +81,10 @@ public sealed class GroupsController : ControllerBase
             if (studentAccess.Error is not null) return studentAccess.Error;
             studentId = studentAccess.StudentId;
         }
-
         if (!staffCanView && !isLecturer &&
             group.TruongNhomId != studentId &&
-            !group.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia"))
-        {
-            // Allow members of the same class to view group details
-            var isClassmate = await IsEnrolled(studentId!.Value, group.DotDangKy?.LopHocPhanId ?? 0);
-            if (!isClassmate) return Forbid();
-        }
-
+            !group.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")) return Forbid();
+        if (isLecturer && !staffCanView) return Forbid();
         return Ok(ToResponse(group));
     }
 
@@ -142,39 +95,22 @@ public sealed class GroupsController : ControllerBase
         var studentAccess = await ResolveCurrentStudent();
         if (studentAccess.Error is not null) return studentAccess.Error;
         var studentId = studentAccess.StudentId!.Value;
-
         var groupName = request.TenNhom.Trim();
-        if (groupName.Length == 0) 
-            return BadRequest(new { message = "Tên nhóm không được để trống." });
-
+        if (groupName.Length == 0) return BadRequest(new { message = "Tên nhóm không được để trống." });
         await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var period = await _db.DotDangKyDoAns.Include(x => x.LopHocPhan).FirstOrDefaultAsync(x => x.DotDangKyId == request.DotDangKyId);
         if (period is null) return NotFound(new { message = "Đợt đăng ký không tồn tại." });
         if (!IsOpen(period)) return Conflict(new { message = "Đợt đăng ký đồ án hiện không mở." });
         if (!await IsEnrolled(studentId, period.LopHocPhanId)) return Conflict(new { message = "Sinh viên chưa thuộc lớp học phần của đợt này." });
         if (await HasGroupInPeriod(studentId, period.DotDangKyId)) return Conflict(new { message = "Sinh viên đã thuộc một nhóm trong đợt này." });
-
-        if (await _db.NhomDoAns.AnyAsync(x => x.DotDangKyId == period.DotDangKyId && x.TenNhom == groupName && x.TrangThai != "Đã hủy"))
+        if (await _db.NhomDoAns.AnyAsync(x => x.DotDangKyId == period.DotDangKyId && x.TenNhom == groupName))
             return Conflict(new { message = "Tên nhóm đã được sử dụng trong đợt này." });
 
-        var group = new NhomDoAn 
-        { 
-            DotDangKyId = period.DotDangKyId, 
-            TenNhom = groupName, 
-            TruongNhomId = studentId,
-            TrangThai = "Đang hoạt động"
-        };
-        group.ThanhVienNhoms.Add(new ThanhVienNhom 
-        { 
-            SinhVienId = studentId, 
-            VaiTro = "Trưởng nhóm", 
-            TrangThai = "Đã tham gia" 
-        });
-
+        var group = new NhomDoAn { DotDangKyId = period.DotDangKyId, TenNhom = groupName, TruongNhomId = studentId };
+        group.ThanhVienNhoms.Add(new ThanhVienNhom { SinhVienId = studentId, VaiTro = "Trưởng nhóm", TrangThai = "Đã tham gia" });
         _db.NhomDoAns.Add(group);
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
-
         return CreatedAtAction(nameof(GetById), new { id = group.NhomId }, new { group.NhomId, group.TenNhom });
     }
 
@@ -185,20 +121,16 @@ public sealed class GroupsController : ControllerBase
         var studentAccess = await ResolveCurrentStudent();
         if (studentAccess.Error is not null) return studentAccess.Error;
         var leaderId = studentAccess.StudentId!.Value;
-
         await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var group = await _db.NhomDoAns.Include(x => x.DotDangKy).FirstOrDefaultAsync(x => x.NhomId == id);
         if (group is null) return NotFound();
         if (group.TruongNhomId != leaderId) return Forbid();
-        if (group.TrangThai != "Đang hoạt động" || group.DotDangKy is null || !IsOpen(group.DotDangKy)) 
-            return Conflict(new { message = "Nhóm hoặc đợt đăng ký không còn mở." });
+        if (group.TrangThai != "Đang hoạt động" || group.DotDangKy is null || !IsOpen(group.DotDangKy)) return Conflict(new { message = "Nhóm hoặc đợt đăng ký không còn mở." });
         if (request.SinhVienId == leaderId) return Conflict(new { message = "Sinh viên đã là trưởng nhóm." });
-
         var student = await _db.SinhViens.FirstOrDefaultAsync(x => x.SinhVienId == request.SinhVienId);
         if (student is null) return NotFound(new { message = "Không tìm thấy sinh viên." });
         if (!await IsEnrolled(student.SinhVienId, group.DotDangKy.LopHocPhanId)) return Conflict(new { message = "Sinh viên chưa thuộc lớp học phần của đợt này." });
         if (await HasGroupInPeriod(student.SinhVienId, group.DotDangKyId)) return Conflict(new { message = "Sinh viên đã thuộc một nhóm trong đợt này." });
-
         var activeStudentIds = await _db.ThanhVienNhoms
             .Where(x => x.NhomId == id && x.TrangThai == "Đã tham gia")
             .Select(x => x.SinhVienId)
@@ -208,14 +140,8 @@ public sealed class GroupsController : ControllerBase
         if (memberCount >= group.DotDangKy.MaxMembers) return Conflict(new { message = "Nhóm đã đủ số lượng thành viên tối đa." });
 
         var former = await _db.ThanhVienNhoms.FirstOrDefaultAsync(x => x.NhomId == id && x.SinhVienId == student.SinhVienId);
-        if (former is null) 
-            _db.ThanhVienNhoms.Add(new ThanhVienNhom { NhomId = id, SinhVienId = student.SinhVienId, VaiTro = "Thành viên", TrangThai = "Đã tham gia" });
-        else 
-        { 
-            former.TrangThai = "Đã tham gia"; 
-            former.NgayThamGia = DateTime.Now; 
-        }
-
+        if (former is null) _db.ThanhVienNhoms.Add(new ThanhVienNhom { NhomId = id, SinhVienId = student.SinhVienId, VaiTro = "Thành viên", TrangThai = "Đã tham gia" });
+        else { former.TrangThai = "Đã tham gia"; former.NgayThamGia = DateTime.Now; }
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
         return NoContent();
@@ -228,15 +154,12 @@ public sealed class GroupsController : ControllerBase
         var studentAccess = await ResolveCurrentStudent();
         if (studentAccess.Error is not null) return studentAccess.Error;
         var leaderId = studentAccess.StudentId!.Value;
-
         var group = await _db.NhomDoAns.FirstOrDefaultAsync(x => x.NhomId == id);
         if (group is null) return NotFound();
         if (group.TruongNhomId != leaderId) return Forbid();
         if (studentId == group.TruongNhomId) return Conflict(new { message = "Không thể xóa trưởng nhóm; hãy chuyển quyền trưởng nhóm trước." });
-
         var member = await _db.ThanhVienNhoms.FirstOrDefaultAsync(x => x.NhomId == id && x.SinhVienId == studentId && x.TrangThai == "Đã tham gia");
         if (member is null) return NotFound(new { message = "Thành viên không tồn tại trong nhóm." });
-
         member.TrangThai = "Đã rời nhóm";
         await _db.SaveChangesAsync();
         return NoContent();
@@ -457,39 +380,20 @@ public sealed class GroupsController : ControllerBase
     {
         var members = g.ThanhVienNhoms.Where(m => m.TrangThai == "Đã tham gia").Select(m => new GroupMemberResponse
         {
-            SinhVienId = m.SinhVienId,
-            MSSV = m.SinhVien?.MSSV ?? string.Empty,
-            HoTen = m.SinhVien?.NguoiDung?.HoTen ?? string.Empty,
-            VaiTro = m.VaiTro,
-            TrangThai = m.TrangThai
+            SinhVienId = m.SinhVienId, MSSV = m.SinhVien?.MSSV ?? string.Empty,
+            HoTen = m.SinhVien?.NguoiDung?.HoTen ?? string.Empty, VaiTro = m.VaiTro, TrangThai = m.TrangThai
         }).ToList();
-
-        if (!members.Any(m => m.SinhVienId == g.TruongNhomId))
+        if (!members.Any(m => m.SinhVienId == g.TruongNhomId)) members.Insert(0, new GroupMemberResponse
         {
-            members.Insert(0, new GroupMemberResponse
-            {
-                SinhVienId = g.TruongNhomId,
-                MSSV = g.TruongNhom?.MSSV ?? string.Empty,
-                HoTen = g.TruongNhom?.NguoiDung?.HoTen ?? string.Empty,
-                VaiTro = "Trưởng nhóm",
-                TrangThai = "Đã tham gia"
-            });
-        }
-
-        var leaderName = g.TruongNhom?.NguoiDung?.HoTen ?? string.Empty;
-
+            SinhVienId = g.TruongNhomId, MSSV = g.TruongNhom?.MSSV ?? string.Empty,
+            HoTen = g.TruongNhom?.NguoiDung?.HoTen ?? string.Empty, VaiTro = "Trưởng nhóm", TrangThai = "Đã tham gia"
+        });
         return new GroupResponse
         {
-            NhomId = g.NhomId,
-            DotDangKyId = g.DotDangKyId,
-            LopHocPhanId = g.DotDangKy?.LopHocPhanId ?? 0,
-            TenNhom = g.TenNhom,
-            TrangThai = g.TrangThai,
-            TruongNhomId = g.TruongNhomId,
-            TruongNhom = leaderName,
-            MinMembers = g.DotDangKy?.MinMembers ?? 0,
-            MaxMembers = g.DotDangKy?.MaxMembers ?? 0,
-            ThanhViens = members
+            NhomId = g.NhomId, DotDangKyId = g.DotDangKyId, LopHocPhanId = g.DotDangKy?.LopHocPhanId ?? 0,
+            TenNhom = g.TenNhom, TrangThai = g.TrangThai, TruongNhomId = g.TruongNhomId,
+            TruongNhom = g.TruongNhom?.NguoiDung?.HoTen ?? string.Empty,
+            MinMembers = g.DotDangKy?.MinMembers ?? 0, MaxMembers = g.DotDangKy?.MaxMembers ?? 0, ThanhViens = members
         };
     }
 
@@ -506,7 +410,6 @@ public sealed class GroupsController : ControllerBase
             .Where(x => x.NguoiDungId == userId)
             .Select(x => (int?)x.SinhVienId)
             .FirstOrDefaultAsync();
-
         if (studentId is null)
         {
             var problem = new ProblemDetails
@@ -522,13 +425,10 @@ public sealed class GroupsController : ControllerBase
         return (studentId, null);
     }
 
-    private Task<bool> IsEnrolled(int studentId, int classId) => 
-        _db.SinhVienLopHocPhans.AnyAsync(x => x.SinhVienId == studentId && x.LopHocPhanId == classId && x.TrangThai);
+    private Task<bool> IsEnrolled(int studentId, int classId) => _db.SinhVienLopHocPhans.AnyAsync(x => x.SinhVienId == studentId && x.LopHocPhanId == classId && x.TrangThai);
 
-    private Task<bool> HasGroupInPeriod(int studentId, int periodId) => 
-        _db.NhomDoAns.AnyAsync(g => g.DotDangKyId == periodId && g.TrangThai != "Đã hủy" &&
-            (g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")));
+    private Task<bool> HasGroupInPeriod(int studentId, int periodId) => _db.NhomDoAns.AnyAsync(g => g.DotDangKyId == periodId && g.TrangThai != "Đã hủy" &&
+        (g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")));
 
-    private static bool IsOpen(DotDangKyDoAn period) => 
-        period.TrangThai == "Đang mở" && DateTime.Now >= period.NgayBatDau && DateTime.Now <= period.NgayKetThuc;
+    private static bool IsOpen(DotDangKyDoAn period) => period.TrangThai == "Đang mở" && DateTime.Now >= period.NgayBatDau && DateTime.Now <= period.NgayKetThuc;
 }

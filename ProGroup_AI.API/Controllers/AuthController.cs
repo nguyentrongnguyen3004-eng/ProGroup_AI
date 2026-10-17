@@ -95,18 +95,12 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
-<<<<<<< HEAD
     [HttpPut("change-email")]
     public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
-=======
-    [HttpPost("change-password")]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
->>>>>>> origin/Backend
     {
         var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(idValue, out var userId)) return Unauthorized();
 
-<<<<<<< HEAD
         if (string.IsNullOrWhiteSpace(request.Email))
             return BadRequest(new { message = "Email không được để trống." });
 
@@ -183,56 +177,10 @@ public class AuthController : ControllerBase
             CreatedAt = DateTime.Now,
             IsUsed = false,
             SoLanThu = 0
-=======
-        if (string.IsNullOrWhiteSpace(req.OldPassword) || string.IsNullOrWhiteSpace(req.NewPassword))
-            return BadRequest(new { message = "Vui lòng nhập mật khẩu cũ và mật khẩu mới." });
-
-        if (req.NewPassword.Length < 6)
-            return BadRequest(new { message = "Mật khẩu mới phải có tối thiểu 6 ký tự." });
-
-        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId);
-        if (user == null) return NotFound(new { message = "Người dùng không tồn tại." });
-
-        bool oldPassValid;
-        try { oldPassValid = BCrypt.Net.BCrypt.Verify(req.OldPassword, user.MatKhauHash); }
-        catch { oldPassValid = false; }
-
-        if (!oldPassValid)
-            return BadRequest(new { message = "Mật khẩu cũ không chính xác." });
-
-        user.MatKhauHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
-        user.UpdatedAt = DateTime.Now;
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, message = "Đổi mật khẩu thành công." });
-    }
-
-    [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
-    {
-        if (string.IsNullOrWhiteSpace(req.Email))
-            return BadRequest(new { message = "Email là bắt buộc." });
-
-        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.Email == req.Email);
-        if (user == null)
-        {
-            // Bảo mật: không báo lỗi nếu email không tồn tại
-            return Ok(new { success = true, message = "Mã xác thực OTP đã được gửi tới email của bạn (nếu tồn tại)." });
-        }
-
-        // Tạo OTP mẫu hoặc lưu bảng PasswordResetOtps
-        var otpCode = "123456";
-        var otpRecord = new PasswordResetOtp
-        {
-            NguoiDungId = user.NguoiDungId,
-            OtpCodeHash = BCrypt.Net.BCrypt.HashPassword(otpCode),
-            ExpiredAt = DateTime.Now.AddMinutes(15)
->>>>>>> origin/Backend
         };
         _context.PasswordResetOtps.Add(otpRecord);
         await _context.SaveChangesAsync();
 
-<<<<<<< HEAD
         // Gửi email thật qua Gmail SMTP
         var sent = await _emailService.SendOtpEmailAsync(user.Email, otpCode, user.HoTen);
         if (!sent)
@@ -284,21 +232,10 @@ public class AuthController : ControllerBase
             await _context.SaveChangesAsync();
             return BadRequest(new { success = false, message = $"Mã OTP không chính xác. Bạn còn {5 - validOtp.SoLanThu} lần thử." });
         }
-=======
-        return Ok(new { success = true, message = "Mã xác thực OTP đã được gửi tới email của bạn." });
-    }
-
-    [HttpPost("verify-otp")]
-    public IActionResult VerifyOtp([FromBody] VerifyOtpRequest req)
-    {
-        if (string.IsNullOrWhiteSpace(req.Otp) || req.Otp.Length != 6)
-            return BadRequest(new { success = false, message = "Mã OTP không hợp lệ." });
->>>>>>> origin/Backend
 
         return Ok(new { success = true, message = "Mã OTP hợp lệ." });
     }
 
-<<<<<<< HEAD
     /// <summary>
     /// Đặt lại mật khẩu mới bằng mã OTP
     /// </summary>
@@ -335,35 +272,4 @@ public class AuthController : ControllerBase
 
         return Ok(new { success = true, message = "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới." });
     }
-=======
-    [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
-    {
-        if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
-            return BadRequest(new { message = "Mật khẩu mới phải có tối thiểu 6 ký tự." });
-
-        return Ok(new { success = true, message = "Đặt lại mật khẩu thành công." });
-    }
-}
-
-public class ChangePasswordRequest
-{
-    public string OldPassword { get; set; } = string.Empty;
-    public string NewPassword { get; set; } = string.Empty;
-}
-
-public class ForgotPasswordRequest
-{
-    public string Email { get; set; } = string.Empty;
-}
-
-public class VerifyOtpRequest
-{
-    public string Otp { get; set; } = string.Empty;
-}
-
-public class ResetPasswordRequest
-{
-    public string NewPassword { get; set; } = string.Empty;
->>>>>>> origin/Backend
 }

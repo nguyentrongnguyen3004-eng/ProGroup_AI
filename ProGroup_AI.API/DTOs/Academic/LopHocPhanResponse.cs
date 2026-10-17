@@ -14,9 +14,6 @@ public sealed class LopHocPhanResponse
     public int KhoaId { get; set; }
     public string TenKhoa { get; set; } = string.Empty;
     public int? SoLuongToiDa { get; set; }
-    public int? GiangVienId { get; set; }
-    public string? GiangVienTen { get; set; }
-    public string? GiangVienHocVi { get; set; }
 }
 
 public sealed class CreateClassRequest

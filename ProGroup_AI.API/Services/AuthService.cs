@@ -45,7 +45,8 @@ public class AuthService : IAuthService
             .FirstOrDefaultAsync(
                 x => x.TenDangNhap == request.TenDangNhap
             );
-        if (user == null)
+
+        if (user == null)
         {
             return new LoginResponse
             {
@@ -123,5 +124,3 @@ public class AuthService : IAuthService
         };
     }
 }
-
-

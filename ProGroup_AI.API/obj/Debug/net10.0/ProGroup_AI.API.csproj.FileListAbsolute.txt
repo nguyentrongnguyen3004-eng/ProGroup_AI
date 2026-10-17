@@ -514,3 +514,12 @@ D:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI\ProGroup_AI_Backend\ProGro
 D:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\obj\Debug\net10.0\ProGroup_AI.API.pdb
 D:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\obj\Debug\net10.0\ProGroup_AI.API.genruntimeconfig.cache
 D:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\obj\Debug\net10.0\ref\ProGroup_AI.API.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\Properties\firebase-admin-sdk.json
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\FirebaseAdmin.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\Google.Api.Gax.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\Google.Api.Gax.Rest.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\Google.Apis.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\Google.Apis.Auth.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\Google.Apis.Core.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\System.Management.dll
+d:\TRONGNGUYEN_HK7\PhatTrienUngDungDiDong\ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0\runtimes\win\lib\net7.0\System.Management.dll
