@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
@@ -8,7 +9,7 @@ import '../models/lecturer_topic_suggestion_model.dart';
 class GeminiService {
   static const String _prefKey = 'progroup_gemini_api_key';
   static const String _defaultModel = 'gemini-3.8-flash';
-  static const String _fallbackModel = 'gemini-2.5-flash';
+  static const String _fallbackModel = 'gemini-flash-latest';
 
   const GeminiService();
 
@@ -18,9 +19,11 @@ class GeminiService {
       final prefs = await SharedPreferences.getInstance();
       final savedKey = prefs.getString(_prefKey)?.trim();
       if (savedKey != null && savedKey.isNotEmpty) {
+        debugPrint('[GeminiService] Found savedKey in SharedPreferences: ${savedKey.substring(0, 6)}...');
         return savedKey;
       }
     } catch (_) {}
+    debugPrint('[GeminiService] Using AppConstants.geminiApiKey (len=${AppConstants.geminiApiKey.length}): ${AppConstants.geminiApiKey.isEmpty ? "EMPTY" : AppConstants.geminiApiKey.substring(0, 6)}...');
     return AppConstants.geminiApiKey;
   }
 
@@ -117,10 +120,18 @@ YÊU CẦU PHẢN HỒI:
       );
       return _parseSuggestionsJson(rawText);
     } catch (e) {
-      // Nếu _defaultModel gặp sự cố (ví dụ quá tải mạng), thử lại với timeout ngắn hơn hoặc báo lỗi chính xác
-      throw GeminiException(
-        'Lỗi từ Google Gemini: ${e.toString().replaceAll('Exception:', '').trim()}',
-      );
+      try {
+        final rawText = await _rawCallGemini(
+          model: _fallbackModel,
+          apiKey: apiKey,
+          prompt: prompt,
+        );
+        return _parseSuggestionsJson(rawText);
+      } catch (fallbackError) {
+        throw GeminiException(
+          'Lỗi từ Google Gemini: ${fallbackError.toString().replaceAll('Exception:', '').trim()}',
+        );
+      }
     }
   }
 
@@ -130,7 +141,7 @@ YÊU CẦU PHẢN HỒI:
     required String prompt,
   }) async {
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
+      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent',
     );
 
     final requestBody = jsonEncode({
@@ -150,13 +161,17 @@ YÊU CẦU PHẢN HỒI:
 
     final client = HttpClient();
     try {
+      debugPrint('[GeminiService] Calling model=$model, keyLength=${apiKey.length}, keyPrefix=${apiKey.isEmpty ? "EMPTY" : apiKey.substring(0, 5)}...');
       final request = await client.postUrl(url).timeout(const Duration(seconds: 25));
       request.headers.contentType = ContentType.json;
+      request.headers.set('x-goog-api-key', apiKey.trim());
       request.write(requestBody);
       final response = await request.close().timeout(const Duration(seconds: 25));
       final responseBody = await response.transform(utf8.decoder).join();
+      debugPrint('[GeminiService] HTTP ${response.statusCode}, body length=${responseBody.length}');
 
       if (response.statusCode != HttpStatus.ok) {
+        debugPrint('[GeminiService] Error response: $responseBody');
         final dynamic errorJson = jsonDecode(responseBody);
         final message = (errorJson is Map)
             ? (errorJson['error']?['message'] ?? 'Mã lỗi HTTP ${response.statusCode}')
