@@ -71,18 +71,20 @@ class _InvitationManagementScreenState
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Text(AppLocalizations.text('Mời thành viên mới', en: 'Invite Member')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: mssvController,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.text('Mã số sinh viên (MSSV)', en: 'Student ID'),
-                  prefixIcon: const Icon(Icons.badge_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: mssvController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.text('Mã số sinh viên (MSSV)', en: 'Student ID'),
+                    prefixIcon: const Icon(Icons.badge_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(

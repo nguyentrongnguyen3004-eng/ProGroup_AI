@@ -292,12 +292,14 @@ class _LecturerCourseDetailScreenState
                                     ),
                                   ),
                                   const SizedBox(width: 10),
-                                  Text(
-                                    AppLocalizations.text('Lịch trình & Giới hạn', en: 'Deadlines & Limits'),
-                                    style: TextStyle(
-                                      color: colors.onSurface,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                  Expanded(
+                                    child: Text(
+                                      AppLocalizations.text('Lịch trình & Giới hạn', en: 'Deadlines & Limits'),
+                                      style: TextStyle(
+                                        color: colors.onSurface,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],

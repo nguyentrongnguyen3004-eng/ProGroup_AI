@@ -193,15 +193,17 @@ class _TopicRegistrationDetailScreenState
                               color: colors.onSurfaceVariant,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              AppLocalizations.text(
-                                'Đăng ký này đã được hoàn tất xử lý.',
-                                en: 'This registration has been fully processed.',
-                              ),
-                              style: TextStyle(
-                                color: colors.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12.5,
+                            Flexible(
+                              child: Text(
+                                AppLocalizations.text(
+                                  'Đăng ký này đã được hoàn tất xử lý.',
+                                  en: 'This registration has been fully processed.',
+                                ),
+                                style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12.5,
+                                ),
                               ),
                             ),
                           ],
@@ -575,12 +577,14 @@ class _GroupCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                AppLocalizations.text('Nhóm sinh viên', en: 'Student Group'),
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  AppLocalizations.text('Nhóm sinh viên', en: 'Student Group'),
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -687,12 +691,14 @@ class _TopicCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                AppLocalizations.text('Đề tài đăng ký', en: 'Registered Topic'),
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  AppLocalizations.text('Đề tài đăng ký', en: 'Registered Topic'),
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -791,12 +797,14 @@ class _CourseCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                AppLocalizations.text('Lớp học phần', en: 'Course Class'),
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  AppLocalizations.text('Lớp học phần', en: 'Course Class'),
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

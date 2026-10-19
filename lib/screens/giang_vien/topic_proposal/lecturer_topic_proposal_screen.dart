@@ -118,12 +118,14 @@ class _LecturerTopicProposalScreenState
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '${_proposals.length} ${AppLocalizations.text('tổng số đề xuất', en: 'total proposals')}',
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Text(
+                      '${_proposals.length} ${AppLocalizations.text('tổng số đề xuất', en: 'total proposals')}',
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],

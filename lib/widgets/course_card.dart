@@ -149,24 +149,31 @@ class CourseCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.person_rounded,
-                          size: 14,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          course.lecturer,
-                          style: TextStyle(
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person_rounded,
+                            size: 14,
                             color: colors.onSurfaceVariant,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              course.lecturer,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.onSurfaceVariant,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,

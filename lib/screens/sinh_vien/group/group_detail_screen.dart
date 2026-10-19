@@ -130,11 +130,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Text(AppLocalizations.text('Đổi tên nhóm', en: 'Rename Group')),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.text('Tên nhóm mới', en: 'New Group Name'),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          content: SingleChildScrollView(
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.text('Tên nhóm mới', en: 'New Group Name'),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
           actions: [
@@ -457,12 +459,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                 child: const Icon(Icons.lightbulb_rounded, color: Color(0xFF6366F1), size: 18),
                               ),
                               const SizedBox(width: 10),
-                              Text(
-                                AppLocalizations.text('Đề tài nghiên cứu của nhóm', en: 'Group Topic'),
-                                style: TextStyle(
-                                  color: colors.onSurface,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                              Expanded(
+                                child: Text(
+                                  AppLocalizations.text('Đề tài nghiên cứu của nhóm', en: 'Group Topic'),
+                                  style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ],

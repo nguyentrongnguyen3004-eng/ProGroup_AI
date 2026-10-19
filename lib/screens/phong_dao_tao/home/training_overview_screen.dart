@@ -449,9 +449,11 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.text('Quản lý đào tạo', en: 'Training Actions'),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.text('Quản lý đào tạo', en: 'Training Actions'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -912,9 +914,13 @@ class _CourseSummaryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'Sĩ số tối đa: $maxStudents',
-                      style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                    Expanded(
+                      child: Text(
+                        'Sĩ số tối đa: $maxStudents',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                      ),
                     ),
                   ],
                 ),

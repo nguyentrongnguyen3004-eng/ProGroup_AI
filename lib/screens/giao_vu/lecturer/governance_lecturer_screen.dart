@@ -411,11 +411,16 @@ class GovernanceLecturerDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E3A5F), fontSize: 14),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E3A5F), fontSize: 14),
+            ),
           ),
         ],
       ),

@@ -201,9 +201,11 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          AppLocalizations.text('Quy định tạo nhóm', en: 'Group Creation Rules'),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.text('Quy định tạo nhóm', en: 'Group Creation Rules'),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),

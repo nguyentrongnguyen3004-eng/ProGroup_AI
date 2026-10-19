@@ -91,13 +91,15 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        AppLocalizations.text('Lớp học phần', en: 'Course Classes'),
-                        style: TextStyle(
-                          color: colors.onSurface,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.text('Lớp học phần', en: 'Course Classes'),
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                       ),
                       IconButton(

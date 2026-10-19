@@ -371,9 +371,11 @@ Mô tả: ${suggestion.description}
                         children: [
                           const Icon(Icons.format_list_numbered_rounded, size: 20, color: Color(0xFF4F46E5)),
                           const SizedBox(width: 8),
-                          Text(
-                            AppLocalizations.text('Số lượng đề tài cần gợi ý:', en: 'Number of topics to suggest:'),
-                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          Expanded(
+                            child: Text(
+                              AppLocalizations.text('Số lượng đề tài cần gợi ý:', en: 'Number of topics to suggest:'),
+                              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),

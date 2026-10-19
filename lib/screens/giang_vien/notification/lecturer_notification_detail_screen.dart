@@ -261,12 +261,14 @@ class _LecturerNotificationDetailScreenState
             children: [
               Icon(Icons.info_outline_rounded, size: 18, color: typeColor),
               const SizedBox(width: 8),
-              Text(
-                AppLocalizations.text('Tác vụ đề xuất', en: 'Suggested Action'),
-                style: TextStyle(
-                  color: typeColor,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
+              Expanded(
+                child: Text(
+                  AppLocalizations.text('Tác vụ đề xuất', en: 'Suggested Action'),
+                  style: TextStyle(
+                    color: typeColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],

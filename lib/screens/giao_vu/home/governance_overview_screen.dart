@@ -453,9 +453,11 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.text('Tác vụ nghiệp vụ', en: 'Faculty Actions'),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.text('Tác vụ nghiệp vụ', en: 'Faculty Actions'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -918,9 +920,13 @@ class _CourseSummaryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'Tối đa: $maxStudents SV',
-                      style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                    Expanded(
+                      child: Text(
+                        'Tối đa: $maxStudents SV',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                      ),
                     ),
                   ],
                 ),

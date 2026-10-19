@@ -188,12 +188,14 @@ class _CommonNotificationDetailScreenState
                     children: [
                       Icon(Icons.info_outline_rounded, size: 18, color: typeColor),
                       const SizedBox(width: 8),
-                      Text(
-                        AppLocalizations.text('Thông tin hệ thống', en: 'System Information'),
-                        style: TextStyle(
-                          color: typeColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.text('Thông tin hệ thống', en: 'System Information'),
+                          style: TextStyle(
+                            color: typeColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],

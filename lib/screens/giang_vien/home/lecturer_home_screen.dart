@@ -467,11 +467,13 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.text('Tác vụ nhanh', en: 'Quick Actions'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.text('Tác vụ nhanh', en: 'Quick Actions'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],

@@ -445,9 +445,11 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.text('Tác vụ hệ thống', en: 'Admin Actions'),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.text('Tác vụ hệ thống', en: 'Admin Actions'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -932,9 +934,13 @@ class _UserSummaryCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            '@$username',
-                            style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                          Expanded(
+                            child: Text(
+                              '@$username',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                            ),
                           ),
                         ],
                       ),

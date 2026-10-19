@@ -290,12 +290,14 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                 child: const Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 18),
               ),
               const SizedBox(width: 10),
-              Text(
-                AppLocalizations.text('Thông tin đề tài', en: 'Topic information'),
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  AppLocalizations.text('Thông tin đề tài', en: 'Topic information'),
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -398,12 +400,14 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                 child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF10B981), size: 18),
               ),
               const SizedBox(width: 10),
-              Text(
-                AppLocalizations.text('Đăng ký đề tài', en: 'Register topic'),
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  AppLocalizations.text('Đăng ký đề tài', en: 'Register topic'),
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],

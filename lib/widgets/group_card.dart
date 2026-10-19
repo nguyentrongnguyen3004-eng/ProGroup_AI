@@ -139,14 +139,18 @@ class GroupCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      AppLocalizations.text('Số thành viên', en: 'Members'),
-                      style: TextStyle(
-                        color: colors.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.text('Số thành viên', en: 'Members'),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '${group.memberCount}/${group.maxMembers} ${AppLocalizations.text('người', en: 'members')}',
                       style: TextStyle(

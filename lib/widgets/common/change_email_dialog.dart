@@ -485,12 +485,14 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
               children: [
                 Icon(Icons.touch_app_outlined, size: 15, color: colors.onSecondaryContainer),
                 const SizedBox(width: 6),
-                Text(
-                  AppLocalizations.text('Mã thử nghiệm: 123456', en: 'Demo OTP: 123456'),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSecondaryContainer,
+                Flexible(
+                  child: Text(
+                    AppLocalizations.text('Mã thử nghiệm: 123456', en: 'Demo OTP: 123456'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSecondaryContainer,
+                    ),
                   ),
                 ),
               ],

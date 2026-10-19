@@ -736,12 +736,14 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: iconColor),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            color: colors.onSurface,
-            fontSize: 14.5,
-            fontWeight: FontWeight.bold,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 14.5,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],

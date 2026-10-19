@@ -385,14 +385,19 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: highlight ? FontWeight.bold : FontWeight.w600,
-              color: highlight ? const Color(0xFF2563EB) : colors.onSurface,
-              fontSize: 13,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: highlight ? FontWeight.bold : FontWeight.w600,
+                color: highlight ? const Color(0xFF2563EB) : colors.onSurface,
+                fontSize: 13,
+              ),
             ),
           ),
         ],

@@ -523,15 +523,17 @@ class _TopicCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                AppLocalizations.text(
-                  'Đề tài đã đăng ký',
-                  en: 'Registered topic',
-                ),
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 16.5,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  AppLocalizations.text(
+                    'Đề tài đã đăng ký',
+                    en: 'Registered topic',
+                  ),
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

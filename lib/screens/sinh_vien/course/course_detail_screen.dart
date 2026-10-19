@@ -206,12 +206,14 @@ class CourseDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Text(
-                        AppLocalizations.text('Thời hạn đăng ký', en: 'Registration Period'),
-                        style: TextStyle(
-                          color: colors.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.text('Thời hạn đăng ký', en: 'Registration Period'),
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
