@@ -152,7 +152,7 @@ class ProfileAvatarPickerHelper {
       if (image == null || !context.mounted) return;
 
       final Uint8List bytes = await image.readAsBytes();
-      if (bytes.isEmpty) return;
+      if (bytes.isEmpty || !context.mounted) return;
 
       final extension = image.name.split('.').last.toLowerCase();
       final mime = switch (extension) {

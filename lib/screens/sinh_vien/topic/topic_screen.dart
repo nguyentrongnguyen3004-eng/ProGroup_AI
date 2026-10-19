@@ -186,7 +186,7 @@ class _TopicScreenState extends State<TopicScreen> {
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
                               itemCount: filteredTopics.length,
-                              separatorBuilder: (_, __) =>
+                              separatorBuilder: (_, _) =>
                                   const SizedBox(height: 12),
                               itemBuilder: (context, index) {
                                 final topic = filteredTopics[index];
