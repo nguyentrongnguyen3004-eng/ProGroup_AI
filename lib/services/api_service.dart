@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 
 import 'auth_service.dart';
 
@@ -19,6 +19,7 @@ class ApiService {
 
   static const List<String> baseUrls = [
     'http://127.0.0.1:5094',
+    'http://localhost:5094',
     'http://192.168.1.193:5094',
     'http://10.0.2.2:5094',
   ];
@@ -44,37 +45,37 @@ class ApiService {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
 
     for (final baseUrl in baseUrls) {
-      HttpClient? client;
       try {
-        client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
         final uri = Uri.parse('$baseUrl$normalizedPath');
+        final headers = _headers();
+        final bodyStr = body != null ? jsonEncode(body) : null;
 
-        final HttpClientRequest request;
+        final http.Response response;
         switch (method.toUpperCase()) {
           case 'POST':
-            request = await client.postUrl(uri);
+            response = await http
+                .post(uri, headers: headers, body: bodyStr)
+                .timeout(const Duration(seconds: 8));
             break;
           case 'PUT':
-            request = await client.putUrl(uri);
+            response = await http
+                .put(uri, headers: headers, body: bodyStr)
+                .timeout(const Duration(seconds: 8));
             break;
           case 'DELETE':
-            request = await client.deleteUrl(uri);
+            response = await http
+                .delete(uri, headers: headers, body: bodyStr)
+                .timeout(const Duration(seconds: 8));
             break;
           case 'GET':
           default:
-            request = await client.getUrl(uri);
+            response = await http
+                .get(uri, headers: headers)
+                .timeout(const Duration(seconds: 8));
             break;
         }
 
-        _headers().forEach((k, v) => request.headers.set(k, v));
-
-        if (body != null && (method == 'POST' || method == 'PUT')) {
-          request.write(jsonEncode(body));
-        }
-
-        final response =
-            await request.close().timeout(const Duration(seconds: 8));
-        final responseBody = await response.transform(utf8.decoder).join();
+        final responseBody = utf8.decode(response.bodyBytes);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
           if (responseBody.trim().isEmpty) return null;
@@ -102,23 +103,12 @@ class ApiService {
         }
 
         lastError = ApiException(errorMessage, response.statusCode);
-
-        // Nếu máy chủ đã phản hồi mã lỗi HTTP (400, 401, 403, 404, 409...),
-        // nghĩa là đã kết nối thành công tới API, ném lỗi ra ngay lập tức
+        // Nếu máy chủ đã phản hồi mã lỗi HTTP, nghĩa là đã kết nối thành công tới API
         throw lastError;
-      } on SocketException catch (_) {
-        lastError = ApiException(
-          'Không thể kết nối đến máy chủ tại $baseUrl. Vui lòng kiểm tra kết nối mạng.',
-          null,
-        );
-      } on HttpException catch (e) {
-        lastError = ApiException('Lỗi giao thức HTTP: ${e.message}', null);
       } on ApiException {
         rethrow;
       } catch (e) {
         lastError = ApiException('Lỗi kết nối: ${e.toString()}', null);
-      } finally {
-        client?.close();
       }
     }
 

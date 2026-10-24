@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
@@ -159,18 +159,21 @@ YÊU CẦU PHẢN HỒI:
       },
     });
 
-    final client = HttpClient();
     try {
       debugPrint('[GeminiService] Calling model=$model, keyLength=${apiKey.length}, keyPrefix=${apiKey.isEmpty ? "EMPTY" : apiKey.substring(0, 5)}...');
-      final request = await client.postUrl(url).timeout(const Duration(seconds: 25));
-      request.headers.contentType = ContentType.json;
-      request.headers.set('x-goog-api-key', apiKey.trim());
-      request.write(requestBody);
-      final response = await request.close().timeout(const Duration(seconds: 25));
-      final responseBody = await response.transform(utf8.decoder).join();
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey.trim(),
+        },
+        body: requestBody,
+      ).timeout(const Duration(seconds: 25));
+
+      final responseBody = utf8.decode(response.bodyBytes);
       debugPrint('[GeminiService] HTTP ${response.statusCode}, body length=${responseBody.length}');
 
-      if (response.statusCode != HttpStatus.ok) {
+      if (response.statusCode != 200) {
         debugPrint('[GeminiService] Error response: $responseBody');
         final dynamic errorJson = jsonDecode(responseBody);
         final message = (errorJson is Map)
@@ -198,8 +201,9 @@ YÊU CẦU PHẢN HỒI:
       }
 
       return rawText;
-    } finally {
-      client.close();
+    } catch (e) {
+      if (e is GeminiException) rethrow;
+      throw GeminiException('Lỗi kết nối Gemini API: $e');
     }
   }
 

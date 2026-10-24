@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 
 import '../core/constants/app_constants.dart';
 import '../data/mock/mock_lecturer.dart';
@@ -97,19 +97,18 @@ class AuthService {
     ];
 
     for (final base in urls) {
-      HttpClient? client;
       try {
-        client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
         final uri = Uri.parse('$base/api/auth/login');
-        final request = await client.postUrl(uri);
-        request.headers.contentType = ContentType.json;
-        request.write(jsonEncode({
-          'tenDangNhap': username,
-          'matKhau': password,
-        }));
+        final response = await http.post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'tenDangNhap': username,
+            'matKhau': password,
+          }),
+        ).timeout(const Duration(seconds: 4));
 
-        final response = await request.close();
-        final bodyStr = await response.transform(utf8.decoder).join();
+        final bodyStr = utf8.decode(response.bodyBytes);
         if (response.statusCode == 200) {
           final data = jsonDecode(bodyStr) as Map<String, dynamic>;
           currentToken = data['token'] as String?;
@@ -153,8 +152,6 @@ class AuthService {
         }
       } catch (_) {
         // Thử địa chỉ tiếp theo
-      } finally {
-        client?.close();
       }
     }
     return null;
@@ -165,4 +162,3 @@ class AuthService {
     _currentUser = null;
   }
 }
-
