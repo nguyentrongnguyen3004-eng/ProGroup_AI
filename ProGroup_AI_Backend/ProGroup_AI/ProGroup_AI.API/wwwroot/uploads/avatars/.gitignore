@@ -1,0 +1,4 @@
+# Ignore uploaded avatar files
+*
+!.gitignore
+!.gitkeep

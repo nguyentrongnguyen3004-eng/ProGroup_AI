@@ -105,7 +105,7 @@ class ProGroupApp extends StatelessWidget {
 
               case AppRoutes.lecturerMain:
                 final user = settings.arguments;
-                if (user is! UserModel || user.role != 'LECTURER') {
+                if (user is! UserModel || (user.role != 'LECTURER' && user.role != 'GIANGVIEN')) {
                   return MaterialPageRoute(builder: (_) => const LoginScreen());
                 }
                 return MaterialPageRoute(
@@ -123,7 +123,7 @@ class ProGroupApp extends StatelessWidget {
 
               case AppRoutes.governanceMain:
                 final user = settings.arguments;
-                if (user is! UserModel || user.role != 'GIAOVU') {
+                if (user is! UserModel || (user.role != 'GIAOVU' && user.role != 'GIAOVUKHOA')) {
                   return MaterialPageRoute(builder: (_) => const LoginScreen());
                 }
                 return MaterialPageRoute(
@@ -132,7 +132,7 @@ class ProGroupApp extends StatelessWidget {
 
               case AppRoutes.trainingMain:
                 final user = settings.arguments;
-                if (user is! UserModel || user.role != 'PHONG_DAO_TAO') {
+                if (user is! UserModel || (user.role != 'PHONG_DAO_TAO' && user.role != 'PHONGDAOTAO')) {
                   return MaterialPageRoute(builder: (_) => const LoginScreen());
                 }
                 return MaterialPageRoute(

@@ -72,10 +72,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final destination = switch (user.role) {
-        'LECTURER' => AppRoutes.lecturerMain,
+        'LECTURER' || 'GIANGVIEN' => AppRoutes.lecturerMain,
         'SINHVIEN' => AppRoutes.home,
-        'GIAOVU' => AppRoutes.governanceMain,
-        'PHONG_DAO_TAO' => AppRoutes.trainingMain,
+        'GIAOVU' || 'GIAOVUKHOA' => AppRoutes.governanceMain,
+        'PHONG_DAO_TAO' || 'PHONGDAOTAO' => AppRoutes.trainingMain,
         'ADMIN' => AppRoutes.adminMain,
         _ => null,
       };

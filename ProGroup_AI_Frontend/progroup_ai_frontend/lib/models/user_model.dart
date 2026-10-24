@@ -25,11 +25,20 @@ class UserModel {
       username: json['tenDangNhap'] as String? ?? json['username'] as String? ?? '',
       fullName: json['hoTen'] as String? ?? json['fullName'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      role: (json['maVaiTro'] as String? ?? json['role'] as String? ?? 'SINHVIEN').toUpperCase(),
+      role: _normalizeRole((json['maVaiTro'] as String? ?? json['role'] as String? ?? 'SINHVIEN').toUpperCase()),
       roleName: json['tenVaiTro'] as String? ?? json['roleName'] as String? ?? 'Sinh viên',
       mssv: json['mssv'] as String? ?? json['MSSV'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
     );
+  }
+
+  static String _normalizeRole(String raw) {
+    switch (raw) {
+      case 'GIANGVIEN': return 'LECTURER';
+      case 'GIAOVUKHOA': return 'GIAOVU';
+      case 'PHONGDAOTAO': return 'PHONG_DAO_TAO';
+      default: return raw;
+    }
   }
 
   UserModel copyWith({
