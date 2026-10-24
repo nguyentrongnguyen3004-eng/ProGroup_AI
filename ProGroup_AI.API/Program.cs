@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +15,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 
 // ========================================
@@ -172,6 +182,7 @@ if (app.Environment.IsDevelopment())
 // ========================================
 
 app.UseExceptionHandler();
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 
 
