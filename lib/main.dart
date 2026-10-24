@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'core/routes/app_routes.dart';
@@ -37,7 +38,15 @@ import 'services/firebase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FirebaseService.instance.initialize();
+  if (!kIsWeb && defaultTargetPlatform != TargetPlatform.windows) {
+    try {
+      await FirebaseService.instance.initialize();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Firebase init error: $e');
+      }
+    }
+  }
   runApp(const ProGroupApp());
 }
 
