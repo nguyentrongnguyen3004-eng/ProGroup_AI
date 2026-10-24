@@ -1,0 +1,58 @@
+# ==========================================
+# Root .gitignore for ProGroup_AI Fullstack
+# ==========================================
+
+# Internal Git backups
+**/.git_bak/
+
+# Flutter / Dart
+**/build/
+**/.dart_tool/
+**/.pub/
+**/.pub-cache/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/ios/Flutter/ephemeral/
+**/doc/api/
+/coverage/
+
+# Android / Gradle
+**/android/local.properties
+**/.gradle/
+**/android/.gradle/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/.cxx/
+app.*.symbols
+app.*.map.json
+
+# iOS / macOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/macos/Pods/
+
+# .NET / C# / Visual Studio
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+
+# IDEs & Editor temp
+**/.idea/
+**/.vscode/
+
+# Secrets & Local credentials
+**/firebase-admin-sdk.json
+*.log
+.DS_Store
+Thumbs.db
