@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -132,5 +132,91 @@ public sealed class ProfileController : ControllerBase
         await _db.SaveChangesAsync();
 
         return await GetProfile();
+    }
+
+    [HttpPost("avatar")]
+    public async Task<IActionResult> UploadAvatar([FromBody] UploadAvatarRequest request)
+    {
+        var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _db.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungId == userId);
+        if (user is null)
+        {
+            return NotFound(new { message = "Không tìm thấy người dùng." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.AvatarData))
+        {
+            user.AvatarUrl = null;
+            user.UpdatedAt = DateTime.Now;
+            await _db.SaveChangesAsync();
+            return Ok(new { avatarUrl = (string?)null, message = "Đã xóa ảnh đại diện." });
+        }
+
+        var data = request.AvatarData.Trim();
+        byte[] bytes;
+        string extension = ".jpg";
+
+        if (data.StartsWith("data:image/"))
+        {
+            var commaIndex = data.IndexOf(',');
+            if (commaIndex == -1)
+            {
+                return BadRequest(new { message = "Định dạng ảnh không hợp lệ." });
+            }
+
+            var header = data[..commaIndex];
+            if (header.Contains("png")) extension = ".png";
+            else if (header.Contains("webp")) extension = ".webp";
+            else if (header.Contains("gif")) extension = ".gif";
+
+            try
+            {
+                bytes = Convert.FromBase64String(data[(commaIndex + 1)..]);
+            }
+            catch
+            {
+                return BadRequest(new { message = "Dữ liệu Base64 không hợp lệ." });
+            }
+        }
+        else
+        {
+            try
+            {
+                bytes = Convert.FromBase64String(data);
+            }
+            catch
+            {
+                return BadRequest(new { message = "Dữ liệu Base64 không hợp lệ." });
+            }
+        }
+
+        if (bytes.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest(new { message = "Kích thước ảnh tối đa là 5MB." });
+        }
+
+        var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var avatarsDir = Path.Combine(wwwroot, "uploads", "avatars");
+        if (!Directory.Exists(avatarsDir))
+        {
+            Directory.CreateDirectory(avatarsDir);
+        }
+
+        var fileName = $"user_{userId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{extension}";
+        var filePath = Path.Combine(avatarsDir, fileName);
+
+        await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+
+        var relativeUrl = $"/uploads/avatars/{fileName}";
+        user.AvatarUrl = relativeUrl;
+        user.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { avatarUrl = relativeUrl, message = "Cập nhật ảnh đại diện thành công." });
     }
 }

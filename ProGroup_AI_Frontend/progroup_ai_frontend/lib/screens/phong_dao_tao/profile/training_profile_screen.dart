@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
@@ -11,6 +11,7 @@ import 'dart:convert';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
+import '../../../services/avatar_service.dart';
 
 class TrainingProfileScreen extends StatefulWidget {
   const TrainingProfileScreen({super.key});
@@ -35,7 +36,15 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
   void initState() {
     super.initState();
     _user = AuthService.currentUser;
+    _loadAvatar();
     _fetchProfile();
+  }
+
+  Future<void> _loadAvatar() async {
+    final a = await AvatarService.instance.getAvatar(_user.username);
+    if (mounted && a.isNotEmpty) {
+      setState(() => _customAvatar = a);
+    }
   }
 
   Future<void> _fetchProfile() async {
@@ -51,7 +60,11 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
             email: res['email'] ?? _user.email,
             role: res['maVaiTro'] ?? _user.role,
             roleName: res['tenVaiTro'] ?? _user.roleName,
+            avatarUrl: res['avatarUrl'] as String?,
           );
+          if (_customAvatar.isEmpty && res['avatarUrl'] != null && (res['avatarUrl'] as String).isNotEmpty) {
+            _customAvatar = res['avatarUrl'] as String;
+          }
         });
       }
     } catch (_) {}
@@ -669,6 +682,27 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
         } catch (_) {}
       }
     }
+
+    final resolved = AvatarService.resolveDisplayUrl(_customAvatar);
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+      return ClipOval(
+        child: Image.network(
+          resolved,
+          width: 96,
+          height: 96,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Text(
+            initials,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2563EB),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Text(
       initials,
       style: const TextStyle(

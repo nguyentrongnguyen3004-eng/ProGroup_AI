@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -10,6 +10,7 @@ import '../../../services/lecturer_api_service.dart';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
+import '../../../services/avatar_service.dart';
 
 class LecturerProfileScreen extends StatefulWidget {
   const LecturerProfileScreen({super.key});
@@ -26,7 +27,15 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _loadAvatar();
     _loadProfile();
+  }
+
+  Future<void> _loadAvatar() async {
+    final a = await AvatarService.instance.getAvatar();
+    if (mounted && a.isNotEmpty) {
+      setState(() => _customAvatar = a);
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -35,6 +44,9 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
       if (mounted) {
         setState(() {
           _lecturer = p;
+          if (_customAvatar.isEmpty && p != null && p.avatar.isNotEmpty) {
+            _customAvatar = p.avatar;
+          }
           _isLoading = false;
         });
       }
@@ -290,10 +302,11 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
       }
     }
 
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    final resolved = AvatarService.resolveDisplayUrl(avatar);
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
       return ClipOval(
         child: Image.network(
-          avatar,
+          resolved,
           width: 96,
           height: 96,
           fit: BoxFit.cover,

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -9,6 +9,7 @@ import '../../../models/user_model.dart';
 import '../../../models/user_profile_model.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/student_api_service.dart';
+import '../../../services/avatar_service.dart';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
@@ -31,7 +32,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     user = AuthService.currentUser;
     email = user.email;
+    _loadAvatar();
     _loadProfile();
+  }
+
+  Future<void> _loadAvatar() async {
+    final avatar = await AvatarService.instance.getAvatar(user.username);
+    if (mounted && avatar.isNotEmpty) {
+      setState(() => avatarData = avatar);
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -40,6 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _profile = profile;
+        if (profile.avatarUrl.isNotEmpty && avatarData.isEmpty) { avatarData = profile.avatarUrl; }
         if (profile.email.isNotEmpty) {
           email = profile.email;
         }
@@ -277,9 +287,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         } catch (_) {
+    final resolved = AvatarService.resolveDisplayUrl(avatar);
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+      return ClipOval(
+        child: Image.network(
+          resolved,
+          width: 96,
+          height: 96,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _buildInitialAvatar(initials),
+        ),
+      );
+    }
+
           return _buildInitialAvatar(initials);
         }
       }
+    }
+
+    final resolved = AvatarService.resolveDisplayUrl(avatar);
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+      return ClipOval(
+        child: Image.network(
+          resolved,
+          width: 96,
+          height: 96,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _buildInitialAvatar(initials),
+        ),
+      );
     }
 
     return _buildInitialAvatar(initials);

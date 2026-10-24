@@ -145,6 +145,7 @@ class AuthService {
               role: mappedRole,
               roleName: userJson['tenVaiTro'] as String? ?? mappedRole,
               mssv: userJson['mssv'] as String?,
+              avatarUrl: userJson['avatarUrl'] as String?,
             );
             currentUser = loggedInUser;
             return loggedInUser;

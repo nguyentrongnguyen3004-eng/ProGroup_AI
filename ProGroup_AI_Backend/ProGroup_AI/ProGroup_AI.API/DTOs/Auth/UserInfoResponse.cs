@@ -21,4 +21,6 @@ public class UserInfoResponse
     public int? GiangVienId { get; set; }
 
     public string? MaGiangVien { get; set; }
+
+    public string? AvatarUrl { get; set; }
 }

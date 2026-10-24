@@ -60,7 +60,7 @@ public class AuthService : IAuthService
             return new LoginResponse
             {
                 Success = false,
-                Message = "Tên đăng nhập hoặc mật khẩu không chính xác."
+                Message = "Tài khoản của bạn đã bị vô hiệu hóa."
             };
         }
 
@@ -119,7 +119,8 @@ public class AuthService : IAuthService
                 MSSV = user.SinhVien?.MSSV,
 
                 GiangVienId = user.GiangVien?.GiangVienId,
-                MaGiangVien = user.GiangVien?.MaGiangVien
+                MaGiangVien = user.GiangVien?.MaGiangVien,
+                AvatarUrl = user.AvatarUrl
             }
         };
     }

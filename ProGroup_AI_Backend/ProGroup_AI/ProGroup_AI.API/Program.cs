@@ -184,6 +184,7 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 
 // ========================================

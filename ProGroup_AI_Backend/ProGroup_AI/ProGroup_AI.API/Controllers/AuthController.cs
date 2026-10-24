@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -90,7 +90,8 @@ public class AuthController : ControllerBase
             SinhVienId = user.SinhVien?.SinhVienId,
             MSSV = user.SinhVien?.MSSV,
             GiangVienId = user.GiangVien?.GiangVienId,
-            MaGiangVien = user.GiangVien?.MaGiangVien
+            MaGiangVien = user.GiangVien?.MaGiangVien,
+            AvatarUrl = user.AvatarUrl
         });
     }
 
