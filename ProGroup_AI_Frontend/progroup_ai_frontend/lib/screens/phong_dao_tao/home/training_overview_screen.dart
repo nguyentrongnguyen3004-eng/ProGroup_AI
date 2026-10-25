@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/admin_api_service.dart';
+import '../../../services/api_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/avatar_service.dart';
 import '../../../services/governance_api_service.dart';
@@ -39,7 +40,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
   @override
   void initState() {
     super.initState();
-    AvatarService.instance.getAvatar();
+    AvatarService.instance.getAvatar(AuthService.currentUser.username);
     _loadData();
   }
 
@@ -58,6 +59,13 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
         GovernanceApiService.instance.fetchGroups(),
         AdminApiService.instance.fetchNotifications(),
       ]);
+
+      // Đồng bộ ảnh đại diện từ hồ sơ cá nhân phòng đào tạo
+      ApiService.instance.get('/api/profile').then((res) {
+        if (res is Map && res['avatarUrl'] != null && (res['avatarUrl'] as String).isNotEmpty) {
+          AvatarService.instance.syncFromServer(AuthService.currentUser.username, res['avatarUrl'] as String);
+        }
+      }).catchError((_) {});
 
       if (!mounted) return;
       setState(() {
@@ -171,6 +179,8 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
               Row(
                 children: [
                   UserAvatarView(
+                    username: user.username,
+                    avatarUrl: user.avatarUrl,
                     initials: initials,
                     size: 48,
                     fontSize: 16,

@@ -6,6 +6,7 @@ import '../../../models/group_model.dart';
 import '../../../models/lecturer_course_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../models/topic_model.dart';
+import '../../../services/auth_service.dart';
 import '../../../services/avatar_service.dart';
 import '../../../services/lecturer_api_service.dart';
 import '../../../widgets/lecturer/lecturer_course_card.dart';
@@ -53,7 +54,7 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
   @override
   void initState() {
     super.initState();
-    AvatarService.instance.getAvatar();
+    AvatarService.instance.getAvatar(AuthService.currentUser.username);
     _loadData();
   }
 
@@ -76,6 +77,12 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
       if (mounted) {
         setState(() {
           _lecturer = results[0] as LecturerModel?;
+          if (_lecturer?.avatar != null && _lecturer!.avatar.isNotEmpty) {
+            AvatarService.instance.syncFromServer(
+              _lecturer!.lecturerCode,
+              _lecturer!.avatar,
+            );
+          }
           _courses = results[1] as List<LecturerCourseModel>;
           _groups = results[2] as List<GroupModel>;
           _topics = results[3] as List<TopicModel>;
@@ -187,6 +194,8 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
               Row(
                 children: [
                   UserAvatarView(
+                    username: _lecturer?.lecturerCode ?? AuthService.currentUser.username,
+                    avatarUrl: _lecturer?.avatar ?? AuthService.currentUser.avatarUrl,
                     initials: _getInitials(lecturerName),
                     size: 48,
                     fontSize: 16,

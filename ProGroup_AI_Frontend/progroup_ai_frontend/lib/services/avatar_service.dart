@@ -21,11 +21,51 @@ class AvatarService {
     return '$_prefPrefix${name.toLowerCase()}';
   }
 
-  /// Lấy avatar hiện tại: ưu tiên SharedPreferences (local cache), nếu chưa có thì lấy từ currentUser.avatarUrl
-  Future<String> getAvatar([String? username]) async {
+  /// Đặt lại avatar về rỗng khi đăng xuất (tránh rò rỉ avatar giữa các tài khoản/role khác nhau)
+  void reset() {
+    avatarNotifier.value = '';
+  }
+
+  /// Chuyển đổi avatar sang người dùng / role mới khi đăng nhập
+  Future<String> switchUser(String username, [String? serverAvatarUrl]) async {
+    final cleanUname = username.trim().toLowerCase();
+
+    // 1. Nếu có avatar từ máy chủ, lưu cache và cập nhật ngay
+    if (serverAvatarUrl != null && serverAvatarUrl.trim().isNotEmpty) {
+      final clean = serverAvatarUrl.trim();
+      avatarNotifier.value = clean;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('$_prefPrefix$cleanUname', clean);
+      } catch (_) {}
+      return clean;
+    }
+
+    // 2. Nếu chưa có từ máy chủ, kiểm tra SharedPreferences của riêng tài khoản này
     try {
       final prefs = await SharedPreferences.getInstance();
-      final local = prefs.getString(_getKey(username))?.trim();
+      final local = prefs.getString('$_prefPrefix$cleanUname')?.trim();
+      if (local != null && local.isNotEmpty) {
+        avatarNotifier.value = local;
+        AuthService.currentUser = AuthService.currentUser.copyWith(avatarUrl: local);
+        return local;
+      }
+    } catch (_) {}
+
+    // 3. Nếu tài khoản chưa có ảnh đại diện, xóa sạch avatarNotifier để hiển thị initials chuẩn role
+    avatarNotifier.value = '';
+    return '';
+  }
+
+  /// Lấy avatar hiện tại: ưu tiên SharedPreferences (local cache), nếu chưa có thì lấy từ currentUser.avatarUrl
+  Future<String> getAvatar([String? username]) async {
+    final uname = (username != null && username.isNotEmpty)
+        ? username
+        : AuthService.currentUser.username;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final local = prefs.getString(_getKey(uname))?.trim();
       if (local != null && local.isNotEmpty) {
         avatarNotifier.value = local;
         return local;
@@ -33,11 +73,28 @@ class AvatarService {
     } catch (_) {}
 
     final remote = AuthService.currentUser.avatarUrl;
-    if (remote != null && remote.isNotEmpty) {
-      avatarNotifier.value = remote;
-      return remote;
+    if (remote != null && remote.trim().isNotEmpty) {
+      final clean = remote.trim();
+      avatarNotifier.value = clean;
+      return clean;
     }
+
+    avatarNotifier.value = '';
     return '';
+  }
+
+  /// Đồng bộ avatar từ API máy chủ sau khi tải thông tin hồ sơ cá nhân
+  Future<void> syncFromServer(String username, String? serverAvatarUrl) async {
+    if (serverAvatarUrl == null || serverAvatarUrl.trim().isEmpty) return;
+    final clean = serverAvatarUrl.trim();
+    if (avatarNotifier.value != clean) {
+      avatarNotifier.value = clean;
+    }
+    AuthService.currentUser = AuthService.currentUser.copyWith(avatarUrl: clean);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_getKey(username), clean);
+    } catch (_) {}
   }
 
   /// Lưu avatar mới (gọi API Backend + lưu vào SharedPreferences + cập nhật AuthService.currentUser)
@@ -188,6 +245,8 @@ class AvatarService {
 
 /// Widget hiển thị Avatar người dùng có khả năng tự động lắng nghe và cập nhật tức thì
 class UserAvatarView extends StatelessWidget {
+  final String? username;
+  final String? avatarUrl;
   final String initials;
   final double size;
   final double fontSize;
@@ -196,6 +255,8 @@ class UserAvatarView extends StatelessWidget {
 
   const UserAvatarView({
     super.key,
+    this.username,
+    this.avatarUrl,
     required this.initials,
     this.size = 48,
     this.fontSize = 16,
@@ -210,10 +271,20 @@ class UserAvatarView extends StatelessWidget {
 
     final childWidget = ValueListenableBuilder<String>(
       valueListenable: AvatarService.instance.avatarNotifier,
-      builder: (context, avatar, _) {
-        final currentAvatar = avatar.isNotEmpty
-            ? avatar
-            : (AuthService.currentUser.avatarUrl ?? '');
+      builder: (context, dynamicAvatar, _) {
+        // Thứ tự ưu tiên hiển thị avatar:
+        // 1. dynamicAvatar từ AvatarService (khi vừa upload/đổi avatar mới)
+        // 2. avatarUrl được truyền vào trực tiếp
+        // 3. AuthService.currentUser.avatarUrl
+        String currentAvatar = '';
+        if (dynamicAvatar.trim().isNotEmpty) {
+          currentAvatar = dynamicAvatar.trim();
+        } else if (avatarUrl != null && avatarUrl!.trim().isNotEmpty) {
+          currentAvatar = avatarUrl!.trim();
+        } else if (AuthService.currentUser.avatarUrl != null &&
+            AuthService.currentUser.avatarUrl!.trim().isNotEmpty) {
+          currentAvatar = AuthService.currentUser.avatarUrl!.trim();
+        }
 
         return Container(
           width: size,

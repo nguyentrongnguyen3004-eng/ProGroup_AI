@@ -391,11 +391,17 @@ class LecturerApiService {
   }
 
   /// 13. Tải hồ sơ giảng viên
-  /// GET /api/auth/me
+  /// GET /api/profile hoặc /api/auth/me
   Future<LecturerModel?> fetchProfile() async {
     try {
-      final res = await ApiService.instance.get('/api/auth/me');
+      dynamic res;
+      try {
+        res = await ApiService.instance.get('/api/profile');
+      } catch (_) {
+        res = await ApiService.instance.get('/api/auth/me');
+      }
       if (res is Map<String, dynamic>) {
+        final avatar = (res['avatarUrl'] ?? res['avatar'] ?? '').toString();
         return LecturerModel(
           id: res['giangVienId'] as int? ?? res['nguoiDungId'] as int? ?? 1,
           lecturerCode: res['maGiangVien'] as String? ?? res['tenDangNhap'] as String? ?? 'GV001',
@@ -403,7 +409,7 @@ class LecturerApiService {
           email: res['email'] as String? ?? '',
           faculty: 'Khoa Công nghệ thông tin',
           department: 'Bộ môn Công nghệ phần mềm',
-          avatar: '',
+          avatar: avatar,
         );
       }
     } catch (_) {}

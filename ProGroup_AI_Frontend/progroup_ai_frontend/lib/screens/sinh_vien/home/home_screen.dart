@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    AvatarService.instance.getAvatar();
+    AvatarService.instance.getAvatar(AuthService.currentUser.username);
     _loadData();
   }
 
@@ -60,6 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
         StudentApiService.instance.fetchTopics(),
         StudentApiService.instance.fetchUnreadCount(),
       ]);
+
+      // Đồng bộ ảnh đại diện từ hồ sơ cá nhân sinh viên
+      StudentApiService.instance.fetchProfile().then((p) {
+        if (p.avatarUrl.isNotEmpty) {
+          AvatarService.instance.syncFromServer(AuthService.currentUser.username, p.avatarUrl);
+        }
+      }).catchError((_) {});
 
       if (!mounted) return;
 
@@ -133,6 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   UserAvatarView(
+                    username: user.username,
+                    avatarUrl: user.avatarUrl,
                     initials: initials,
                     size: 48,
                     fontSize: 16,

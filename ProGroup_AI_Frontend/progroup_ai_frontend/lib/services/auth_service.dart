@@ -8,6 +8,7 @@ import '../data/mock/mock_user.dart';
 import '../models/lecturer_model.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
+import 'avatar_service.dart';
 import 'lecturer_api_service.dart';
 
 class AuthService {
@@ -45,6 +46,7 @@ class AuthService {
     if (cleanUsername.toLowerCase() == AppConstants.mockStudentUsername.toLowerCase() &&
         cleanPassword == AppConstants.mockStudentPassword) {
       currentUser = MockUser.student;
+      await AvatarService.instance.switchUser(MockUser.student.username, null);
       return MockUser.student;
     }
 
@@ -61,6 +63,7 @@ class AuthService {
         roleName: 'Giảng viên',
       );
       currentUser = user;
+      await AvatarService.instance.switchUser(user.username, null);
       return user;
     }
 
@@ -68,6 +71,7 @@ class AuthService {
     if (cleanUsername.toLowerCase() == AppConstants.mockGovernanceUsername.toLowerCase() &&
         cleanPassword == AppConstants.mockGovernancePassword) {
       currentUser = MockUser.governance;
+      await AvatarService.instance.switchUser(MockUser.governance.username, null);
       return MockUser.governance;
     }
 
@@ -75,6 +79,7 @@ class AuthService {
     if (cleanUsername.toLowerCase() == AppConstants.mockTrainingUsername.toLowerCase() &&
         cleanPassword == AppConstants.mockTrainingPassword) {
       currentUser = MockUser.training;
+      await AvatarService.instance.switchUser(MockUser.training.username, null);
       return MockUser.training;
     }
 
@@ -91,6 +96,7 @@ class AuthService {
         roleName: admin.roleName,
       );
       currentUser = user;
+      await AvatarService.instance.switchUser(user.username, null);
       return user;
     }
 
@@ -161,6 +167,7 @@ class AuthService {
               avatarUrl: userJson['avatarUrl'] as String?,
             );
             currentUser = loggedInUser;
+            await AvatarService.instance.switchUser(loggedInUser.username, loggedInUser.avatarUrl);
             return loggedInUser;
           }
         }
@@ -174,6 +181,7 @@ class AuthService {
   static void logout() {
     currentToken = null;
     _currentUser = null;
+    AvatarService.instance.reset();
     SharedPreferences.getInstance()
         .then((prefs) => prefs.remove('auth_token'))
         .catchError((_) => false);

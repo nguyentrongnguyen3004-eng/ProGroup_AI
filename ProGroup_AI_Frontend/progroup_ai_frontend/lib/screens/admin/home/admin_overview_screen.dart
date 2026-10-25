@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/admin_api_service.dart';
+import '../../../services/api_service.dart';
 import '../../../services/avatar_service.dart';
 import '../../../services/auth_service.dart';
 import '../notification/admin_notification_screen.dart';
@@ -41,7 +42,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   @override
   void initState() {
     super.initState();
-    AvatarService.instance.getAvatar();
+    AvatarService.instance.getAvatar(AuthService.currentUser.username);
     _loadData();
   }
 
@@ -57,6 +58,13 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
         AdminApiService.instance.fetchUsers(),
         AdminApiService.instance.fetchNotifications(),
       ]);
+
+      // Đồng bộ ảnh đại diện từ hồ sơ cá nhân
+      ApiService.instance.get('/api/profile').then((res) {
+        if (res is Map && res['avatarUrl'] != null && (res['avatarUrl'] as String).isNotEmpty) {
+          AvatarService.instance.syncFromServer(AuthService.currentUser.username, res['avatarUrl'] as String);
+        }
+      }).catchError((_) {});
 
       if (!mounted) return;
       setState(() {
@@ -167,6 +175,8 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               Row(
                 children: [
                   UserAvatarView(
+                    username: user.username,
+                    avatarUrl: user.avatarUrl,
                     initials: initials,
                     size: 48,
                     fontSize: 16,

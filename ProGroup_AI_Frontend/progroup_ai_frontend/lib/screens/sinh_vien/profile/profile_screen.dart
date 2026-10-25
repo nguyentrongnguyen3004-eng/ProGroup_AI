@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -49,7 +49,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _profile = profile;
-        if (profile.avatarUrl.isNotEmpty && avatarData.isEmpty) { avatarData = profile.avatarUrl; }
+        if (profile.avatarUrl.isNotEmpty) {
+          avatarData = profile.avatarUrl;
+          AvatarService.instance.syncFromServer(user.username, profile.avatarUrl);
+        }
         if (profile.email.isNotEmpty) {
           email = profile.email;
         }

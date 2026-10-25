@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/routes/app_routes.dart';
@@ -64,8 +64,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             roleName: res['tenVaiTro'] ?? _user.roleName,
             avatarUrl: res['avatarUrl'] as String?,
           );
-          if (_customAvatar.isEmpty && res['avatarUrl'] != null && (res['avatarUrl'] as String).isNotEmpty) {
+          if (res['avatarUrl'] != null && (res['avatarUrl'] as String).isNotEmpty) {
             _customAvatar = res['avatarUrl'] as String;
+            AvatarService.instance.syncFromServer(_user.username, _customAvatar);
           }
         });
       }

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -44,8 +44,9 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
       if (mounted) {
         setState(() {
           _lecturer = p;
-          if (_customAvatar.isEmpty && p != null && p.avatar.isNotEmpty) {
+          if (p != null && p.avatar.isNotEmpty) {
             _customAvatar = p.avatar;
+            AvatarService.instance.syncFromServer(p.lecturerCode, p.avatar);
           }
           _isLoading = false;
         });
