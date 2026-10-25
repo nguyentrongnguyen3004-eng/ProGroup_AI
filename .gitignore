@@ -56,3 +56,7 @@ app.*.map.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Tools & Publishing
+tools/
+publish_output/

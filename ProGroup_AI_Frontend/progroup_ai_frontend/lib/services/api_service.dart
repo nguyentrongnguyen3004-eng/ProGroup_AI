@@ -18,11 +18,14 @@ class ApiService {
   static final ApiService instance = ApiService._();
 
   static const List<String> baseUrls = [
+    'https://dicke-addresses-routine-reduce.trycloudflare.com',
     'http://127.0.0.1:5094',
     'http://localhost:5094',
     'http://192.168.1.193:5094',
     'http://10.0.2.2:5094',
   ];
+
+  static String? _workingBaseUrl;
 
   Map<String, String> _headers() {
     final headers = <String, String>{
@@ -44,7 +47,14 @@ class ApiService {
     ApiException? lastError;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
 
-    for (final baseUrl in baseUrls) {
+    // Đưa URL đang hoạt động tốt nhất lên đầu danh sách để request nhanh tức thì
+    final candidateUrls = List<String>.from(baseUrls);
+    if (_workingBaseUrl != null && candidateUrls.contains(_workingBaseUrl)) {
+      candidateUrls.remove(_workingBaseUrl);
+      candidateUrls.insert(0, _workingBaseUrl!);
+    }
+
+    for (final baseUrl in candidateUrls) {
       try {
         final uri = Uri.parse('$baseUrl$normalizedPath');
         final headers = _headers();
@@ -55,29 +65,32 @@ class ApiService {
           case 'POST':
             response = await http
                 .post(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 8));
+                .timeout(const Duration(seconds: 5));
             break;
           case 'PUT':
             response = await http
                 .put(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 8));
+                .timeout(const Duration(seconds: 5));
             break;
           case 'DELETE':
             response = await http
                 .delete(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 8));
+                .timeout(const Duration(seconds: 5));
             break;
           case 'GET':
           default:
             response = await http
                 .get(uri, headers: headers)
-                .timeout(const Duration(seconds: 8));
+                .timeout(const Duration(seconds: 5));
             break;
         }
 
         final responseBody = utf8.decode(response.bodyBytes);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Lưu lại URL thành công để các request tiếp theo không mất thời gian thử lại
+          _workingBaseUrl = baseUrl;
+
           if (responseBody.trim().isEmpty) return null;
           try {
             return jsonDecode(responseBody);
@@ -104,6 +117,7 @@ class ApiService {
 
         lastError = ApiException(errorMessage, response.statusCode);
         // Nếu máy chủ đã phản hồi mã lỗi HTTP, nghĩa là đã kết nối thành công tới API
+        _workingBaseUrl = baseUrl;
         throw lastError;
       } on ApiException {
         rethrow;
