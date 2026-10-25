@@ -444,4 +444,38 @@ class LecturerApiService {
       ]);
     } catch (_) {}
   }
+
+  /// 16. Cập nhật trạng thái đợt đăng ký (Đang mở / Đã đóng / Chưa mở)
+  Future<void> updatePeriodStatus(int periodId, String newStatus) async {
+    await ApiService.instance.put('/api/dot-dang-ky/$periodId/trang-thai', {
+      'trangThai': newStatus,
+    });
+  }
+
+  /// Lấy danh sách đợt đăng ký của lớp học phần
+  Future<List<Map<String, dynamic>>> fetchCourseRegistrationPeriods(int lopHocPhanId) async {
+    try {
+      final res = await ApiService.instance.get('/api/dot-dang-ky?lopHocPhanId=$lopHocPhanId');
+      if (res is List) return res.cast<Map<String, dynamic>>();
+    } catch (_) {}
+    return [];
+  }
+
+  /// 17. Giảng viên lấy danh sách báo cáo tiến độ các nhóm
+  Future<List<Map<String, dynamic>>> fetchLecturerReports() async {
+    try {
+      final res = await ApiService.instance.get('/api/bao-cao/giang-vien');
+      if (res is List) return res.cast<Map<String, dynamic>>();
+    } catch (_) {}
+    return [];
+  }
+
+  /// 18. Giảng viên chấm điểm và nhận xét báo cáo
+  Future<void> gradeReport(int reportId, {double? diem, String? nhanXet, String trangThai = 'Đạt'}) async {
+    await ApiService.instance.put('/api/bao-cao/$reportId/cham-diem', {
+      'diem': diem,
+      'nhanXetGiangVien': nhanXet,
+      'trangThai': trangThai,
+    });
+  }
 }

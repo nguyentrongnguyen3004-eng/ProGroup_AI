@@ -7,6 +7,7 @@ import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/models/topic_model.dart';
 import 'package:progroup_ai_frontend/models/topic_registration_model.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/chat/chat_screen.dart';
+import 'package:progroup_ai_frontend/screens/sinh_vien/group/group_progress_report_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/invitation_management_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/join_request_screen.dart';
 import 'package:progroup_ai_frontend/services/auth_service.dart';
@@ -145,14 +146,23 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
               child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 final newName = controller.text.trim();
                 if (newName.isNotEmpty) {
-                  setState(() => groupName = newName);
-                  Navigator.pop(dialogContext);
-                  _showMessage(
-                    AppLocalizations.text('Đã đổi tên nhóm thành công.', en: 'Group renamed successfully.'),
-                  );
+                  try {
+                    await StudentApiService.instance.updateGroupName(widget.group.id, newName);
+                    if (mounted) {
+                      setState(() => groupName = newName);
+                      Navigator.pop(dialogContext);
+                      _showMessage(
+                        AppLocalizations.text('Đã đổi tên nhóm thành công.', en: 'Group renamed successfully.'),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      _showMessage('Lỗi khi đổi tên: ${e.toString().replaceAll("Exception: ", "")}');
+                    }
+                  }
                 }
               },
               child: Text(AppLocalizations.text('Lưu', en: 'Save')),
@@ -161,6 +171,96 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         );
       },
     );
+  }
+
+  Future<void> _cancelRegistration() async {
+    final reg = _topicRegistration;
+    if (reg == null) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Hủy đăng ký đề tài?'),
+        content: const Text('Bạn có chắc chắn muốn hủy đăng ký đề tài này để chọn đề tài khác không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Đóng')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hủy đăng ký'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      await StudentApiService.instance.cancelTopicRegistration(reg.id);
+      _showMessage('Đã hủy đăng ký đề tài thành công.');
+      _fetchLiveDetails();
+    } catch (e) {
+      _showMessage('Lỗi: ${e.toString().replaceAll("Exception: ", "")}');
+    }
+  }
+
+  Future<void> _leaveGroup() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Rời nhóm?'),
+        content: const Text('Bạn có chắc chắn muốn rời khỏi nhóm này không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Rời nhóm'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      await StudentApiService.instance.leaveGroup(widget.group.id);
+      if (mounted) {
+        _showMessage('Đã rời nhóm thành công.');
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      _showMessage('Lỗi: ${e.toString().replaceAll("Exception: ", "")}');
+    }
+  }
+
+  Future<void> _disbandGroup() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Giải tán nhóm?'),
+        content: const Text('Hành động này sẽ xóa hoàn toàn nhóm. Bạn có chắc chắn không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Giải tán nhóm'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      await StudentApiService.instance.disbandGroup(widget.group.id);
+      if (mounted) {
+        _showMessage('Đã giải tán nhóm thành công.');
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      _showMessage('Lỗi: ${e.toString().replaceAll("Exception: ", "")}');
+    }
   }
 
   @override
@@ -533,7 +633,90 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                   ),
                               ],
                             ),
+                            if (isLeader && registration.status != 'Đã duyệt') ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: _cancelRegistration,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFFEF4444),
+                                    side: const BorderSide(color: Color(0xFFEF4444)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  icon: const Icon(Icons.cancel_outlined, size: 16),
+                                  label: const Text('Hủy đăng ký đề tài này', style: TextStyle(fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ],
                           ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF10B981), size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Báo cáo tiến độ đồ án',
+                                  style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Nộp báo cáo định kỳ (PDF, link Github, demo) để giảng viên theo dõi, nhận xét và chấm điểm tiến độ.',
+                            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => GroupProgressReportScreen(
+                                      group: widget.group,
+                                      topicTitle: _registeredTopic?.title,
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF059669),
+                                side: const BorderSide(color: Color(0xFF10B981)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.upload_file_rounded, size: 18),
+                              label: const Text('Xem & Nộp báo cáo tiến độ', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -650,6 +833,38 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                         ),
                       ),
                     ),
+                    if (!isLeader) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: _leaveGroup,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF4444),
+                            side: const BorderSide(color: Color(0xFFEF4444)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: const Icon(Icons.exit_to_app_rounded, size: 18),
+                          label: const Text('Rời nhóm', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ],
+                    if (isLeader && (_topicRegistration == null || _topicRegistration!.status != 'Đã duyệt')) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: _disbandGroup,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF4444),
+                            side: const BorderSide(color: Color(0xFFEF4444)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: const Icon(Icons.delete_forever_rounded, size: 18),
+                          label: const Text('Giải tán nhóm', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

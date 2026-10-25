@@ -16,6 +16,7 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
   List<Map<String, dynamic>> _registrations = [];
   List<Map<String, dynamic>> _courses = [];
   List<Map<String, dynamic>> _groups = [];
+  List<Map<String, dynamic>> _periods = [];
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
         GovernanceApiService.instance.fetchTopicRegistrations(),
         GovernanceApiService.instance.fetchCourses(),
         GovernanceApiService.instance.fetchGroups(),
+        GovernanceApiService.instance.fetchRegistrationPeriods(),
       ]);
 
       if (!mounted) return;
@@ -41,6 +43,7 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
         _registrations = results[0];
         _courses = results[1];
         _groups = results[2];
+        _periods = results[3];
         _isLoading = false;
       });
     } catch (e) {
@@ -49,6 +52,55 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
         _errorMessage = 'Không thể tải dữ liệu đăng ký đồ án: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _togglePeriodStatus(int periodId, String currentStatus) async {
+    final nextStatus = currentStatus == 'Đang mở' ? 'Đã đóng' : 'Đang mở';
+    final actionText = nextStatus == 'Đang mở' ? 'Mở đợt đăng ký' : 'Đóng đợt đăng ký';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('$actionText?'),
+        content: Text(
+          nextStatus == 'Đang mở'
+              ? 'Sinh viên sẽ có thể tiếp tục đăng ký đề tài vào đợt này.'
+              : 'Sinh viên sẽ không thể đăng ký thêm đề tài vào đợt này nữa.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: nextStatus == 'Đang mở' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(actionText),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await GovernanceApiService.instance.updatePeriodStatus(periodId, nextStatus);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã cập nhật trạng thái đợt đăng ký thành "$nextStatus".'),
+            backgroundColor: nextStatus == 'Đang mở' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+          ),
+        );
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: const Color(0xFFEF4444)),
+        );
+      }
     }
   }
 
@@ -170,6 +222,129 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
             ],
           ),
           const SizedBox(height: 24),
+
+          if (_periods.isNotEmpty) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppLocalizations.text('Các đợt đăng ký đồ án', en: 'Registration Periods'),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3A5F),
+                  ),
+                ),
+                Text(
+                  '${_periods.length} đợt',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._periods.map((p) {
+              final periodId = p['dotDangKyId'] as int? ?? p['id'] as int? ?? 0;
+              final tenDot = p['tenDot'] as String? ?? 'Đợt đăng ký';
+              final lop = p['tenLopHocPhan'] ?? p['maLopHocPhan'] ?? '';
+              final trangThai = p['trangThai'] as String? ?? 'Chưa mở';
+              final isOpen = trangThai == 'Đang mở';
+
+              return Card(
+                elevation: 0,
+                color: Colors.white,
+                margin: const EdgeInsets.only(bottom: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: isOpen ? const Color(0xFF10B981).withValues(alpha: 0.4) : Colors.grey.shade200,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isOpen
+                              ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                              : Colors.grey.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.calendar_month_rounded,
+                          color: isOpen ? const Color(0xFF10B981) : Colors.grey.shade600,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tenDot,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            if (lop.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                '$lop',
+                                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                              ),
+                            ],
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isOpen
+                                        ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                                        : Colors.grey.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    trangThai,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: isOpen ? const Color(0xFF059669) : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      FilledButton.tonal(
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                          backgroundColor: isOpen
+                              ? const Color(0xFFEF4444).withValues(alpha: 0.12)
+                              : const Color(0xFF10B981).withValues(alpha: 0.12),
+                          foregroundColor: isOpen ? const Color(0xFFEF4444) : const Color(0xFF059669),
+                        ),
+                        onPressed: () => _togglePeriodStatus(periodId, trangThai),
+                        child: Text(
+                          isOpen ? 'Đóng đợt' : 'Mở đợt',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 20),
+          ],
 
           Text(
             AppLocalizations.text('Tình hình theo lớp học phần', en: 'Classes Status'),

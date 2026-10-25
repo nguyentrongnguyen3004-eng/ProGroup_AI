@@ -252,4 +252,32 @@ public sealed class AdminController : ControllerBase
             message = user.TrangThai ? "Đã kích hoạt tài khoản." : "Đã khóa tài khoản."
         });
     }
+
+    [HttpPut("users/{id:int}/reset-password")]
+    public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetUserPasswordRequest? request = null)
+    {
+        var user = await _db.NguoiDungs.FindAsync(id);
+        if (user is null)
+        {
+            return NotFound(new { message = "Không tìm thấy người dùng." });
+        }
+
+        var newPassword = string.IsNullOrWhiteSpace(request?.NewPassword) ? "123456aA@" : request.NewPassword.Trim();
+        user.MatKhauHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            userId = user.NguoiDungId,
+            newPassword,
+            message = $"Đã đặt lại mật khẩu cho tài khoản '{user.TenDangNhap}' thành: {newPassword}"
+        });
+    }
+
+    public sealed class ResetUserPasswordRequest
+    {
+        public string? NewPassword { get; set; }
+    }
 }

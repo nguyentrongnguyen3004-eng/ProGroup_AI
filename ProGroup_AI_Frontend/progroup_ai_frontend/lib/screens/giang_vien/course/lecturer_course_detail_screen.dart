@@ -30,6 +30,7 @@ class _LecturerCourseDetailScreenState
   List<GroupModel> _groups = [];
   List<TopicModel> _topics = [];
   List<Map<String, dynamic>> _registrations = [];
+  List<Map<String, dynamic>> _periods = [];
 
   @override
   void initState() {
@@ -49,6 +50,7 @@ class _LecturerCourseDetailScreenState
         LecturerApiService.instance.fetchGroups(_course.courseId),
         LecturerApiService.instance.fetchTopics(_course.courseId),
         LecturerApiService.instance.fetchTopicRegistrations(_course.courseId),
+        LecturerApiService.instance.fetchCourseRegistrationPeriods(_course.courseId),
       ]);
 
       if (mounted) {
@@ -56,6 +58,7 @@ class _LecturerCourseDetailScreenState
           _groups = results[0] as List<GroupModel>;
           _topics = results[1] as List<TopicModel>;
           _registrations = results[2] as List<Map<String, dynamic>>;
+          _periods = results[3] as List<Map<String, dynamic>>;
           _isLoading = false;
         });
       }
@@ -65,6 +68,55 @@ class _LecturerCourseDetailScreenState
           _errorMessage = e.toString().replaceAll('Exception: ', '');
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _togglePeriodStatus(int periodId, String currentStatus) async {
+    final nextStatus = currentStatus == 'Đang mở' ? 'Đã đóng' : 'Đang mở';
+    final actionText = nextStatus == 'Đang mở' ? 'Mở đợt đăng ký' : 'Đóng đợt đăng ký';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('$actionText?'),
+        content: Text(
+          nextStatus == 'Đang mở'
+              ? 'Sinh viên sẽ có thể tiếp tục đăng ký đề tài vào đợt này.'
+              : 'Sinh viên sẽ không thể đăng ký thêm đề tài vào đợt này nữa.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: nextStatus == 'Đang mở' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(actionText),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await LecturerApiService.instance.updatePeriodStatus(periodId, nextStatus);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã cập nhật trạng thái đợt đăng ký thành "$nextStatus".'),
+            backgroundColor: nextStatus == 'Đang mở' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+          ),
+        );
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: const Color(0xFFEF4444)),
+        );
       }
     }
   }
@@ -325,6 +377,79 @@ class _LecturerCourseDetailScreenState
                                 label: AppLocalizations.text('Quy mô mỗi nhóm', en: 'Group size'),
                                 value: '${_course.minMembers} – ${_course.maxMembers} ${AppLocalizations.text('thành viên', en: 'members')}',
                               ),
+                              if (_periods.isNotEmpty) ...[
+                                const SizedBox(height: 14),
+                                Divider(height: 1, color: colors.outlineVariant.withValues(alpha: 0.4)),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Icon(Icons.timer_outlined, size: 16, color: colors.primary),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Đợt đăng ký đề tài (${_periods.length})',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: colors.onSurface),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ..._periods.map((p) {
+                                  final periodId = p['dotDangKyId'] as int? ?? p['id'] as int? ?? 0;
+                                  final tenDot = p['tenDot'] as String? ?? 'Đợt đăng ký';
+                                  final trangThai = p['trangThai'] as String? ?? 'Chưa mở';
+                                  final isOpen = trangThai == 'Đang mở';
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: isOpen
+                                          ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                                          : Colors.grey.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: isOpen ? const Color(0xFF10B981).withValues(alpha: 0.3) : Colors.grey.shade300,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                tenDot,
+                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Trạng thái: $trangThai',
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isOpen ? const Color(0xFF059669) : Colors.grey.shade700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        FilledButton.tonal(
+                                          style: FilledButton.styleFrom(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                                            backgroundColor: isOpen ? const Color(0xFFEF4444).withValues(alpha: 0.12) : const Color(0xFF10B981).withValues(alpha: 0.12),
+                                            foregroundColor: isOpen ? const Color(0xFFEF4444) : const Color(0xFF059669),
+                                          ),
+                                          onPressed: () => _togglePeriodStatus(periodId, trangThai),
+                                          child: Text(
+                                            isOpen ? 'Đóng đợt' : 'Mở đợt',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ],
                               const SizedBox(height: 16),
                               Row(
                                 children: [

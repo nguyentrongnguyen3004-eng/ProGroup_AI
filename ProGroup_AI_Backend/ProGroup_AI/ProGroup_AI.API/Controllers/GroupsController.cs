@@ -88,6 +88,82 @@ public sealed class GroupsController : ControllerBase
         return Ok(ToResponse(group));
     }
 
+    [Authorize]
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateGroupName(int id, [FromBody] UpdateGroupNameRequest request)
+    {
+        var group = await _db.NhomDoAns.FirstOrDefaultAsync(x => x.NhomId == id);
+        if (group is null) return NotFound(new { message = "Không tìm thấy nhóm." });
+
+        var newName = (request.TenNhom ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(newName))
+            return BadRequest(new { message = "Tên nhóm không được để trống." });
+
+        group.TenNhom = newName;
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, nhomId = group.NhomId, tenNhom = group.TenNhom, message = "Đổi tên nhóm thành công." });
+    }
+
+    [Authorize(Policy = "StudentOnly")]
+    [HttpPost("{id:int}/leave")]
+    public async Task<IActionResult> LeaveGroup(int id)
+    {
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var studentId = studentAccess.StudentId!.Value;
+
+        var group = await _db.NhomDoAns.Include(g => g.ThanhVienNhoms).FirstOrDefaultAsync(x => x.NhomId == id);
+        if (group is null) return NotFound(new { message = "Không tìm thấy nhóm." });
+
+        if (group.TruongNhomId == studentId)
+        {
+            return BadRequest(new { message = "Trưởng nhóm không thể rời nhóm. Hãy giải tán nhóm hoặc chuyển quyền trước." });
+        }
+
+        var member = group.ThanhVienNhoms.FirstOrDefault(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia");
+        if (member is null)
+        {
+            return NotFound(new { message = "Bạn không thuộc nhóm này." });
+        }
+
+        _db.ThanhVienNhoms.Remove(member);
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, message = "Đã rời nhóm thành công." });
+    }
+
+    [Authorize(Policy = "StudentOnly")]
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DisbandGroup(int id)
+    {
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var studentId = studentAccess.StudentId!.Value;
+
+        var group = await _db.NhomDoAns
+            .Include(g => g.ThanhVienNhoms)
+            .Include(g => g.DangKyDeTais)
+            .FirstOrDefaultAsync(x => x.NhomId == id);
+
+        if (group is null) return NotFound(new { message = "Không tìm thấy nhóm." });
+        if (group.TruongNhomId != studentId)
+        {
+            return Forbid();
+        }
+
+        var hasApprovedRegistration = group.DangKyDeTais.Any(r => r.TrangThai == "Đã duyệt");
+        if (hasApprovedRegistration)
+        {
+            return BadRequest(new { message = "Không thể giải tán nhóm khi đề tài đã được duyệt." });
+        }
+
+        _db.DangKyDeTais.RemoveRange(group.DangKyDeTais);
+        _db.ThanhVienNhoms.RemoveRange(group.ThanhVienNhoms);
+        _db.NhomDoAns.Remove(group);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Đã giải tán nhóm thành công." });
+    }
+
     [Authorize(Policy = "StudentOnly")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateGroupRequest request)

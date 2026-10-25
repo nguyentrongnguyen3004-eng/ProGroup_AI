@@ -74,3 +74,9 @@ public sealed class GroupJoinRequestResponse
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
+
+public sealed class UpdateGroupNameRequest
+{
+    [Required, StringLength(200, MinimumLength = 1)]
+    public string TenNhom { get; set; } = string.Empty;
+}

@@ -113,6 +113,51 @@ class _AdminUserScreenState extends State<AdminUserScreen> {
     }
   }
 
+  Future<void> _resetPassword(Map<String, dynamic> user) async {
+    final id = user['nguoiDungId'] ?? user['NguoiDungId'] ?? user['id'];
+    if (id == null) return;
+    final int userId = id is int ? id : int.tryParse('$id') ?? 0;
+    final name = user['hoTen'] ?? user['tenDangNhap'] ?? 'người dùng';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Đặt lại mật khẩu?'),
+        content: Text('Mật khẩu của "$name" sẽ được đặt lại về mặc định (123456aA@). Bạn có chắc chắn không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFF59E0B),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Đặt lại'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await AdminApiService.instance.resetUserPassword(userId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã đặt lại mật khẩu về "123456aA@" thành công.'),
+          backgroundColor: Color(0xFF10B981),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: const Color(0xFFEF4444)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -507,6 +552,11 @@ class _AdminUserScreenState extends State<AdminUserScreen> {
                             ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        tooltip: 'Đặt lại mật khẩu',
+                        icon: const Icon(Icons.lock_reset_rounded, color: Color(0xFFF59E0B)),
+                        onPressed: () => _resetPassword(u),
                       ),
                       IconButton(
                         tooltip: isActive ? 'Khóa tài khoản' : 'Mở khóa',

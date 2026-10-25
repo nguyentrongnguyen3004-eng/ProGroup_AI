@@ -154,6 +154,27 @@ public sealed class DangKyDeTaiController : ControllerBase
 
         topic.TrangThai = "Đã đăng ký";
         _db.DangKyDeTais.Add(registration);
+
+        // Gửi thông báo cho Giảng viên phụ trách đề tài
+        if (topic.GiangVienId.HasValue)
+        {
+            var gv = await _db.GiangViens.FirstOrDefaultAsync(g => g.GiangVienId == topic.GiangVienId.Value);
+            if (gv != null && gv.NguoiDungId > 0)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = gv.NguoiDungId,
+                    TieuDe = "Nhóm đăng ký đề tài mới",
+                    NoiDung = $"Nhóm '{group.TenNhom}' vừa đăng ký đề tài '{topic.TenDeTai}'. Vui lòng xem xét duyệt đề tài.",
+                    LoaiThongBao = "Đề tài",
+                    DaDoc = false,
+                    CreatedAt = DateTime.UtcNow,
+                    LienKetId = registration.DangKyDeTaiId,
+                    LoaiLienKet = "dang-ky-de-tai"
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
 
@@ -206,6 +227,51 @@ public sealed class DangKyDeTaiController : ControllerBase
                 registration.DeTai.TrangThai = "Chưa sử dụng";
             }
         }
+
+
+        // Tạo thông báo cho toàn bộ thành viên nhóm
+        try
+        {
+            var grp = await _db.NhomDoAns
+                .Include(g => g.TruongNhom)
+                .Include(g => g.ThanhVienNhoms).ThenInclude(m => m.SinhVien)
+                .FirstOrDefaultAsync(g => g.NhomId == registration.NhomId);
+
+            if (grp != null)
+            {
+                var userIds = new HashSet<int>();
+                if (grp.TruongNhom?.NguoiDungId > 0)
+                    userIds.Add(grp.TruongNhom.NguoiDungId);
+
+                foreach (var m in grp.ThanhVienNhoms)
+                {
+                    if (m.SinhVien?.NguoiDungId > 0)
+                        userIds.Add(m.SinhVien.NguoiDungId);
+                }
+
+                var tenDeTai = registration.DeTai?.TenDeTai ?? "đề tài";
+                var tieuDe = request.IsApproved ? "Đăng ký đề tài được duyệt" : "Đăng ký đề tài bị từ chối";
+                var noiDung = request.IsApproved
+                    ? $"Giảng viên đã duyệt đăng ký đề tài '{tenDeTai}' cho nhóm '{grp.TenNhom}'."
+                    : $"Giảng viên từ chối đăng ký đề tài '{tenDeTai}' của nhóm '{grp.TenNhom}'. Lý do: {request.ResolvedGhiChu ?? "Không có"}";
+
+                foreach (var uid in userIds)
+                {
+                    _db.ThongBaos.Add(new ThongBao
+                    {
+                        NguoiDungId = uid,
+                        TieuDe = tieuDe,
+                        NoiDung = noiDung,
+                        LoaiThongBao = "Đề tài",
+                        DaDoc = false,
+                        CreatedAt = DateTime.UtcNow,
+                        LienKetId = registration.DangKyDeTaiId,
+                        LoaiLienKet = "dang-ky-de-tai"
+                    });
+                }
+            }
+        }
+        catch { }
 
         await _db.SaveChangesAsync();
 

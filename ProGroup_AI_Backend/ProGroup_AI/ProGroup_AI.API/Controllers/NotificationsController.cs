@@ -75,6 +75,31 @@ public sealed class NotificationsController : ControllerBase
 
         _userReadNotifications.TryGetValue(userId, out var readSet);
 
+        // 0. Thông báo thực tế gửi riêng cho người dùng từ DB
+        var userDbNotifs = await _db.ThongBaos.AsNoTracking()
+            .Where(t => t.NguoiDungId == userId)
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(25)
+            .ToListAsync();
+
+        foreach (var tb in userDbNotifs)
+        {
+            var isRead = tb.DaDoc || (readSet != null && readSet.Contains(tb.ThongBaoId));
+            var timeDiff = DateTime.UtcNow - tb.CreatedAt;
+            notifications.Add(new NotificationItem
+            {
+                id = tb.ThongBaoId,
+                type = tb.LoaiThongBao ?? "Hệ thống",
+                title = tb.TieuDe,
+                content = tb.NoiDung,
+                time = FormatTimeAgo(timeDiff),
+                isRead = isRead,
+                read = isRead,
+                createdAt = tb.CreatedAt
+            });
+        }
+
+
         // 1. Đăng ký đề tài gần đây
         var recentRegistrations = await _db.DangKyDeTais.AsNoTracking()
             .Include(r => r.Nhom)

@@ -30,6 +30,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<AIRequest> AIRequests { get; set; }
     public DbSet<DotImport> DotImports { get; set; }
     public DbSet<LoiImport> LoiImports { get; set; }
+    public DbSet<ThongBao> ThongBaos { get; set; }
+    public DbSet<BaoCaoTienDo> BaoCaoTienDos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

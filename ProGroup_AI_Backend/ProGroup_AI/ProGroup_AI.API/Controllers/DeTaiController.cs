@@ -185,6 +185,7 @@ public sealed class DeTaiController : ControllerBase
         topic.CongNgheDuKien = request.CongNgheDuKien?.Trim();
         topic.UpdatedAt = DateTime.Now;
 
+
         await _db.SaveChangesAsync();
 
         var updated = await _db.DeTaiDoAns.AsNoTracking()
@@ -256,6 +257,29 @@ public sealed class DeTaiController : ControllerBase
         }
 
         topic.UpdatedAt = DateTime.Now;
+
+        // Tạo thông báo cho sinh viên nếu đây là đề tài do sinh viên đề xuất
+        if (topic.SinhVienDeXuatId.HasValue)
+        {
+            var sv = await _db.SinhViens.FirstOrDefaultAsync(s => s.SinhVienId == topic.SinhVienDeXuatId.Value);
+            if (sv != null && sv.NguoiDungId > 0)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = sv.NguoiDungId,
+                    TieuDe = request.IsApproved ? "Đề xuất đề tài được duyệt" : "Đề xuất đề tài bị từ chối",
+                    NoiDung = request.IsApproved
+                        ? $"Đề xuất đề tài '{topic.TenDeTai}' của bạn đã được giảng viên phê duyệt."
+                        : $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {request.LyDoTuChoi ?? "Không có"}",
+                    LoaiThongBao = "Đề tài",
+                    DaDoc = false,
+                    CreatedAt = DateTime.UtcNow,
+                    LienKetId = topic.DeTaiId,
+                    LoaiLienKet = "de-tai"
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
 
         var updated = await _db.DeTaiDoAns.AsNoTracking()

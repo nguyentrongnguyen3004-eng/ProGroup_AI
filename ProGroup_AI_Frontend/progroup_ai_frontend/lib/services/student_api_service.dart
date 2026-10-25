@@ -280,5 +280,56 @@ class StudentApiService {
       'accept': accept,
     });
   }
-}
 
+  /// Đổi tên nhóm và lưu vào database
+  Future<void> updateGroupName(int groupId, String newName) async {
+    await ApiService.instance.put('/api/groups/$groupId', {
+      'tenNhom': newName,
+    });
+  }
+
+  /// Sinh viên rời nhóm
+  Future<void> leaveGroup(int groupId) async {
+    await ApiService.instance.post('/api/groups/$groupId/leave', {});
+  }
+
+  /// Trưởng nhóm giải tán nhóm
+  Future<void> disbandGroup(int groupId) async {
+    await ApiService.instance.delete('/api/groups/$groupId');
+  }
+
+  /// Hủy đăng ký đề tài khi đang chờ duyệt
+  Future<void> cancelTopicRegistration(int registrationId) async {
+    await ApiService.instance.delete('/api/dang-ky-de-tai/$registrationId');
+  }
+
+  /// Lấy danh sách báo cáo tiến độ của nhóm
+  Future<List<Map<String, dynamic>>> fetchGroupReports(int groupId) async {
+    try {
+      final res = await ApiService.instance.get('/api/bao-cao/nhom/$groupId');
+      if (res is List) return res.cast<Map<String, dynamic>>();
+    } catch (_) {}
+    return [];
+  }
+
+  /// Sinh viên nộp báo cáo tiến độ
+  Future<void> submitProgressReport({
+    required int nhomId,
+    required String tieuDe,
+    String? noiDung,
+    String? fileUrl,
+    String? githubUrl,
+    String? demoUrl,
+    int tuanBaoCao = 1,
+  }) async {
+    await ApiService.instance.post('/api/bao-cao', {
+      'nhomId': nhomId,
+      'tieuDe': tieuDe,
+      'noiDung': noiDung,
+      'fileUrl': fileUrl,
+      'githubUrl': githubUrl,
+      'demoUrl': demoUrl,
+      'tuanBaoCao': tuanBaoCao,
+    });
+  }
+}

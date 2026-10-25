@@ -11,8 +11,10 @@ import '../../../services/lecturer_api_service.dart';
 import '../../../widgets/lecturer/lecturer_course_card.dart';
 import '../../../widgets/lecturer/lecturer_stat_card.dart';
 import '../course/lecturer_course_detail_screen.dart';
+import '../course/lecturer_course_screen.dart';
 import '../notification/lecturer_notification_detail_screen.dart';
 import '../notification/lecturer_notification_screen.dart';
+import '../report/lecturer_review_reports_screen.dart';
 import '../topic/lecturer_topic_assistant_screen.dart';
 import '../topic/lecturer_topic_screen.dart';
 import '../topic_proposal/lecturer_topic_proposal_screen.dart';
@@ -524,6 +526,26 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
                     },
                   ),
                   _QuickActionCard(
+                    icon: Icons.assignment_turned_in_rounded,
+                    color: const Color(0xFF7C3AED),
+                    title: AppLocalizations.text(
+                      'Báo cáo tiến độ',
+                      en: 'Progress Reports',
+                    ),
+                    subtitle: AppLocalizations.text(
+                      'Chấm điểm & nhận xét',
+                      en: 'Review & grade',
+                    ),
+                    onTap: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const LecturerReviewReportsScreen(),
+                        ),
+                      );
+                      _loadData();
+                    },
+                  ),
+                  _QuickActionCard(
                     icon: Icons.analytics_rounded,
                     color: const Color(0xFFEC4899),
                     title: AppLocalizations.text(
@@ -537,6 +559,23 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const LecturerStatisticsScreen(),
+                      ),
+                    ),
+                  ),
+                  _QuickActionCard(
+                    icon: Icons.school_rounded,
+                    color: const Color(0xFF0284C7),
+                    title: AppLocalizations.text(
+                      'Lớp học phần',
+                      en: 'Course Classes',
+                    ),
+                    subtitle: AppLocalizations.text(
+                      'Danh sách LHP',
+                      en: 'Class list',
+                    ),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const LecturerCourseScreen(),
                       ),
                     ),
                   ),

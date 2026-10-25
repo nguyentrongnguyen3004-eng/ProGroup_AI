@@ -123,4 +123,19 @@ class GovernanceApiService {
   Future<void> createCourseClass(Map<String, dynamic> data) async {
     await ApiService.instance.post('/api/lop-hoc-phan', data);
   }
+
+  Future<List<Map<String, dynamic>>> fetchRegistrationPeriods([int? lopHocPhanId]) async {
+    try {
+      final path = lopHocPhanId != null ? '/api/dot-dang-ky?lopHocPhanId=$lopHocPhanId' : '/api/dot-dang-ky';
+      final res = await ApiService.instance.get(path);
+      if (res is List) return res.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    } catch (_) {}
+    return [];
+  }
+
+  Future<void> updatePeriodStatus(int periodId, String newStatus) async {
+    await ApiService.instance.put('/api/dot-dang-ky/$periodId/trang-thai', {
+      'trangThai': newStatus,
+    });
+  }
 }

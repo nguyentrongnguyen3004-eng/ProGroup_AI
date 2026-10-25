@@ -115,4 +115,15 @@ class AdminApiService {
       return false;
     }
   }
+
+  /// Đặt lại mật khẩu cho người dùng
+  Future<Map<String, dynamic>> resetUserPassword(int userId, [String? newPassword]) async {
+    final body = <String, dynamic>{};
+    if (newPassword != null && newPassword.isNotEmpty) {
+      body['newPassword'] = newPassword;
+    }
+    final res = await ApiService.instance.put('/api/admin/users/$userId/reset-password', body);
+    if (res is Map<String, dynamic>) return res;
+    return {'success': true, 'message': 'Đã đặt lại mật khẩu.'};
+  }
 }
