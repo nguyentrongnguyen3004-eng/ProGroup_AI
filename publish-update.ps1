@@ -92,10 +92,25 @@ $meta = @{
 }
 $meta | ConvertTo-Json -Depth 5 | Set-Content -Path $versionJsonPath -Encoding UTF8
 
+# 5. Tự động đồng bộ mã nguồn lên GitHub
+Write-Host "`n[Tự động] Đang đồng bộ mã nguồn mới lên GitHub..." -ForegroundColor Green
+try {
+    Push-Location $root
+    git add .
+    git commit -m "chore(release): bump version to v$newVer (build $newCode) - $Changelog"
+    git push origin main
+    Write-Host "          Đã đẩy mã nguồn lên GitHub thành công!" -ForegroundColor Gray
+} catch {
+    Write-Host "          (Lưu ý: Không thể đẩy lên GitHub: $_)" -ForegroundColor Yellow
+} finally {
+    Pop-Location
+}
+
 Write-Host "`n==================================================" -ForegroundColor Cyan
 Write-Host " PHÁT HÀNH BẢN CẬP NHẬT THÀNH CÔNG!" -ForegroundColor Yellow
 Write-Host " Phiên bản mới : v$newVer (Build $newCode)" -ForegroundColor White
 Write-Host " Dung lượng    : $apkSizeMB MB" -ForegroundColor White
+Write-Host " Máy chủ & Git : Đã cập nhật đầy đủ" -ForegroundColor White
 Write-Host " Người dùng mở app trên điện thoại sẽ tự động" -ForegroundColor Green
 Write-Host " nhận được thông báo cập nhật ngay lập tức!" -ForegroundColor Green
 Write-Host "==================================================" -ForegroundColor Cyan
