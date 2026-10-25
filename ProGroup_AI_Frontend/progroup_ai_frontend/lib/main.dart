@@ -34,10 +34,12 @@ import 'package:progroup_ai_frontend/screens/sinh_vien/group/create_group_screen
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/join_group_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/propose_topic_screen.dart';
 
+import 'services/auth_service.dart';
 import 'services/firebase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AuthService.loadSavedToken();
   if (!kIsWeb && defaultTargetPlatform != TargetPlatform.windows) {
     try {
       await FirebaseService.instance.initialize();

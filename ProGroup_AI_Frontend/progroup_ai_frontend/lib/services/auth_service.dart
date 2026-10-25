@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
 import '../data/mock/mock_lecturer.dart';
 import '../data/mock/mock_user.dart';
 import '../models/lecturer_model.dart';
 import '../models/user_model.dart';
+import 'api_service.dart';
 import 'lecturer_api_service.dart';
 
 class AuthService {
@@ -13,6 +15,13 @@ class AuthService {
   static UserModel? _currentUser;
   static UserModel get currentUser => _currentUser ?? MockUser.student;
   static set currentUser(UserModel? user) => _currentUser = user;
+
+  static Future<void> loadSavedToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      currentToken ??= prefs.getString('auth_token');
+    } catch (_) {}
+  }
 
   Future<UserModel?> login(String username, String password) async {
     final cleanUsername = username.trim();
@@ -89,12 +98,7 @@ class AuthService {
   }
 
   Future<UserModel?> _loginViaApi(String username, String password) async {
-    final urls = [
-      AppConstants.apiBaseUrl,
-      'http://127.0.0.1:5094',
-      'http://localhost:5094',
-      'http://10.0.2.2:5094',
-    ];
+    final urls = ApiService.baseUrls;
 
     for (final base in urls) {
       try {
@@ -106,12 +110,21 @@ class AuthService {
             'tenDangNhap': username,
             'matKhau': password,
           }),
-        ).timeout(const Duration(seconds: 4));
+        ).timeout(const Duration(seconds: 5));
 
         final bodyStr = utf8.decode(response.bodyBytes);
         if (response.statusCode == 200) {
           final data = jsonDecode(bodyStr) as Map<String, dynamic>;
           currentToken = data['token'] as String?;
+          ApiService.setWorkingBaseUrl(base);
+
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            if (currentToken != null) {
+              await prefs.setString('auth_token', currentToken!);
+            }
+          } catch (_) {}
+
           final userJson = data['user'] as Map<String, dynamic>?;
           if (userJson != null) {
             final maVaiTro = (userJson['maVaiTro'] as String? ?? '').toUpperCase();
@@ -161,5 +174,8 @@ class AuthService {
   static void logout() {
     currentToken = null;
     _currentUser = null;
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.remove('auth_token'))
+        .catchError((_) => false);
   }
 }

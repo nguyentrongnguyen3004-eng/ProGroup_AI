@@ -26,6 +26,10 @@ class ApiService {
   ];
 
   static String? _workingBaseUrl;
+  static String? get workingBaseUrl => _workingBaseUrl;
+  static void setWorkingBaseUrl(String url) {
+    _workingBaseUrl = url;
+  }
 
   Map<String, String> _headers() {
     final headers = <String, String>{
