@@ -21,6 +21,13 @@ if (-not (Test-Path $pubspecPath)) {
     Write-Error "Không tìm thấy file pubspec.yaml tại: $pubspecPath"
 }
 
+# 0. Tự động sao lưu Database trước khi đóng gói
+Write-Host "`n[0/5] Tự động sao lưu Cơ sở dữ liệu..." -ForegroundColor Green
+$backupScript = Join-Path $root "scripts\backup_database.ps1"
+if (Test-Path $backupScript) {
+    & $backupScript
+}
+
 # 1. Đọc versionCode hiện tại từ pubspec.yaml
 $pubspecContent = Get-Content $pubspecPath -Raw
 if ($pubspecContent -match "version:\s*([0-9\.]+)\+([0-9]+)") {

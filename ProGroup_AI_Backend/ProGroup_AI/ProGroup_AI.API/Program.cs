@@ -158,6 +158,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
+builder.Services.AddHostedService<DatabaseAutoBackupService>();
 
 
 // ========================================

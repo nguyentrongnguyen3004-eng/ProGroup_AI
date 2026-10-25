@@ -63,3 +63,5 @@ publish_output/
 *.apk
 **/wwwroot/downloads/*.apk
 !**/wwwroot/downloads/.gitkeep
+backups/*.bak
+!backups/.gitkeep

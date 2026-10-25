@@ -11,6 +11,10 @@ if not exist "%~dp0tools\cloudflared.exe" (
     powershell -Command "Invoke-WebRequest -Uri 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe' -OutFile '%~dp0tools\cloudflared.exe'"
 )
 
+echo 0. Dang tu dong sao luu Co so du lieu truoc khi van hanh...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\backup_database.ps1"
+echo.
+
 echo 1. Dang khoi dong Backend ASP.NET Core API tai cong 5094...
 start "ProGroup_AI Backend API" cmd /k "cd /d "%~dp0ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API" && dotnet run --urls=http://0.0.0.0:5094"
 
