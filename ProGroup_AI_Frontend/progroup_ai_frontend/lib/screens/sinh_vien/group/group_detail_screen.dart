@@ -153,7 +153,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     await StudentApiService.instance.updateGroupName(widget.group.id, newName);
                     if (mounted) {
                       setState(() => groupName = newName);
-                      Navigator.pop(dialogContext);
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext);
+                      }
                       _showMessage(
                         AppLocalizations.text('Đã đổi tên nhóm thành công.', en: 'Group renamed successfully.'),
                       );

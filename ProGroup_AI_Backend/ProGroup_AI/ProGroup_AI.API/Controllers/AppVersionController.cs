@@ -40,11 +40,11 @@ public class AppVersionController : ControllerBase
         }
 
         var scheme = Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? Request.Scheme;
-        if (Request.Host.Value.Contains("trycloudflare.com"))
+        var host = Request.Host.Value ?? "";
+        if (host.Contains("trycloudflare.com"))
         {
             scheme = "https";
         }
-        var host = Request.Host.Value;
         var downloadUrl = $"{scheme}://{host}/downloads/app-latest.apk";
 
         string version = "1.0.2";

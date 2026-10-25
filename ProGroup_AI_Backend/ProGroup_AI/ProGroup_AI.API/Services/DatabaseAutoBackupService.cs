@@ -63,7 +63,12 @@ public class DatabaseAutoBackupService : BackgroundService
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var contentRoot = _env.ContentRootPath;
-        var repoRoot = Directory.GetParent(contentRoot)?.Parent?.FullName ?? contentRoot;
+        var dir = new DirectoryInfo(contentRoot);
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "start_full_system.bat")))
+        {
+            dir = dir.Parent;
+        }
+        var repoRoot = dir?.FullName ?? contentRoot;
         var backupDir = Path.Combine(repoRoot, "backups");
 
         if (!Directory.Exists(backupDir))
