@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/settings/app_settings.dart';
+import '../../../services/app_update_service.dart';
 import 'package:progroup_ai_frontend/widgets/app_bottom_nav.dart';
 
 import 'package:progroup_ai_frontend/screens/sinh_vien/home/home_screen.dart';
@@ -18,6 +19,16 @@ class StudentMainScreen extends StatefulWidget {
 
 class _StudentMainScreenState extends State<StudentMainScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.instance.autoCheckAndPrompt(context);
+      }
+    });
+  }
 
   void _onBottomNavTap(int index) {
     if (index < 0 || index >= 5 || index == _currentIndex) return;

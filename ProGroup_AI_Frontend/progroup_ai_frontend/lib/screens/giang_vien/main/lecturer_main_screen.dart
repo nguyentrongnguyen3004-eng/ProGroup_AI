@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/settings/app_settings.dart';
+import '../../../services/app_update_service.dart';
 import '../../../services/lecturer_api_service.dart';
 import '../../../widgets/lecturer/lecturer_bottom_nav.dart';
 import '../course/lecturer_course_screen.dart';
@@ -26,6 +27,11 @@ class _LecturerMainScreenState extends State<LecturerMainScreen> {
   void initState() {
     super.initState();
     _fetchUnreadCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.instance.autoCheckAndPrompt(context);
+      }
+    });
   }
 
   Future<void> _fetchUnreadCount() async {

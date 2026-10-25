@@ -1,8 +1,9 @@
-﻿using System.Text;
+using System.Text;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.StaticFiles;
 using ProGroup_AI.API.Data;
 using ProGroup_AI.API.Services;
 using Microsoft.OpenApi;
@@ -184,7 +185,12 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+var contentTypeProvider = new FileExtensionContentTypeProvider();
+contentTypeProvider.Mappings[".apk"] = "application/vnd.android.package-archive";
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = contentTypeProvider
+});
 
 
 // ========================================

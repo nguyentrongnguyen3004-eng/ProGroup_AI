@@ -4,6 +4,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../models/user_model.dart';
 import '../../../services/admin_api_service.dart';
+import '../../../services/app_update_service.dart';
 import '../../../widgets/common/unified_role_bottom_nav.dart';
 import '../activity/admin_activity_log_screen.dart';
 import '../data/admin_data_management_screen.dart';
@@ -30,6 +31,11 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   void initState() {
     super.initState();
     _loadUnread();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.instance.autoCheckAndPrompt(context);
+      }
+    });
   }
 
   Future<void> _loadUnread() async {

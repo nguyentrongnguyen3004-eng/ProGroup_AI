@@ -12,6 +12,7 @@ import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
 import '../../../services/avatar_service.dart';
+import '../../../services/app_update_service.dart';
 
 class TrainingProfileScreen extends StatefulWidget {
   const TrainingProfileScreen({super.key});
@@ -434,10 +435,24 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
       child: Column(
         children: [
           _ListRow(
+            icon: Icons.system_update_rounded,
+            iconColor: const Color(0xFF2563EB),
+            title: AppLocalizations.text('Kiểm tra bản cập nhật', en: 'Check for Updates'),
+            subtitle: AppLocalizations.text(
+              'Nhấn để tìm phiên bản mới nhất',
+              en: 'Tap to check for latest version',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => AppUpdateService.instance.manualCheckAndPrompt(context),
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
             icon: Icons.info_rounded,
             iconColor: const Color(0xFF64748B),
             title: AppLocalizations.text('Phiên bản', en: 'Version'),
-            subtitle: 'ProGroup AI v1.0.0',
+            subtitle: 'ProGroup AI v${AppUpdateService.currentVersion}',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => AppUpdateService.instance.manualCheckAndPrompt(context),
           ),
           const Divider(height: 1, indent: 64),
           _ListRow(

@@ -60,3 +60,6 @@ Thumbs.db
 # Tools & Publishing
 tools/
 publish_output/
+*.apk
+**/wwwroot/downloads/*.apk
+!**/wwwroot/downloads/.gitkeep

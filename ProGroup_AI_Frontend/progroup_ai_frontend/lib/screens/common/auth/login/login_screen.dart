@@ -5,6 +5,7 @@ import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../services/app_update_service.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../widgets/app_button.dart';
 import '../../../../widgets/app_text_field.dart';
@@ -25,6 +26,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool obscurePassword = true;
   bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.instance.autoCheckAndPrompt(context);
+      }
+    });
+  }
 
   @override
   void dispose() {

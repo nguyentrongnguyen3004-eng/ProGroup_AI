@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/settings/app_settings.dart';
+import '../../../services/app_update_service.dart';
 import '../../../services/governance_api_service.dart';
 import '../../../widgets/common/unified_role_bottom_nav.dart';
 import '../home/governance_overview_screen.dart';
@@ -25,6 +26,11 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
   void initState() {
     super.initState();
     _loadUnread();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.instance.autoCheckAndPrompt(context);
+      }
+    });
   }
 
   Future<void> _loadUnread() async {
