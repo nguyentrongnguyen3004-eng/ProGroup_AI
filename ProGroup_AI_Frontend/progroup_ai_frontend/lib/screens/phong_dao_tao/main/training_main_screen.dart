@@ -94,6 +94,7 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
                 key: ValueKey('train_overview_$lang'),
                 onOpenManagement: _openManagement,
                 onOpenNotifications: () => _selectTab(2),
+                onOpenProfile: () => _selectTab(3),
               ),
               TrainingDataManagementScreen(
                 key: ValueKey('train_data_${_selectedKind}_$lang'),

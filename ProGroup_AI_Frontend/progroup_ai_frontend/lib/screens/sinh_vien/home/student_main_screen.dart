@@ -42,6 +42,7 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
                 onOpenNotifications: () => _onBottomNavTap(3),
                 onOpenCourses: () => _onBottomNavTap(1),
                 onOpenGroups: () => _onBottomNavTap(2),
+                onOpenProfile: () => _onBottomNavTap(4),
               ),
               CourseScreen(key: ValueKey('course_$lang')),
               GroupScreen(key: ValueKey('group_$lang')),

@@ -81,6 +81,7 @@ class _LecturerMainScreenState extends State<LecturerMainScreen> {
                 },
                 onOpenTopics: _openTopics,
                 onOpenRegistrations: _openRegistrations,
+                onOpenProfile: () => _selectTab(4),
               ),
               LecturerCourseScreen(key: ValueKey('lec_course_$lang')),
               LecturerGroupScreen(key: ValueKey('lec_group_$lang')),

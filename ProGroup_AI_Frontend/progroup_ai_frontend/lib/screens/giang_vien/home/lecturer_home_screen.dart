@@ -6,6 +6,7 @@ import '../../../models/group_model.dart';
 import '../../../models/lecturer_course_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../models/topic_model.dart';
+import '../../../services/avatar_service.dart';
 import '../../../services/lecturer_api_service.dart';
 import '../../../widgets/lecturer/lecturer_course_card.dart';
 import '../../../widgets/lecturer/lecturer_stat_card.dart';
@@ -22,12 +23,14 @@ class LecturerHomeScreen extends StatefulWidget {
   final VoidCallback? onOpenNotifications;
   final VoidCallback? onOpenTopics;
   final VoidCallback? onOpenRegistrations;
+  final VoidCallback? onOpenProfile;
 
   const LecturerHomeScreen({
     super.key,
     this.onOpenNotifications,
     this.onOpenTopics,
     this.onOpenRegistrations,
+    this.onOpenProfile,
   });
 
   @override
@@ -48,6 +51,7 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
   @override
   void initState() {
     super.initState();
+    AvatarService.instance.getAvatar();
     _loadData();
   }
 
@@ -180,35 +184,11 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
               // Top Header: Avatar + Xin chào + Nút Chuông thông báo
               Row(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        _getInitials(lecturerName),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
+                  UserAvatarView(
+                    initials: _getInitials(lecturerName),
+                    size: 48,
+                    fontSize: 16,
+                    onTap: widget.onOpenProfile,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

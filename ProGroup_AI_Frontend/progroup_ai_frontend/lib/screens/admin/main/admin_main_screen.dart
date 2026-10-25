@@ -107,6 +107,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                   MaterialPageRoute(builder: (_) => const AdminActivityLogScreen()),
                 ),
                 onOpenNotifications: () => _openSection(3),
+                onOpenProfile: () => _openSection(4),
               ),
               AdminUserScreen(
                 key: ValueKey('admin_user_$lang'),

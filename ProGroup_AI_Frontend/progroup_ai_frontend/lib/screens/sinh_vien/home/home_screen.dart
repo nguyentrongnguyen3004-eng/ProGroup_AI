@@ -9,6 +9,7 @@ import 'package:progroup_ai_frontend/screens/sinh_vien/notification/notification
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/ai_topic_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/topic_screen.dart';
 import 'package:progroup_ai_frontend/services/auth_service.dart';
+import 'package:progroup_ai_frontend/services/avatar_service.dart';
 import 'package:progroup_ai_frontend/services/student_api_service.dart';
 import 'package:progroup_ai_frontend/widgets/course_card.dart';
 
@@ -16,12 +17,14 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback? onOpenNotifications;
   final VoidCallback? onOpenCourses;
   final VoidCallback? onOpenGroups;
+  final VoidCallback? onOpenProfile;
 
   const HomeScreen({
     super.key,
     this.onOpenNotifications,
     this.onOpenCourses,
     this.onOpenGroups,
+    this.onOpenProfile,
   });
 
   @override
@@ -40,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    AvatarService.instance.getAvatar();
     _loadData();
   }
 
@@ -128,35 +132,11 @@ class _HomeScreenState extends State<HomeScreen> {
               // ======================================================
               Row(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
+                  UserAvatarView(
+                    initials: initials,
+                    size: 48,
+                    fontSize: 16,
+                    onTap: widget.onOpenProfile,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

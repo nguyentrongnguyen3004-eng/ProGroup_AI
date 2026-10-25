@@ -94,6 +94,7 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
                 onOpenData: () => _selectTab(1),
                 onOpenAssignments: () => _selectTab(2),
                 onOpenNotifications: () => _selectTab(3),
+                onOpenProfile: () => _selectTab(4),
               ),
               GovernanceDataManagementScreen(key: ValueKey('gov_data_$lang')),
               GovernanceToolsScreen(key: ValueKey('gov_tools_$lang')),

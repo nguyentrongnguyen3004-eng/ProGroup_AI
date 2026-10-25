@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/admin_api_service.dart';
+import '../../../services/avatar_service.dart';
 import '../../../services/auth_service.dart';
 import '../notification/admin_notification_screen.dart';
 import '../user/admin_user_detail_screen.dart';
@@ -13,6 +14,7 @@ class AdminOverviewScreen extends StatefulWidget {
   final VoidCallback? onOpenRoles;
   final VoidCallback? onOpenActivity;
   final VoidCallback? onOpenNotifications;
+  final VoidCallback? onOpenProfile;
 
   const AdminOverviewScreen({
     super.key,
@@ -21,6 +23,7 @@ class AdminOverviewScreen extends StatefulWidget {
     this.onOpenRoles,
     this.onOpenActivity,
     this.onOpenNotifications,
+    this.onOpenProfile,
   });
 
   @override
@@ -38,6 +41,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   @override
   void initState() {
     super.initState();
+    AvatarService.instance.getAvatar();
     _loadData();
   }
 
@@ -162,35 +166,12 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               // ======================================================
               Row(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
+                  UserAvatarView(
+                    initials: initials,
+                    size: 48,
+                    fontSize: 16,
+                    gradientColors: const [Color(0xFF991B1B), Color(0xFFEF4444)],
+                    onTap: widget.onOpenProfile,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

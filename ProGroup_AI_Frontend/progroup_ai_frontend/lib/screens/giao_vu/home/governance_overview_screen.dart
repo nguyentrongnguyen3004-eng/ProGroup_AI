@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/avatar_service.dart';
 import '../../../services/governance_api_service.dart';
 import '../course/governance_course_screen.dart';
 import '../notification/governance_notification_screen.dart';
@@ -14,12 +15,14 @@ class GovernanceOverviewScreen extends StatefulWidget {
   final VoidCallback? onOpenData;
   final VoidCallback? onOpenAssignments;
   final VoidCallback? onOpenNotifications;
+  final VoidCallback? onOpenProfile;
 
   const GovernanceOverviewScreen({
     super.key,
     this.onOpenData,
     this.onOpenAssignments,
     this.onOpenNotifications,
+    this.onOpenProfile,
   });
 
   @override
@@ -40,6 +43,7 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
   @override
   void initState() {
     super.initState();
+    AvatarService.instance.getAvatar();
     _loadData();
   }
 
@@ -170,35 +174,12 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
               // ======================================================
               Row(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
+                  UserAvatarView(
+                    initials: initials,
+                    size: 48,
+                    fontSize: 16,
+                    gradientColors: const [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+                    onTap: widget.onOpenProfile,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
