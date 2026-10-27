@@ -29,21 +29,25 @@ $sqlQuery = "BACKUP DATABASE [$DatabaseName] TO DISK = N'$backupFilePath' WITH F
 
 try {
     & $sqlcmdPath -S $ServerInstance -E -Q $sqlQuery | Out-Null
-    $fileSizeMB = [math]::Round(((Get-Item $backupFilePath).Length / 1MB), 2)
-    Write-Host "[Auto-Backup] Sao luu thanh cong: $backupFileName ($fileSizeMB MB)" -ForegroundColor Green
+    if (Test-Path $backupFilePath) {
+        $fileSizeMB = [math]::Round(((Get-Item $backupFilePath).Length / 1MB), 2)
+        Write-Host "[Auto-Backup] Sao luu thanh cong: $backupFileName ($fileSizeMB MB)" -ForegroundColor Green
 
-    # Cập nhật file bản sao lưu mới nhất tại ProGroup_AI_Backend\ProGroup_AI\ProjectRegistrationDB_backup.bak
-    $latestBak = Join-Path $root "ProGroup_AI_Backend\ProGroup_AI\ProjectRegistrationDB_backup.bak"
-    Copy-Item -Path $backupFilePath -Destination $latestBak -Force
+        # Cập nhật file bản sao lưu mới nhất tại ProGroup_AI_Backend\ProGroup_AI\ProjectRegistrationDB_backup.bak
+        $latestBak = Join-Path $root "ProGroup_AI_Backend\ProGroup_AI\ProjectRegistrationDB_backup.bak"
+        Copy-Item -Path $backupFilePath -Destination $latestBak -Force
 
-    # Dọn dẹp: Chỉ giữ lại $KeepRecent bản sao lưu mới nhất
-    $allBackups = Get-ChildItem -Path $backupDir -Filter "*.bak" | Sort-Object CreationTime -Descending
-    if ($allBackups.Count -gt $KeepRecent) {
-        $toRemove = $allBackups | Select-Object -Skip $KeepRecent
-        foreach ($file in $toRemove) {
-            Remove-Item $file.FullName -Force
-            Write-Host "[Auto-Backup] Da don dep ban sao luu cu: $($file.Name)" -ForegroundColor Gray
+        # Dọn dẹp: Chỉ giữ lại $KeepRecent bản sao lưu mới nhất
+        $allBackups = Get-ChildItem -Path $backupDir -Filter "*.bak" | Sort-Object CreationTime -Descending
+        if ($allBackups.Count -gt $KeepRecent) {
+            $toRemove = $allBackups | Select-Object -Skip $KeepRecent
+            foreach ($file in $toRemove) {
+                Remove-Item $file.FullName -Force
+                Write-Host "[Auto-Backup] Da don dep ban sao luu cu: $($file.Name)" -ForegroundColor Gray
+            }
         }
+    } else {
+        Write-Host "[Auto-Backup] Khong the tao file backup (co the SQL Server chua bat). Tiep tuc khoi dong he thong..." -ForegroundColor Yellow
     }
 } catch {
     Write-Host "[Auto-Backup] Canh bao: Khong the thuc hien sao luu: $_" -ForegroundColor Yellow
