@@ -40,7 +40,9 @@ import 'services/firebase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppSettings.instance.init();
   await ApiService.initCustomUrl();
+  await ApiService.autoDetectServer();
   await AuthService.loadSavedToken();
   if (!kIsWeb && defaultTargetPlatform != TargetPlatform.windows) {
     try {

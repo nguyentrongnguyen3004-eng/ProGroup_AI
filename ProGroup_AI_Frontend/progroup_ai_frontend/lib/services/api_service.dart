@@ -19,15 +19,14 @@ class ApiService {
   ApiService._();
   static final ApiService instance = ApiService._();
 
+  static const String currentLanIpUrl = 'http://192.168.1.109:5094';
+  static const String usbUrl = 'http://127.0.0.1:5094';
   static const String currentCloudflareUrl =
       'https://platforms-interaction-alcohol-share.trycloudflare.com';
-  static const String currentLanIpUrl = 'http://192.168.1.109:5094';
 
   static const List<String> baseUrls = [
-    currentCloudflareUrl,
+    usbUrl,
     currentLanIpUrl,
-    'http://192.168.1.193:5094',
-    'http://127.0.0.1:5094',
     'http://localhost:5094',
     'http://10.0.2.2:5094',
   ];
@@ -40,6 +39,27 @@ class ApiService {
 
   static void setWorkingBaseUrl(String url) {
     _workingBaseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+  }
+
+  /// Tự động dò tìm máy chủ Backend khả dụng (USB hoặc Wi-Fi) trong nền
+  static Future<String?> autoDetectServer() async {
+    // Nếu người dùng đã cài đặt URL thủ công và kết nối được thì dùng luôn
+    if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
+      if (await testConnection(_customBaseUrl!)) {
+        _workingBaseUrl = _customBaseUrl;
+        return _customBaseUrl;
+      }
+    }
+
+    // Ping nhanh các địa chỉ ứng cử viên
+    for (final url in baseUrls) {
+      if (await testConnection(url)) {
+        _workingBaseUrl = url;
+        debugPrint('[ApiService] Tự động kết nối máy chủ thành công: $url');
+        return url;
+      }
+    }
+    return null;
   }
 
   /// Khởi tạo và đọc URL máy chủ người dùng đã cấu hình trước đó (nếu có)
@@ -81,7 +101,7 @@ class ApiService {
     try {
       final cleanUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
       final uri = Uri.parse('$cleanUrl/api/health');
-      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      final res = await http.get(uri).timeout(const Duration(seconds: 2));
       return res.statusCode >= 200 && res.statusCode < 300;
     } catch (_) {
       return false;
