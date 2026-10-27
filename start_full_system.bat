@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title Khoi dong He thong ProGroup AI Backend va Tunnel
+title Khoi dong He thong ProGroup AI Backend
 echo ============================================================
 echo      PROGROUP AI - KHOI DONG TOAN BO HE THONG BACKEND
 echo ============================================================
@@ -9,13 +9,6 @@ echo.
 
 echo 0. Dang giai phong cong va tien trinh cu neu co...
 taskkill /F /IM ProGroup_AI.API.exe >nul 2>&1
-taskkill /F /IM cloudflared.exe >nul 2>&1
-
-if not exist "%~dp0tools\cloudflared.exe" (
-    echo Dang tai cong cu cloudflared.exe ve may - chi tai 1 lan duy nhat...
-    if not exist "%~dp0tools" mkdir "%~dp0tools"
-    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe' -OutFile '%~dp0tools\cloudflared.exe'"
-)
 
 echo 1. Dang tu dong sao luu Co so du lieu truoc khi van hanh...
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\backup_database.ps1"
@@ -33,22 +26,19 @@ if exist "%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" (
     "%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" reverse tcp:5094 tcp:5094 >nul 2>&1
 )
 
-timeout /t 5 /nobreak >nul
+timeout /t 3 /nobreak >nul
 
 echo ============================================================
 echo THONG TIN KET NOI CHO DIEN THOAI:
 echo.
-echo [CACH 1 - QUA CAP USB] (Neu dang cam day cap):
+echo [CACH 1 - QUA CAP USB] Neu dang cam day cap:
 echo    Dia chi API: http://127.0.0.1:5094 hoac http://localhost:5094
 echo    (Da duoc tu dong thiet lap cau noi ADB Reverse)
 echo.
 echo [CACH 2 - QUA WI-FI] Neu dien thoai dung CHUNG WI-FI voi Laptop:
 echo    Dia chi API: http://192.168.1.109:5094
 echo    (Test tren trinh duyet dien thoai: http://192.168.1.109:5094/api/health)
-echo.
-echo [CACH 2] Neu dung 4G hoac mang khac:
-echo    (Vui long xem link .trycloudflare.com duoc Cloudflare cap ben duoi)
 echo ============================================================
 echo.
-"%~dp0tools\cloudflared.exe" tunnel --url http://127.0.0.1:5094
+echo He thong Backend da san sang hoat dong!
 pause
