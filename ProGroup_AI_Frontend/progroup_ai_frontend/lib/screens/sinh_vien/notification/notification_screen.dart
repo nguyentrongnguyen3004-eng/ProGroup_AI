@@ -65,13 +65,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  void _markAllAsRead() {
+  Future<void> _markAllAsRead() async {
     setState(() {
       for (final n in _notifications) {
         n['unread'] = false;
         n['isRead'] = true;
       }
     });
+
+    // Gọi API lưu trạng thái đã đọc lên máy chủ
+    await StudentApiService.instance.markAllAsRead();
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -86,7 +91,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  void _markAsRead(int id) {
+  Future<void> _markAsRead(int id) async {
     setState(() {
       final index = _notifications.indexWhere((n) => n['id'] == id);
       if (index != -1) {
@@ -94,6 +99,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _notifications[index]['isRead'] = true;
       }
     });
+
+    // Gọi API lưu trạng thái đã đọc lên máy chủ
+    await StudentApiService.instance.markAsRead(id);
   }
 
   @override

@@ -181,6 +181,20 @@ class StudentApiService {
     }
   }
 
+  /// Đánh dấu 1 thông báo đã đọc trên máy chủ
+  Future<void> markAsRead(int id) async {
+    try {
+      await ApiService.instance.put('/api/notifications/$id/read', {});
+    } catch (_) {}
+  }
+
+  /// Đánh dấu tất cả thông báo đã đọc trên máy chủ
+  Future<void> markAllAsRead() async {
+    try {
+      await ApiService.instance.put('/api/notifications/read-all', {});
+    } catch (_) {}
+  }
+
   /// Đề xuất đề tài mới từ sinh viên
   Future<void> proposeTopic({
     required int dotDangKyId,
