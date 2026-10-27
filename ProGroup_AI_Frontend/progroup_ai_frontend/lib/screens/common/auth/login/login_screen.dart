@@ -9,6 +9,7 @@ import '../../../../services/app_update_service.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../widgets/app_button.dart';
 import '../../../../widgets/app_text_field.dart';
+import '../../../../widgets/server_config_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -127,7 +128,15 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             children: [
-              const SizedBox(height: 15),
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton.filledTonal(
+                  tooltip: 'Cấu hình Máy chủ Backend',
+                  icon: const Icon(Icons.dns_rounded, size: 20),
+                  onPressed: () => ServerConfigDialog.show(context),
+                ),
+              ),
+              const SizedBox(height: 5),
 
               Container(
                 width: 76,

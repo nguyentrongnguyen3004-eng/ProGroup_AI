@@ -1,12 +1,12 @@
 param(
     [string]$Version = "",
-    [string]$Changelog = "• Cập nhật tính năng mới và cải thiện hiệu năng hệ thống."
+    [string]$Changelog = "Cap nhat tinh nang moi va cai thien hieu nang he thong."
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "==================================================" -ForegroundColor Cyan
-Write-Host "  PROGROUP AI - TỰ ĐỘNG ĐÓNG GÓI & PHÁT HÀNH OTA " -ForegroundColor Yellow
+Write-Host "  PROGROUP AI - TU DONG DONG GOI VA PHAT HANH OTA " -ForegroundColor Yellow
 Write-Host "==================================================" -ForegroundColor Cyan
 
 $root = $PSScriptRoot
@@ -18,17 +18,17 @@ $servicePath = Join-Path $frontendDir "lib\services\app_update_service.dart"
 $versionJsonPath = Join-Path $downloadsDir "version.json"
 
 if (-not (Test-Path $pubspecPath)) {
-    Write-Error "Không tìm thấy file pubspec.yaml tại: $pubspecPath"
+    Write-Error "Khong tim thay file pubspec.yaml tai: $pubspecPath"
 }
 
-# 0. Tự động sao lưu Database trước khi đóng gói
-Write-Host "`n[0/5] Tự động sao lưu Cơ sở dữ liệu..." -ForegroundColor Green
+# 0. Tu dong sao luu Database truoc khi dong goi
+Write-Host "`n[0/5] Tu dong sao luu Co so du lieu..." -ForegroundColor Green
 $backupScript = Join-Path $root "scripts\backup_database.ps1"
 if (Test-Path $backupScript) {
     & $backupScript
 }
 
-# 1. Đọc versionCode hiện tại từ pubspec.yaml
+# 1. Doc versionCode hien tai tu pubspec.yaml
 $pubspecContent = Get-Content $pubspecPath -Raw
 if ($pubspecContent -match "version:\s*([0-9\.]+)\+([0-9]+)") {
     $currentVer = $matches[1]
@@ -48,22 +48,22 @@ $newVer = if ($Version) { $Version } else {
     }
 }
 
-Write-Host "`n[1/4] Nâng phiên bản:" -ForegroundColor Green
-Write-Host "      Từ: v$currentVer (code $currentCode)"
-Write-Host "      -> Lên: v$newVer (code $newCode)"
+Write-Host "`n[1/4] Nang phien ban:" -ForegroundColor Green
+Write-Host "      Tu: v$currentVer (code $currentCode)"
+Write-Host "      -> Len: v$newVer (code $newCode)"
 
-# Cập nhật pubspec.yaml
+# Cap nhat pubspec.yaml
 $newPubspec = $pubspecContent -replace "version:\s*[0-9\.]+\+[0-9]+", "version: $newVer+$newCode"
 Set-Content -Path $pubspecPath -Value $newPubspec -NoNewline
 
-# Cập nhật app_update_service.dart
+# Cap nhat app_update_service.dart
 $serviceContent = Get-Content $servicePath -Raw
 $serviceContent = $serviceContent -replace "currentVersion = '[^']+';", "currentVersion = '$newVer';"
 $serviceContent = $serviceContent -replace "currentVersionCode = [0-9]+;", "currentVersionCode = $newCode;"
 Set-Content -Path $servicePath -Value $serviceContent -NoNewline
 
 # 2. Build APK
-Write-Host "`n[2/4] Đang đóng gói APK mới (flutter build apk --debug)..." -ForegroundColor Green
+Write-Host "`n[2/4] Dang dong goi APK moi (flutter build apk --debug)..." -ForegroundColor Green
 Push-Location $frontendDir
 try {
     & "C:\Users\ACER\flutter\bin\flutter.bat" build apk --debug
@@ -73,11 +73,11 @@ try {
 
 $apkSource = Join-Path $frontendDir "build\app\outputs\flutter-apk\app-debug.apk"
 if (-not (Test-Path $apkSource)) {
-    Write-Error "Build thất bại, không tìm thấy file APK tại: $apkSource"
+    Write-Error "Build that bai, khong tim thay file APK tai: $apkSource"
 }
 
-# 3. Copy APK vào wwwroot/downloads của Backend
-Write-Host "`n[3/4] Đang copy file APK vào thư mục máy chủ Backend..." -ForegroundColor Green
+# 3. Copy APK vao wwwroot/downloads cua Backend
+Write-Host "`n[3/4] Dang copy file APK vao thu muc may chu Backend..." -ForegroundColor Green
 if (-not (Test-Path $downloadsDir)) {
     New-Item -ItemType Directory -Path $downloadsDir -Force | Out-Null
 }
@@ -87,7 +87,7 @@ Copy-Item -Path $apkSource -Destination $apkDest -Force
 $apkSizeMB = [math]::Round(((Get-Item $apkDest).Length / 1MB), 1)
 
 # 4. Ghi metadata version.json cho Backend API
-Write-Host "`n[4/4] Cập nhật version.json cho máy chủ..." -ForegroundColor Green
+Write-Host "`n[4/4] Cap nhat version.json cho may chu..." -ForegroundColor Green
 $meta = @{
     version = $newVer
     versionCode = $newCode
@@ -99,25 +99,25 @@ $meta = @{
 }
 $meta | ConvertTo-Json -Depth 5 | Set-Content -Path $versionJsonPath -Encoding UTF8
 
-# 5. Tự động đồng bộ mã nguồn lên GitHub
-Write-Host "`n[Tự động] Đang đồng bộ mã nguồn mới lên GitHub..." -ForegroundColor Green
+# 5. Tu dong dong bo ma nguon len GitHub
+Write-Host "`n[Tu dong] Dang dong bo ma nguon moi len GitHub..." -ForegroundColor Green
 try {
     Push-Location $root
     git add .
     git commit -m "chore(release): bump version to v$newVer (build $newCode) - $Changelog"
     git push origin main
-    Write-Host "          Đã đẩy mã nguồn lên GitHub thành công!" -ForegroundColor Gray
+    Write-Host "          Da day ma nguon len GitHub thanh cong!" -ForegroundColor Gray
 } catch {
-    Write-Host "          (Lưu ý: Không thể đẩy lên GitHub: $_)" -ForegroundColor Yellow
+    Write-Host "          (Luu y: Khong the day len GitHub)" -ForegroundColor Yellow
 } finally {
     Pop-Location
 }
 
 Write-Host "`n==================================================" -ForegroundColor Cyan
-Write-Host " PHÁT HÀNH BẢN CẬP NHẬT THÀNH CÔNG!" -ForegroundColor Yellow
-Write-Host " Phiên bản mới : v$newVer (Build $newCode)" -ForegroundColor White
-Write-Host " Dung lượng    : $apkSizeMB MB" -ForegroundColor White
-Write-Host " Máy chủ & Git : Đã cập nhật đầy đủ" -ForegroundColor White
-Write-Host " Người dùng mở app trên điện thoại sẽ tự động" -ForegroundColor Green
-Write-Host " nhận được thông báo cập nhật ngay lập tức!" -ForegroundColor Green
+Write-Host " PHAT HANH BAN CAP NHAT THANH CONG!" -ForegroundColor Yellow
+Write-Host " Phien ban moi : v$newVer (Build $newCode)" -ForegroundColor White
+Write-Host " Dung luong    : $apkSizeMB MB" -ForegroundColor White
+Write-Host " May chu & Git : Da cap nhat day du" -ForegroundColor White
+Write-Host " Nguoi dung mo app tren dien thoai se tu dong" -ForegroundColor Green
+Write-Host " nhan duoc thong bao cap nhat ngay lap tuc!" -ForegroundColor Green
 Write-Host "==================================================" -ForegroundColor Cyan

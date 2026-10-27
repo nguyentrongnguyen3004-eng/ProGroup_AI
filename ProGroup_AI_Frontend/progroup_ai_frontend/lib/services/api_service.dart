@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_service.dart';
 
@@ -17,18 +19,73 @@ class ApiService {
   ApiService._();
   static final ApiService instance = ApiService._();
 
+  static const String currentCloudflareUrl =
+      'https://platforms-interaction-alcohol-share.trycloudflare.com';
+  static const String currentLanIpUrl = 'http://192.168.1.109:5094';
+
   static const List<String> baseUrls = [
-    'https://dicke-addresses-routine-reduce.trycloudflare.com',
+    currentCloudflareUrl,
+    currentLanIpUrl,
+    'http://192.168.1.193:5094',
     'http://127.0.0.1:5094',
     'http://localhost:5094',
-    'http://192.168.1.193:5094',
     'http://10.0.2.2:5094',
   ];
 
   static String? _workingBaseUrl;
-  static String? get workingBaseUrl => _workingBaseUrl;
+  static String? _customBaseUrl;
+
+  static String? get workingBaseUrl => _workingBaseUrl ?? _customBaseUrl;
+  static String? get customBaseUrl => _customBaseUrl;
+
   static void setWorkingBaseUrl(String url) {
-    _workingBaseUrl = url;
+    _workingBaseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+  }
+
+  /// Khởi tạo và đọc URL máy chủ người dùng đã cấu hình trước đó (nếu có)
+  static Future<void> initCustomUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedUrl = prefs.getString('custom_backend_url');
+      if (savedUrl != null && savedUrl.trim().isNotEmpty) {
+        _customBaseUrl = savedUrl.trim().replaceAll(RegExp(r'/+$'), '');
+        _workingBaseUrl = _customBaseUrl;
+        debugPrint('[ApiService] Đã tải URL máy chủ tùy chỉnh: $_customBaseUrl');
+      }
+    } catch (_) {}
+  }
+
+  /// Lưu URL máy chủ tùy chỉnh mới
+  static Future<void> saveCustomBaseUrl(String url) async {
+    final cleanUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+    _customBaseUrl = cleanUrl;
+    _workingBaseUrl = cleanUrl;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_backend_url', cleanUrl);
+    } catch (_) {}
+  }
+
+  /// Xóa URL tùy chỉnh, quay về danh sách mặc định
+  static Future<void> clearCustomBaseUrl() async {
+    _customBaseUrl = null;
+    _workingBaseUrl = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('custom_backend_url');
+    } catch (_) {}
+  }
+
+  /// Kiểm tra xem một URL có kết nối được tới Backend hay không (/api/health)
+  static Future<bool> testConnection(String url) async {
+    try {
+      final cleanUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+      final uri = Uri.parse('$cleanUrl/api/health');
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      return res.statusCode >= 200 && res.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
   }
 
   Map<String, String> _headers() {
@@ -51,11 +108,20 @@ class ApiService {
     ApiException? lastError;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
 
-    // Đưa URL đang hoạt động tốt nhất lên đầu danh sách để request nhanh tức thì
-    final candidateUrls = List<String>.from(baseUrls);
-    if (_workingBaseUrl != null && candidateUrls.contains(_workingBaseUrl)) {
-      candidateUrls.remove(_workingBaseUrl);
-      candidateUrls.insert(0, _workingBaseUrl!);
+    // Xây dựng danh sách ưu tiên kết nối: Custom -> Working -> Defaults
+    final candidateUrls = <String>[];
+    if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
+      candidateUrls.add(_customBaseUrl!);
+    }
+    if (_workingBaseUrl != null &&
+        _workingBaseUrl!.isNotEmpty &&
+        !candidateUrls.contains(_workingBaseUrl)) {
+      candidateUrls.add(_workingBaseUrl!);
+    }
+    for (final u in baseUrls) {
+      if (!candidateUrls.contains(u)) {
+        candidateUrls.add(u);
+      }
     }
 
     for (final baseUrl in candidateUrls) {

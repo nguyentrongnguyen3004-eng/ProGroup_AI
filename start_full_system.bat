@@ -30,10 +30,15 @@ if exist "%~dp0ProGroup_AI_Backend\ProGroup_AI\ProGroup_AI.API\bin\Debug\net10.0
 
 timeout /t 5 /nobreak >nul
 
-echo 3. Dang khoi dong Cloudflare Tunnel...
+echo ============================================================
+echo THONG TIN KET NOI CHO DIEN THOAI:
 echo.
-echo Khi man hinh hien thi link "https://....trycloudflare.com",
-echo ban co the truy cap vao /swagger tren dien thoai de kiem tra.
+echo [CACH 1 - NHANH NHAT] Neu dien thoai dung CHUNG WI-FI voi Laptop:
+echo    Dia chi API: http://192.168.1.109:5094
+echo    (Test tren trinh duyet dien thoai: http://192.168.1.109:5094/api/health)
+echo.
+echo [CACH 2] Neu dung 4G hoac mang khac:
+echo    (Vui long xem link .trycloudflare.com duoc Cloudflare cap ben duoi)
 echo ============================================================
 echo.
 "%~dp0tools\cloudflared.exe" tunnel --url http://127.0.0.1:5094

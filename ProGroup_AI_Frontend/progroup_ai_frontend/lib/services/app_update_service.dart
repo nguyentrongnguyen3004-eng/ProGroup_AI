@@ -50,8 +50,8 @@ class AppUpdateService {
   static final AppUpdateService instance = AppUpdateService._();
 
   /// Phiên bản hiện tại của app (đồng bộ với pubspec.yaml)
-  static const String currentVersion = '1.0.2';
-  static const int currentVersionCode = 2;
+  static const String currentVersion = '1.0.3';
+  static const int currentVersionCode = 3;
 
   bool _hasAutoCheckedThisSession = false;
   bool _isChecking = false;
