@@ -87,14 +87,22 @@ class AvatarService {
   Future<void> syncFromServer(String username, String? serverAvatarUrl) async {
     if (serverAvatarUrl == null || serverAvatarUrl.trim().isEmpty) return;
     final clean = serverAvatarUrl.trim();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final local = prefs.getString(_getKey(username))?.trim();
+      // Nếu local đã lưu ảnh Base64 thì ưu tiên giữ Base64 để hiển thị tức thì không lag mạng
+      if (local != null && local.startsWith('data:image/')) {
+        avatarNotifier.value = local;
+        AuthService.currentUser = AuthService.currentUser.copyWith(avatarUrl: local);
+        return;
+      }
+      await prefs.setString(_getKey(username), clean);
+    } catch (_) {}
+
     if (avatarNotifier.value != clean) {
       avatarNotifier.value = clean;
     }
     AuthService.currentUser = AuthService.currentUser.copyWith(avatarUrl: clean);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_getKey(username), clean);
-    } catch (_) {}
   }
 
   /// Lưu avatar mới (gọi API Backend + lưu vào SharedPreferences + cập nhật AuthService.currentUser)
@@ -135,7 +143,10 @@ class AvatarService {
         AuthService.currentUser = AuthService.currentUser.copyWith(
           avatarUrl: serverUrl,
         );
-        avatarNotifier.value = serverUrl;
+        // Nếu ban đầu người dùng chọn ảnh Base64 thì giữ nguyên Base64 trong notifier để render offline và không bị giật
+        if (!cleanData.startsWith('data:image/')) {
+          avatarNotifier.value = serverUrl;
+        }
         return serverUrl;
       }
     } catch (e) {
@@ -154,7 +165,7 @@ class AvatarService {
   /// Chuẩn hóa URL hiển thị của avatar:
   /// - Base64 Data URI: giữ nguyên
   /// - Full HTTP URL: giữ nguyên
-  /// - Relative URL (/uploads/...): ghép nối với apiBaseUrl
+  /// - Relative URL (/uploads/...): ghép nối với apiBaseUrl / workingBaseUrl
   static String resolveDisplayUrl(String avatar) {
     final clean = avatar.trim();
     if (clean.isEmpty) return '';
@@ -164,7 +175,8 @@ class AvatarService {
       return clean;
     }
     if (clean.startsWith('/')) {
-      return '${AppConstants.apiBaseUrl}$clean';
+      final base = ApiService.workingBaseUrl ?? ApiService.currentLanIpUrl;
+      return '$base$clean';
     }
     return clean;
   }
