@@ -190,8 +190,10 @@ class ApiService {
         }
 
         // Lấy thông báo lỗi chi tiết từ phản hồi nếu có
-        String errorMessage = 'Yêu cầu thất bại (${response.statusCode})';
-        if (responseBody.isNotEmpty) {
+        String errorMessage = response.statusCode == 401
+            ? 'Phiên đăng nhập đã hết hạn (401). Vui lòng đăng xuất và đăng nhập lại.'
+            : 'Yêu cầu thất bại (${response.statusCode})';
+        if (responseBody.isNotEmpty && response.statusCode != 401) {
           try {
             final errorJson = jsonDecode(responseBody);
             if (errorJson is Map) {
