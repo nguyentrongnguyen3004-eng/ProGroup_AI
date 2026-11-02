@@ -45,9 +45,20 @@ class LecturerCourseModel {
         (json['tenHocKy'] != null && json['namHoc'] != null
             ? '${json['tenHocKy']} - ${json['namHoc']}'
             : (json['tenHocKy'] as String? ?? 'HK1 - 2026-2027'));
-    final studentCount = json['studentCount'] as int? ?? json['soLuongToiDa'] as int? ?? 45;
-    final groupCount = json['groupCount'] as int? ?? 0;
-    final topicCount = json['topicCount'] as int? ?? 0;
+    final studentCount = json['studentCount'] as int? ??
+        json['soSinhVien'] as int? ??
+        json['SoSinhVien'] as int? ??
+        json['soLuongToiDa'] as int? ??
+        json['SoLuongToiDa'] as int? ??
+        45;
+    final groupCount = json['groupCount'] as int? ??
+        json['soNhom'] as int? ??
+        json['SoNhom'] as int? ??
+        0;
+    final topicCount = json['topicCount'] as int? ??
+        json['soDeTai'] as int? ??
+        json['SoDeTai'] as int? ??
+        0;
     final groupRegistrationStart = json['groupRegistrationStart'] as String? ?? '01/09/2026';
     final groupRegistrationEnd = json['groupRegistrationEnd'] as String? ?? '20/09/2026';
     final topicRegistrationStart = json['topicRegistrationStart'] as String? ?? '21/09/2026';
