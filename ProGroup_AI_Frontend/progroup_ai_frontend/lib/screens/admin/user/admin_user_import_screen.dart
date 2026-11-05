@@ -196,7 +196,8 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
         final matKhau = row.length > 1 ? row[1].toString().trim() : '123456';
         final hoTen = row.length > 2 ? row[2].toString().trim() : '';
         final email = row.length > 3 ? row[3].toString().trim() : '';
-        final soDienThoai = row.length > 4 ? row[4].toString().trim() : '';
+        final rawPhone = row.length > 4 ? row[4].toString().trim() : '';
+        final soDienThoai = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
         final vaiTro = row.length > 5 ? row[5].toString().trim().toUpperCase() : 'SINHVIEN';
         final trangThaiRaw = row.length > 6 ? row[6].toString().trim().toLowerCase() : 'true';
 
@@ -253,7 +254,8 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
         final matKhau = getVal(1);
         final hoTen = getVal(2);
         final email = getVal(3);
-        final soDienThoai = getVal(4);
+        final rawPhone = getVal(4);
+        final soDienThoai = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
         final vaiTro = getVal(5).toUpperCase();
         final trangThaiRaw = getVal(6).toLowerCase();
 

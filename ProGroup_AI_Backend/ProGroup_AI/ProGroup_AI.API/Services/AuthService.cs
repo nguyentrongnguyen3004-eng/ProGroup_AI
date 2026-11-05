@@ -60,7 +60,7 @@ public class AuthService : IAuthService
             return new LoginResponse
             {
                 Success = false,
-                Message = "Tài khoản của bạn đã bị vô hiệu hóa."
+                Message = "Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động."
             };
         }
 

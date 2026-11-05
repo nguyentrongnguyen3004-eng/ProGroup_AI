@@ -392,6 +392,15 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
           ),
           const Divider(height: 1, indent: 64),
           _ListRow(
+            icon: Icons.phone_rounded,
+            iconColor: const Color(0xFF10B981),
+            title: AppLocalizations.text('Số điện thoại', en: 'Phone Number'),
+            subtitle: (lecturer.phoneNumber != null && lecturer.phoneNumber.isNotEmpty)
+                ? lecturer.phoneNumber
+                : AppLocalizations.text('Chưa cập nhật', en: 'Not updated'),
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
             icon: Icons.account_balance_rounded,
             iconColor: const Color(0xFF8B5CF6),
             title: AppLocalizations.text('Khoa', en: 'Faculty'),

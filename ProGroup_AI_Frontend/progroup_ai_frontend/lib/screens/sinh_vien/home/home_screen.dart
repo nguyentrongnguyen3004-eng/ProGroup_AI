@@ -53,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _errorMessage = null;
     });
 
+
     try {
       final results = await Future.wait([
         StudentApiService.instance.fetchMyCourses(),
@@ -632,7 +633,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         subtitle: Text(
-                          'Lớp ${_courses.first.classCode} đang mở đăng ký.',
+                          (_courses.first.status == 'Đang mở' || _courses.first.status == 'Đang đăng ký')
+                              ? 'Lớp  đang mở đăng ký.'
+                              : 'Lớp  đã đóng đợt đăng ký.',
                           style: TextStyle(
                             color: colors.onSurfaceVariant,
                             fontSize: 12.5,

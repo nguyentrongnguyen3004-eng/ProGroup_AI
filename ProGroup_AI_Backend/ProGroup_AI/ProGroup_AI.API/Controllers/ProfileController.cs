@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProGroup_AI.API.Data;
 using ProGroup_AI.API.DTOs.Profile;
+using ProGroup_AI.API.Services;
 
 namespace ProGroup_AI.API.Controllers;
 
@@ -13,10 +14,12 @@ namespace ProGroup_AI.API.Controllers;
 public sealed class ProfileController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly ICloudflareR2Service _r2Service;
 
-    public ProfileController(ApplicationDbContext db)
+    public ProfileController(ApplicationDbContext db, ICloudflareR2Service r2Service)
     {
         _db = db;
+        _r2Service = r2Service;
     }
 
     [HttpGet]
@@ -120,7 +123,19 @@ public sealed class ProfileController : ControllerBase
 
         if (request.SoDienThoai is not null)
         {
-            user.SoDienThoai = string.IsNullOrWhiteSpace(request.SoDienThoai) ? null : request.SoDienThoai.Trim();
+            var phone = request.SoDienThoai.Trim();
+            if (!string.IsNullOrEmpty(phone))
+            {
+                if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^[0-9]{9,11}$"))
+                {
+                    return BadRequest(new { message = "Số điện thoại không hợp lệ. Chỉ được chứa các chữ số từ 0 đến 9 và có độ dài từ 9 đến 11 số." });
+                }
+                user.SoDienThoai = phone;
+            }
+            else
+            {
+                user.SoDienThoai = null;
+            }
         }
 
         if (request.AvatarUrl is not null)
@@ -208,15 +223,57 @@ public sealed class ProfileController : ControllerBase
         }
 
         var fileName = $"user_{userId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{extension}";
-        var filePath = Path.Combine(avatarsDir, fileName);
+        string contentType = extension switch
+        {
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            _ => "image/jpeg"
+        };
 
-        await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+        string savedAvatarUrl;
+        if (_r2Service.IsConfigured)
+        {
+            var r2Url = await _r2Service.UploadAvatarAsync(bytes, fileName, contentType);
+            if (!string.IsNullOrWhiteSpace(r2Url))
+            {
+                savedAvatarUrl = r2Url;
+            }
+            else
+            {
+                var filePath = Path.Combine(avatarsDir, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+                savedAvatarUrl = $"/uploads/avatars/{fileName}";
+            }
+        }
+        else
+        {
+            var filePath = Path.Combine(avatarsDir, fileName);
+            await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+            savedAvatarUrl = $"/uploads/avatars/{fileName}";
+        }
 
-        var relativeUrl = $"/uploads/avatars/{fileName}";
-        user.AvatarUrl = relativeUrl;
+        // Dọn dẹp avatar cũ nếu trước đó có ảnh
+        if (!string.IsNullOrWhiteSpace(user.AvatarUrl))
+        {
+            if (user.AvatarUrl.StartsWith("http://") || user.AvatarUrl.StartsWith("https://"))
+            {
+                await _r2Service.DeleteAvatarAsync(user.AvatarUrl);
+            }
+            else if (user.AvatarUrl.StartsWith("/uploads/avatars/"))
+            {
+                var oldLocalPath = Path.Combine(wwwroot, user.AvatarUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                if (System.IO.File.Exists(oldLocalPath))
+                {
+                    try { System.IO.File.Delete(oldLocalPath); } catch { }
+                }
+            }
+        }
+
+        user.AvatarUrl = savedAvatarUrl;
         user.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
 
-        return Ok(new { avatarUrl = relativeUrl, message = "Cập nhật ảnh đại diện thành công." });
+        return Ok(new { avatarUrl = savedAvatarUrl, message = "Cập nhật ảnh đại diện thành công." });
     }
 }

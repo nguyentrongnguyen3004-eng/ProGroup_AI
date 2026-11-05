@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/localization/app_localizations.dart';
+import 'package:flutter/services.dart';
 import '../../../services/lecturer_api_service.dart';
 
 class LecturerReviewReportsScreen extends StatefulWidget {
@@ -105,8 +105,23 @@ class _LecturerReviewReportsScreenState extends State<LecturerReviewReportsScree
                     TextField(
                       controller: scoreController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9\.,]')),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          final t = newValue.text;
+                          if (t.isEmpty) return newValue;
+                          final normalized = t.replaceAll(',', '.');
+                          if (RegExp(r'^\d+(\.\d*)?$').hasMatch(normalized)) {
+                            final val = double.tryParse(normalized);
+                            if (val != null && val <= 10.0) {
+                              return newValue;
+                            }
+                          }
+                          return oldValue;
+                        }),
+                      ],
                       decoration: InputDecoration(
-                        labelText: 'Điểm số (Thang 10)',
+                        labelText: 'Điểm số (Thang 10: 0.0 - 10.0)',
                         hintText: 'Ví dụ: 8.5',
                         prefixIcon: const Icon(Icons.star_rounded, color: Color(0xFFF59E0B)),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -150,7 +165,20 @@ class _LecturerReviewReportsScreenState extends State<LecturerReviewReportsScree
                   onPressed: isSaving
                       ? null
                       : () async {
-                          final score = double.tryParse(scoreController.text.trim());
+                          final scoreText = scoreController.text.trim();
+                          double? score;
+                          if (scoreText.isNotEmpty) {
+                            score = double.tryParse(scoreText.replaceAll(',', '.'));
+                            if (score == null || score < 0.0 || score > 10.0) {
+                              ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Điểm số không hợp lệ. Điểm phải từ 0.0 đến 10.0, không được là số âm hoặc lớn hơn 10.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                          }
                           setDialogState(() => isSaving = true);
                           try {
                             await LecturerApiService.instance.gradeReport(
@@ -190,6 +218,44 @@ class _LecturerReviewReportsScreenState extends State<LecturerReviewReportsScree
           },
         );
       },
+    );
+  }
+
+
+  void _showLinkDialog(BuildContext context, String title, String url) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.link_rounded, color: Color(0xFF2563EB)),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+          ],
+        ),
+        content: SelectableText(
+          url,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF2563EB), decoration: TextDecoration.underline),
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.copy_rounded, size: 16),
+            label: const Text('Sao chép liên kết'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: url));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đã sao chép liên kết vào bộ nhớ tạm!'), backgroundColor: Color(0xFF10B981)),
+              );
+            },
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -302,6 +368,9 @@ class _LecturerReviewReportsScreenState extends State<LecturerReviewReportsScree
                                   final score = r['diem'];
                                   final feedback = r['nhanXetGiangVien']?.toString();
                                   final week = r['tuanBaoCao'] ?? 1;
+                                  final fileUrl = (r['fileUrl'] ?? r['linkTaiLieu'] ?? r['taiLieuUrl'] ?? r['file'])?.toString();
+                                  final githubUrl = (r['githubUrl'] ?? r['github'] ?? r['gitUrl'])?.toString();
+                                  final demoUrl = (r['demoUrl'] ?? r['demo'] ?? r['videoUrl'])?.toString();
 
                                   return Card(
                                     elevation: 0,
@@ -368,6 +437,54 @@ class _LecturerReviewReportsScreenState extends State<LecturerReviewReportsScree
                                               style: TextStyle(color: colors.onSurface, fontSize: 13.5),
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                          // Attachments / Links (TC_LEC_016)
+                                          if ((githubUrl != null && githubUrl.isNotEmpty) ||
+                                              (fileUrl != null && fileUrl.isNotEmpty) ||
+                                              (demoUrl != null && demoUrl.isNotEmpty)) ...[
+                                            const SizedBox(height: 10),
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 6,
+                                              children: [
+                                                if (fileUrl != null && fileUrl.isNotEmpty)
+                                                  ActionChip(
+                                                    avatar: const Icon(Icons.attach_file_rounded, size: 16, color: Colors.red),
+                                                    label: Text(
+                                                      fileUrl.split('/').last.split('\\').last,
+                                                      style: const TextStyle(fontSize: 12),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    onPressed: () => _showLinkDialog(context, 'Tệp báo cáo đính kèm', fileUrl),
+                                                  ),
+                                                if (githubUrl != null && githubUrl.isNotEmpty)
+                                                  ActionChip(
+                                                    avatar: const Icon(Icons.code_rounded, size: 16, color: Color(0xFF2563EB)),
+                                                    label: const Text('GitHub Repo', style: TextStyle(fontSize: 12)),
+                                                    onPressed: () => _showLinkDialog(context, 'Mã nguồn GitHub', githubUrl),
+                                                  ),
+                                                if (demoUrl != null && demoUrl.isNotEmpty)
+                                                  ActionChip(
+                                                    avatar: const Icon(Icons.play_circle_fill_rounded, size: 16, color: Colors.purple),
+                                                    label: const Text('Link Demo / Video', style: TextStyle(fontSize: 12)),
+                                                    onPressed: () => _showLinkDialog(context, 'Liên kết Demo', demoUrl),
+                                                  ),
+                                              ],
+                                            ),
+                                          ],
+                                          if (feedback != null && feedback.isNotEmpty) ...[
+                                            const SizedBox(height: 8),
+                                            Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.amber.shade200),
+                                              ),
+                                              child: Text('Nhận xét: ', style: const TextStyle(fontSize: 12.5, color: Colors.black87)),
                                             ),
                                           ],
                                           const SizedBox(height: 12),

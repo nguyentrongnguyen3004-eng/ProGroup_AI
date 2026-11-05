@@ -108,6 +108,18 @@ public class BaoCaoTienDoController : ControllerBase
 
         if (group is null) return NotFound(new { message = "Không tìm thấy nhóm." });
 
+        static bool IsValidUrl(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return true;
+            return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
+                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+        }
+
+        if (!IsValidUrl(request.FileUrl) || !IsValidUrl(request.GithubUrl) || !IsValidUrl(request.DemoUrl))
+        {
+            return BadRequest(new { message = "Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)." });
+        }
+
         var approvedReg = group.DangKyDeTais.FirstOrDefault(d => d.TrangThai == "Đã duyệt");
         int? deTaiId = approvedReg?.DeTaiId ?? group.DangKyDeTais.FirstOrDefault()?.DeTaiId;
 
@@ -180,6 +192,12 @@ public class BaoCaoTienDoController : ControllerBase
         {
             var gv = await _db.GiangViens.FirstOrDefaultAsync(g => g.NguoiDungId == uid);
             gvId = gv?.GiangVienId;
+        }
+
+        // TC_LEC_018: Validate điểm số trong khoảng từ 0.0 đến 10.0
+        if (request.Diem.HasValue && (request.Diem.Value < 0m || request.Diem.Value > 10m))
+        {
+            return BadRequest(new { message = "Điểm số phải nằm trong khoảng từ 0.0 đến 10.0." });
         }
 
         report.Diem = request.Diem;
@@ -285,6 +303,7 @@ public sealed class SubmitReportRequest
 
 public sealed class GradeReportRequest
 {
+    [System.ComponentModel.DataAnnotations.Range(0.0, 10.0, ErrorMessage = "Điểm số phải nằm trong khoảng từ 0.0 đến 10.0.")]
     public decimal? Diem { get; set; }
     public string? NhanXetGiangVien { get; set; }
     public string? TrangThai { get; set; } // Đạt, Cần chỉnh sửa, Không đạt

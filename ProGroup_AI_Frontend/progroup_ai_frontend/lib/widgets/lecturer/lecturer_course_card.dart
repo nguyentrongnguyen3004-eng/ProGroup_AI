@@ -123,6 +123,37 @@ class LecturerCourseCard extends StatelessWidget {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (course.status == 'Đang mở' ? const Color(0xFF10B981) : Colors.grey).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.assignment_rounded,
+                                  size: 12,
+                                  color: course.status == 'Đang mở' ? const Color(0xFF059669) : Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    '${course.dotDangKyName} (${course.status})',
+                                    style: TextStyle(
+                                      color: course.status == 'Đang mở' ? const Color(0xFF059669) : Colors.grey.shade700,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),

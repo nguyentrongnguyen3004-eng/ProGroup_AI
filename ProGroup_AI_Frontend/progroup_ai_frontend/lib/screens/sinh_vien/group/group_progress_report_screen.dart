@@ -49,6 +49,30 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
     }
   }
 
+
+  bool _isValidUrl(String str) {
+    if (str.isEmpty) return true;
+    final uri = Uri.tryParse(str);
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+  }
+
+  String _getDeadlineForWeek(int week) {
+    switch (week) {
+      case 1:
+        return '15/09/2026';
+      case 3:
+        return '29/09/2026';
+      case 6:
+        return '20/10/2026';
+      case 9:
+        return '10/11/2026';
+      case 12:
+        return '01/12/2026';
+      default:
+        return '25/12/2026';
+    }
+  }
+
   void _openSubmitDialog() {
     final titleController = TextEditingController();
     final contentController = TextEditingController();
@@ -179,6 +203,22 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
                                 if (title.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('Vui lòng nhập tiêu đề báo cáo.')),
+                                  );
+                                  return;
+                                }
+
+                                final github = githubController.text.trim();
+                                final file = fileController.text.trim();
+                                final demo = demoController.text.trim();
+
+                                if ((github.isNotEmpty && !_isValidUrl(github)) ||
+                                    (file.isNotEmpty && !_isValidUrl(file)) ||
+                                    (demo.isNotEmpty && !_isValidUrl(demo))) {
+                                  ScaffoldMessenger.of(modalContext).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)'),
+                                      backgroundColor: Colors.red,
+                                    ),
                                   );
                                   return;
                                 }
@@ -439,6 +479,22 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
                                     fontSize: 13,
                                   ),
                                 ),
+                              ),
+                              const SizedBox(width: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.access_time_rounded, size: 14, color: Colors.orange.shade700),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Hạn chót: ${_getDeadlineForWeek(week)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange.shade800,
+                                    ),
+                                  ),
+                                ],
                               ),
                               const Spacer(),
                               Container(

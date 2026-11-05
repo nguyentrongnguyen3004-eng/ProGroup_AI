@@ -9,7 +9,7 @@ namespace ProGroup_AI.API.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize(Roles = "ADMIN")]
+[Authorize(Roles = "ADMIN,PHONGDAOTAO,GIAOVUKHOA")]
 public sealed class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -109,6 +109,7 @@ public sealed class AdminController : ControllerBase
         });
     }
 
+    [Authorize(Roles = "ADMIN")]
     [HttpPost("users")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
@@ -146,13 +147,24 @@ public sealed class AdminController : ControllerBase
         var defaultKhoa = await _db.Khoas.FirstOrDefaultAsync();
         var khoaId = request.KhoaId ?? defaultKhoa?.KhoaId ?? 1;
 
+        string? soDienThoai = null;
+        if (!string.IsNullOrWhiteSpace(request.SoDienThoai))
+        {
+            var phone = request.SoDienThoai.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^[0-9]{9,11}$"))
+            {
+                return BadRequest(new { message = "Số điện thoại không hợp lệ. Chỉ được chứa các chữ số từ 0 đến 9 và có độ dài từ 9 đến 11 số." });
+            }
+            soDienThoai = phone;
+        }
+
         var user = new NguoiDung
         {
             TenDangNhap = username,
             MatKhauHash = BCrypt.Net.BCrypt.HashPassword(request.MatKhau),
             Email = email,
             HoTen = request.HoTen.Trim(),
-            SoDienThoai = request.SoDienThoai?.Trim(),
+            SoDienThoai = soDienThoai,
             VaiTroId = role.VaiTroId,
             TrangThai = true,
             CreatedAt = DateTime.Now
@@ -222,6 +234,7 @@ public sealed class AdminController : ControllerBase
         return CreatedAtAction(nameof(GetUsers), new { search = user.TenDangNhap }, created);
     }
 
+    [Authorize(Roles = "ADMIN")]
     [HttpPut("users/{id:int}/toggle-status")]
     [HttpPut("users/{id:int}/status")]
     public async Task<IActionResult> ToggleUserStatus(int id, [FromBody] UpdateUserStatusRequest? request = null)
@@ -253,6 +266,7 @@ public sealed class AdminController : ControllerBase
         });
     }
 
+    [Authorize(Roles = "ADMIN")]
     [HttpPut("users/{id:int}/reset-password")]
     public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetUserPasswordRequest? request = null)
     {

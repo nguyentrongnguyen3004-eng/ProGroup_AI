@@ -112,7 +112,7 @@ public sealed class DangKyDeTaiController : ControllerBase
 
         if (activeMemberCount < period.MinMembers)
         {
-            return Conflict(new { message = $"Nhóm chưa đủ số thành viên tối thiểu ({period.MinMembers} thành viên)." });
+            return Conflict(new { message = $"Nhóm của bạn chưa đủ số thành viên tối thiểu (yêu cầu tối thiểu {period.MinMembers} thành viên)." });
         }
 
         var hasActiveReg = await _db.DangKyDeTais.AnyAsync(r => r.NhomId == group.NhomId &&
@@ -131,7 +131,7 @@ public sealed class DangKyDeTaiController : ControllerBase
             return NotFound(new { message = "Đề tài không tồn tại trong đợt đăng ký này." });
         }
 
-        if (topic.TrangThai != "Chưa sử dụng" || topic.TrangThaiDuyet != "Đã duyệt")
+        if ((topic.TrangThai != "Chưa sử dụng" && topic.TrangThai != "Đang hoạt động") || topic.TrangThaiDuyet != "Đã duyệt")
         {
             return Conflict(new { message = "Đề tài hiện không khả dụng để đăng ký." });
         }

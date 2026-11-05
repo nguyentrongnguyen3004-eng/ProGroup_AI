@@ -123,17 +123,60 @@ public sealed class DeTaiController : ControllerBase
     [Authorize(Roles = "GIANGVIEN,ADMIN")]
     public async Task<ActionResult<TopicResponse>> Create([FromBody] CreateTopicRequest request)
     {
-        var period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId);
+        DotDangKyDoAn? period = null;
+
+        if (request.DotDangKyId.HasValue && request.DotDangKyId.Value > 0)
+        {
+            period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId.Value);
+        }
+
+        if (period == null && request.LopHocPhanId.HasValue && request.LopHocPhanId.Value > 0)
+        {
+            period = await _db.DotDangKyDoAns
+                .Where(d => d.LopHocPhanId == request.LopHocPhanId.Value)
+                .OrderByDescending(d => d.TrangThai == "Đang mở")
+                .ThenByDescending(d => d.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
+        if (period == null && request.DotDangKyId.HasValue && request.DotDangKyId.Value > 0)
+        {
+            period = await _db.DotDangKyDoAns
+                .Where(d => d.LopHocPhanId == request.DotDangKyId.Value)
+                .OrderByDescending(d => d.TrangThai == "Đang mở")
+                .ThenByDescending(d => d.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
         if (period is null)
         {
-            return BadRequest(new { message = "Đợt đăng ký không tồn tại." });
+            return BadRequest(new { message = "Đợt đăng ký hoặc lớp học phần không tồn tại." });
         }
 
         int? lecturerId = await GetCurrentLecturerIdAsync();
 
+        string status = "Đang hoạt động";
+        if (!string.IsNullOrWhiteSpace(request.TrangThai))
+        {
+            var st = request.TrangThai.Trim();
+            if (st.Equals("Tạm khóa", StringComparison.OrdinalIgnoreCase) ||
+                st.Equals("Đã khóa", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Tạm khóa";
+            }
+            else if (st.Equals("Chưa sử dụng", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Chưa sử dụng";
+            }
+            else if (st.Equals("Đang hoạt động", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Đang hoạt động";
+            }
+        }
+
         var topic = new DeTaiDoAn
         {
-            DotDangKyId = request.DotDangKyId,
+            DotDangKyId = period.DotDangKyId,
             TenDeTai = request.TenDeTai.Trim(),
             MoTa = request.MoTa?.Trim(),
             MucTieu = request.MucTieu?.Trim(),
@@ -141,7 +184,7 @@ public sealed class DeTaiController : ControllerBase
             CongNgheDuKien = request.CongNgheDuKien?.Trim(),
             NguonDeTai = "Giảng viên",
             GiangVienId = lecturerId,
-            TrangThai = "Chưa sử dụng",
+            TrangThai = status,
             TrangThaiDuyet = "Đã duyệt",
             CreatedAt = DateTime.Now
         };
@@ -178,11 +221,48 @@ public sealed class DeTaiController : ControllerBase
             topic.DotDangKyId = request.DotDangKyId.Value;
         }
 
+        // TC_LEC_008: Cảnh báo/chặn sửa tên đề tài khi đã có nhóm được duyệt chính thức
+        var hasApprovedGroup = topic.TrangThai == "Đã đăng ký" ||
+            await _db.DangKyDeTais.AnyAsync(r => r.DeTaiId == id && r.TrangThai == "Đã duyệt");
+
+        if (hasApprovedGroup && !string.Equals(topic.TenDeTai, request.TenDeTai.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Đề tài đã có nhóm sinh viên đăng ký được duyệt chính thức. Không thể thay đổi tên đề tài." });
+        }
+
         topic.TenDeTai = request.TenDeTai.Trim();
         topic.MoTa = request.MoTa?.Trim();
         topic.MucTieu = request.MucTieu?.Trim();
         topic.PhamVi = request.PhamVi?.Trim();
         topic.CongNgheDuKien = request.CongNgheDuKien?.Trim();
+
+        // TC_LEC_005: Cho phép cập nhật trạng thái đề tài (Đang hoạt động / Tạm khóa / Chưa sử dụng)
+        if (!string.IsNullOrWhiteSpace(request.TrangThai))
+        {
+            var st = request.TrangThai.Trim();
+            if (st.Equals("Đang hoạt động", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!hasApprovedGroup) topic.TrangThai = "Đang hoạt động";
+            }
+            else if (st.Equals("Tạm khóa", StringComparison.OrdinalIgnoreCase) ||
+                     st.Equals("Đã khóa", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!hasApprovedGroup) topic.TrangThai = "Tạm khóa";
+            }
+            else if (st.Equals("Chưa sử dụng", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!hasApprovedGroup) topic.TrangThai = "Chưa sử dụng";
+            }
+            else if (st.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
+            {
+                topic.TrangThai = "Đã hủy";
+            }
+            else if (st.Equals("Đã đăng ký", StringComparison.OrdinalIgnoreCase))
+            {
+                topic.TrangThai = "Đã đăng ký";
+            }
+        }
+
         topic.UpdatedAt = DateTime.Now;
 
 
@@ -245,6 +325,7 @@ public sealed class DeTaiController : ControllerBase
         var topic = await _db.DeTaiDoAns.FindAsync(id);
         if (topic is null) return NotFound(new { message = "Không tìm thấy đề tài." });
 
+        var rejectReason = request.Reason?.Trim();
         if (request.IsApproved)
         {
             topic.TrangThaiDuyet = "Đã duyệt";
@@ -253,7 +334,7 @@ public sealed class DeTaiController : ControllerBase
         else
         {
             topic.TrangThaiDuyet = "Từ chối";
-            topic.LyDoTuChoi = request.LyDoTuChoi?.Trim();
+            topic.LyDoTuChoi = rejectReason;
         }
 
         topic.UpdatedAt = DateTime.Now;
@@ -270,7 +351,7 @@ public sealed class DeTaiController : ControllerBase
                     TieuDe = request.IsApproved ? "Đề xuất đề tài được duyệt" : "Đề xuất đề tài bị từ chối",
                     NoiDung = request.IsApproved
                         ? $"Đề xuất đề tài '{topic.TenDeTai}' của bạn đã được giảng viên phê duyệt."
-                        : $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {request.LyDoTuChoi ?? "Không có"}",
+                        : $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {(!string.IsNullOrWhiteSpace(rejectReason) ? rejectReason : "Không có")}",
                     LoaiThongBao = "Đề tài",
                     DaDoc = false,
                     CreatedAt = DateTime.UtcNow,
@@ -345,7 +426,7 @@ public sealed class DeTaiController : ControllerBase
             activeMembers++;
 
         if (activeMembers < period.MinMembers)
-            return Conflict(new { message = "Nhóm chưa đủ số thành viên tối thiểu." });
+            return Conflict(new { message = $"Nhóm của bạn chưa đủ số thành viên tối thiểu (yêu cầu tối thiểu {period.MinMembers} thành viên)." });
 
         var hasRegistration = await _db.DangKyDeTais.AnyAsync(x => x.NhomId == group.NhomId &&
             (x.TrangThai == "Chờ duyệt" || x.TrangThai == "Đã duyệt"));
@@ -354,7 +435,7 @@ public sealed class DeTaiController : ControllerBase
 
         var topic = await _db.DeTaiDoAns.FirstOrDefaultAsync(x => x.DeTaiId == request.DeTaiId && x.DotDangKyId == period.DotDangKyId);
         if (topic is null) return NotFound(new { message = "Đề tài không tồn tại trong đợt đăng ký của nhóm." });
-        if (topic.TrangThai != "Chưa sử dụng" || topic.TrangThaiDuyet != "Đã duyệt")
+        if ((topic.TrangThai != "Chưa sử dụng" && topic.TrangThai != "Đang hoạt động") || topic.TrangThaiDuyet != "Đã duyệt")
             return Conflict(new { message = "Đề tài không khả dụng hoặc chưa được duyệt." });
 
         var registration = new DangKyDeTai

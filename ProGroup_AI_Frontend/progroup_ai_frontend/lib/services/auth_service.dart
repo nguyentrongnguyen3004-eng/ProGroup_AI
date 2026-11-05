@@ -35,8 +35,12 @@ class AuthService {
         currentUser = userFromApi;
         return userFromApi;
       }
-    } catch (_) {
-      // Bỏ qua khi thiết bị chưa thông mạng và chuyển sang dự phòng
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      if (e is Exception && !e.toString().contains('SocketException') && !e.toString().contains('TimeoutException')) {
+        rethrow;
+      }
     }
 
     // 2. Dự phòng tài khoản API nếu Backend chưa kết nối được
@@ -171,6 +175,24 @@ class AuthService {
             return loggedInUser;
           }
         }
+
+        // Nếu máy chủ phản hồi lỗi (400, 401, 403), đọc thông báo lỗi từ server để báo chính xác
+        if (response.statusCode >= 400 && response.statusCode < 500) {
+          try {
+            final errData = jsonDecode(bodyStr);
+            if (errData is Map) {
+              final msg = errData['message'] ?? errData['Message'] ?? errData['title'] ?? errData['error'];
+              if (msg != null && msg.toString().trim().isNotEmpty) {
+                ApiService.setWorkingBaseUrl(base);
+                throw ApiException(msg.toString().trim(), response.statusCode);
+              }
+            }
+          } on ApiException {
+            rethrow;
+          } catch (_) {}
+        }
+      } on ApiException {
+        rethrow;
       } catch (_) {
         // Thử địa chỉ tiếp theo
       }

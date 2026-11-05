@@ -49,6 +49,8 @@ public sealed class InviteMemberRequest
 public sealed class RespondRequest
 {
     public bool Accept { get; set; }
+    public string? Action { get; set; }
+    public bool IsApproved => Accept || string.Equals(Action, "approve", System.StringComparison.OrdinalIgnoreCase);
 }
 
 public sealed class GroupInvitationResponse

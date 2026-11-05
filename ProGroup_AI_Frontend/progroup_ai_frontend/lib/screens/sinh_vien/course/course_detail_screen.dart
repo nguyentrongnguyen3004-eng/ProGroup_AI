@@ -234,10 +234,13 @@ class CourseDetailScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
-                              'Đang mở đăng ký',
+                            Text(
+                              course.status,
                               style: TextStyle(
-                                color: Color(0xFF10B981),
+                                color: (course.status == 'Đang mở' ||
+                                        course.status == 'Đang đăng ký')
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFEF4444),
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
                               ),

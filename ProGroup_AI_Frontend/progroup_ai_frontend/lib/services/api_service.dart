@@ -19,7 +19,8 @@ class ApiService {
   ApiService._();
   static final ApiService instance = ApiService._();
 
-  static const String currentLanIpUrl = 'http://192.168.1.109:5094';
+  static const String currentLanIpUrl = 'http://192.168.1.223:5094';
+  static const String currentLanIpUrlOld = 'http://192.168.1.109:5094';
   static const String usbUrl = 'http://127.0.0.1:5094';
   static const String currentCloudflareUrl =
       'https://platforms-interaction-alcohol-share.trycloudflare.com';
@@ -27,6 +28,7 @@ class ApiService {
   static const List<String> baseUrls = [
     usbUrl,
     currentLanIpUrl,
+    currentLanIpUrlOld,
     'http://localhost:5094',
     'http://10.0.2.2:5094',
   ];
@@ -102,7 +104,11 @@ class ApiService {
       final cleanUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
       final uri = Uri.parse('$cleanUrl/api/health');
       final res = await http.get(uri).timeout(const Duration(seconds: 2));
-      return res.statusCode >= 200 && res.statusCode < 300;
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final body = utf8.decode(res.bodyBytes).toLowerCase();
+        return body.contains('healthy');
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -129,6 +135,10 @@ class ApiService {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
 
     // Xây dựng danh sách ưu tiên kết nối: Custom -> Working -> Defaults
+    if (_workingBaseUrl == null) {
+      await autoDetectServer();
+    }
+
     final candidateUrls = <String>[];
     if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
       candidateUrls.add(_customBaseUrl!);
@@ -187,6 +197,15 @@ class ApiService {
           } catch (_) {
             return responseBody;
           }
+        }
+
+        // Nếu nhận 403/404 từ router hoặc thiết bị mạng lạ không mang cấu trúc JSON của Backend API, bỏ qua để thử URL tiếp theo
+        if ((response.statusCode == 403 || response.statusCode == 404) &&
+            !responseBody.contains('message') &&
+            !responseBody.contains('title') &&
+            !responseBody.contains('status')) {
+          debugPrint('[ApiService] Bỏ qua $baseUrl do phản hồi ${response.statusCode} từ thiết bị mạng không phải Backend API');
+          continue;
         }
 
         // Lấy thông báo lỗi chi tiết từ phản hồi nếu có

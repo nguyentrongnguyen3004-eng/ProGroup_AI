@@ -72,22 +72,25 @@ class _LecturerTopicScreenState extends State<LecturerTopicScreen> {
         .toSet();
 
     if (widget.course != null) {
-      if (assignedCourseIds.isNotEmpty && !assignedCourseIds.contains(widget.course!.id)) {
-        return [];
-      }
-      return _topics.where((t) => t.courseId == widget.course!.id).toList();
+      return _topics.where((t) =>
+          t.courseId == widget.course!.id ||
+          t.lopHocPhanId == widget.course!.id ||
+          t.dotDangKyId == widget.course!.id).toList();
     }
 
-    return _topics
-        .where((topic) =>
-            assignedCourseIds.isEmpty ||
-            assignedCourseIds.contains(topic.courseId) ||
-            _selectedCourseId == null)
-        .where(
-          (topic) =>
-              _selectedCourseId == null || topic.courseId == _selectedCourseId,
-        )
-        .toList();
+    if (_selectedCourseId == null) {
+      return _topics.where((topic) =>
+          assignedCourseIds.isEmpty ||
+          assignedCourseIds.contains(topic.courseId) ||
+          (topic.lopHocPhanId != null && assignedCourseIds.contains(topic.lopHocPhanId!))
+      ).toList();
+    }
+
+    return _topics.where((topic) =>
+        topic.courseId == _selectedCourseId ||
+        topic.lopHocPhanId == _selectedCourseId ||
+        topic.dotDangKyId == _selectedCourseId
+    ).toList();
   }
 
   List<String> get _statusOptions {
@@ -123,7 +126,7 @@ class _LecturerTopicScreenState extends State<LecturerTopicScreen> {
       MaterialPageRoute(
         builder: (_) => AddTopicScreen(
           course: widget.course,
-          lecturerCourseId: widget.lecturerCourseId ?? _selectedCourseId,
+          lecturerCourseId: _selectedCourseId ?? widget.lecturerCourseId,
         ),
       ),
     );
@@ -320,8 +323,8 @@ class _LecturerTopicScreenState extends State<LecturerTopicScreen> {
                               (course) => Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: ChoiceChip(
-                                  label: Text(course.classCode),
-                                  selected: _selectedCourseId == course.courseId,
+                                  label: Text(course.classCode.isNotEmpty ? course.classCode : course.code),
+                                  selected: _selectedCourseId == course.courseId || _selectedCourseId == course.id,
                                   onSelected: (_) {
                                     setState(() {
                                       _selectedCourseId = course.courseId;

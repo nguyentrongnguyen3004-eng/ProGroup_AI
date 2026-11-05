@@ -111,51 +111,59 @@ class AvatarService {
         ? username
         : AuthService.currentUser.username;
 
-    // Cập nhật ngay ValueNotifier để toàn bộ giao diện đổi avatar tức thì
+    final previousAvatar = avatarNotifier.value;
+    final previousUserAvatar = AuthService.currentUser.avatarUrl;
+
+    // Cập nhật tạm thời ValueNotifier để phản hồi tức thì
     avatarNotifier.value = cleanData;
 
-    // 1. Lưu local cache ngay lập tức để không bao giờ bị mất
     try {
+      final res = await ApiService.instance.post('/api/profile/avatar', {
+        'avatarData': cleanData.isEmpty ? null : cleanData,
+      });
+
+      // Lưu local cache sau khi upload thành công lên máy chủ
       final prefs = await SharedPreferences.getInstance();
       if (cleanData.isEmpty) {
         await prefs.remove(_getKey(uname));
       } else {
         await prefs.setString(_getKey(uname), cleanData);
       }
-    } catch (e) {
-      debugPrint('[AvatarService] Error saving to SharedPreferences: $e');
-    }
 
-    // 2. Cập nhật model currentUser trong bộ nhớ
-    AuthService.currentUser = AuthService.currentUser.copyWith(
-      avatarUrl: cleanData.isEmpty ? null : cleanData,
-    );
-
-    // 3. Đẩy lên Backend API để lưu vào database & server disk
-    try {
-      final res = await ApiService.instance.post('/api/profile/avatar', {
-        'avatarData': cleanData.isEmpty ? null : cleanData,
-      });
+      AuthService.currentUser = AuthService.currentUser.copyWith(
+        avatarUrl: cleanData.isEmpty ? null : cleanData,
+      );
 
       if (res is Map && res['avatarUrl'] != null) {
         final serverUrl = res['avatarUrl'].toString();
         AuthService.currentUser = AuthService.currentUser.copyWith(
           avatarUrl: serverUrl,
         );
-        // Nếu ban đầu người dùng chọn ảnh Base64 thì giữ nguyên Base64 trong notifier để render offline và không bị giật
         if (!cleanData.startsWith('data:image/')) {
           avatarNotifier.value = serverUrl;
         }
         return serverUrl;
       }
+      return cleanData;
     } catch (e) {
-      debugPrint('[AvatarService] Error uploading avatar to backend: $e');
+      // TC_STU_041: Rollback avatar cũ nếu upload thất bại do mất mạng
+      avatarNotifier.value = previousAvatar;
+      AuthService.currentUser = AuthService.currentUser.copyWith(
+        avatarUrl: previousUserAvatar,
+      );
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (previousAvatar.isEmpty) {
+          await prefs.remove(_getKey(uname));
+        } else {
+          await prefs.setString(_getKey(uname), previousAvatar);
+        }
+      } catch (_) {}
+      debugPrint('[AvatarService] Upload avatar error (offline/failed): $e');
+      throw Exception('Tải ảnh thất bại, vui lòng kiểm tra kết nối mạng');
     }
-
-    return cleanData;
   }
 
-  /// Xóa avatar
   Future<void> removeAvatar([String? username]) async {
     await saveAvatar('', username);
     avatarNotifier.value = '';

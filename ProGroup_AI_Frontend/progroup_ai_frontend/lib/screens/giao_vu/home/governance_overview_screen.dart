@@ -54,6 +54,7 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
       _errorMessage = null;
     });
 
+
     try {
       final results = await Future.wait([
         GovernanceApiService.instance.fetchOverview(),

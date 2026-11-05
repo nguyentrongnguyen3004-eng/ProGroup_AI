@@ -10,7 +10,7 @@ namespace ProGroup_AI.API.Controllers;
 
 [ApiController]
 [Route("api/lecturer")]
-[Authorize(Roles = "GIANGVIEN,ADMIN")]
+[Authorize(Roles = "GIANGVIEN,ADMIN,PHONGDAOTAO,GIAOVUKHOA")]
 public sealed class LecturerController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -24,7 +24,7 @@ public sealed class LecturerController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<LecturerCourseResponse>>> GetCourses()
     {
         var lecturerId = await GetCurrentLecturerIdAsync();
-        if (lecturerId is null && !User.IsInRole("ADMIN"))
+        if (lecturerId is null && (!User.IsInRole("ADMIN") && !User.IsInRole("PHONGDAOTAO") && !User.IsInRole("GIAOVUKHOA")))
         {
             return Forbid();
         }
@@ -85,7 +85,7 @@ public sealed class LecturerController : ControllerBase
     public async Task<ActionResult<LecturerStatisticsResponse>> GetStatistics()
     {
         var lecturerId = await GetCurrentLecturerIdAsync();
-        if (lecturerId is null && !User.IsInRole("ADMIN"))
+        if (lecturerId is null && (!User.IsInRole("ADMIN") && !User.IsInRole("PHONGDAOTAO") && !User.IsInRole("GIAOVUKHOA")))
         {
             return Forbid();
         }
@@ -151,7 +151,7 @@ public sealed class LecturerController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<DangKyDeTaiResponse>>> GetTopicRegistrations()
     {
         var lecturerId = await GetCurrentLecturerIdAsync();
-        if (lecturerId is null && !User.IsInRole("ADMIN"))
+        if (lecturerId is null && (!User.IsInRole("ADMIN") && !User.IsInRole("PHONGDAOTAO") && !User.IsInRole("GIAOVUKHOA")))
         {
             return Forbid();
         }

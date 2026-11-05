@@ -50,7 +50,7 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
 
   List<String> get _statusOptions => const [
     'Đang hoạt động',
-    'Chờ duyệt',
+    'Chưa sử dụng',
     'Tạm khóa',
   ];
 
@@ -134,12 +134,16 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
         mucTieu: _objectiveController.text.trim(),
         phamVi: _scopeController.text.trim(),
         congNghe: _technologyController.text.trim(),
-        dotDangKyId: selectedCourse.courseId,
+        dotDangKyId: selectedCourse.dotDangKyId ?? selectedCourse.courseId,
+        lopHocPhanId: selectedCourse.courseId,
+        status: _status,
       );
 
       final topic = TopicModel(
         id: DateTime.now().millisecondsSinceEpoch,
         courseId: selectedCourse.courseId,
+        dotDangKyId: selectedCourse.dotDangKyId,
+        lopHocPhanId: selectedCourse.courseId,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         objective: _objectiveController.text.trim(),

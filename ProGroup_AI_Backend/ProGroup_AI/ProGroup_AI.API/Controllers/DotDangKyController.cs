@@ -65,6 +65,12 @@ public sealed class DotDangKyController : ControllerBase
     [Authorize(Roles = "GIANGVIEN,ADMIN,GIAOVUKHOA")]
     public async Task<ActionResult<DotDangKyResponse>> Create([FromBody] CreateDotDangKyRequest request)
     {
+        // TC_LEC_027: Chặn chọn Ngày bắt đầu của đợt đăng ký trong quá khứ
+        if (request.NgayBatDau.Date < DateTime.Today)
+        {
+            return BadRequest(new { message = "Ngày bắt đầu không được ở trong quá khứ." });
+        }
+
         if (request.NgayKetThuc <= request.NgayBatDau)
         {
             return BadRequest(new { message = "Ngày kết thúc phải sau ngày bắt đầu." });

@@ -59,6 +59,26 @@ class _LecturerCourseDetailScreenState
           _topics = results[1] as List<TopicModel>;
           _registrations = results[2] as List<Map<String, dynamic>>;
           _periods = results[3] as List<Map<String, dynamic>>;
+          if (_periods.isNotEmpty) {
+            final activeDot = _periods.firstWhere((d) => d['trangThai'] == 'Đang mở', orElse: () => _periods.first);
+            final nb = activeDot['ngayBatDau'];
+            final nk = activeDot['ngayKetThuc'];
+            if (nb != null && nk != null) {
+              final d1 = DateTime.tryParse(nb.toString());
+              final d2 = DateTime.tryParse(nk.toString());
+              if (d1 != null && d2 != null) {
+                final s1 = '${d1.day.toString().padLeft(2, '0')}/${d1.month.toString().padLeft(2, '0')}/${d1.year}';
+                final s2 = '${d2.day.toString().padLeft(2, '0')}/${d2.month.toString().padLeft(2, '0')}/${d2.year}';
+                _course = _course.copyWith(
+                  groupRegistrationStart: s1,
+                  groupRegistrationEnd: s2,
+                  topicRegistrationStart: s1,
+                  topicRegistrationEnd: s2,
+                  status: activeDot['trangThai']?.toString() ?? _course.status,
+                );
+              }
+            }
+          }
           _isLoading = false;
         });
       }
@@ -70,6 +90,141 @@ class _LecturerCourseDetailScreenState
         });
       }
     }
+  }
+
+  Future<void> _openCreatePeriodDialog() async {
+    final nameController = TextEditingController(text: 'Đợt đăng ký mới');
+    DateTime startDate = DateTime.now();
+    DateTime endDate = DateTime.now().add(const Duration(days: 14));
+    bool isSubmitting = false;
+
+    await showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2563EB)),
+              SizedBox(width: 8),
+              Expanded(child: Text('Tạo đợt đăng ký mới', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold))),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Tên đợt đăng ký',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Ngày bắt đầu', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text('//'),
+                  trailing: const Icon(Icons.calendar_month_rounded, color: Color(0xFF2563EB)),
+                  onTap: () async {
+                    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: startDate.isBefore(today) ? today : startDate,
+                      firstDate: today,
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        startDate = picked;
+                        if (endDate.isBefore(startDate)) {
+                          endDate = startDate.add(const Duration(days: 7));
+                        }
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Ngày kết thúc', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text('//'),
+                  trailing: const Icon(Icons.event_available_rounded, color: Color(0xFF10B981)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: endDate.isBefore(startDate) ? startDate : endDate,
+                      firstDate: startDate,
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => endDate = picked);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Hủy')),
+            FilledButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final name = nameController.text.trim();
+                      if (name.isEmpty) {
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          const SnackBar(content: Text('Vui lòng nhập tên đợt đăng ký'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                      if (startDate.isBefore(today)) {
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          const SnackBar(content: Text('Ngày bắt đầu không được ở trong quá khứ.'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      if (endDate.isBefore(startDate) || endDate.isAtSameMomentAs(startDate)) {
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          const SnackBar(content: Text('Ngày kết thúc phải sau ngày bắt đầu.'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isSubmitting = true);
+                      try {
+                        await LecturerApiService.instance.createRegistrationPeriod(
+                          tenDot: name,
+                          lopHocPhanId: _course.id,
+                          ngayBatDau: startDate,
+                          ngayKetThuc: endDate,
+                          minMembers: _course.minMembers,
+                          maxMembers: _course.maxMembers,
+                        );
+                        if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Đã tạo đợt đăng ký mới thành công!'), backgroundColor: Color(0xFF10B981)),
+                          );
+                          _loadData();
+                        }
+                      } catch (e) {
+                        setDialogState(() => isSubmitting = false);
+                        if (dialogCtx.mounted) {
+                          ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                            SnackBar(content: Text('Lỗi: '), backgroundColor: Colors.red),
+                          );
+                        }
+                      }
+                    },
+              child: Text(isSubmitting ? 'Đang tạo...' : 'Tạo đợt'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _togglePeriodStatus(int periodId, String currentStatus) async {
@@ -291,7 +446,7 @@ class _LecturerCourseDetailScreenState
                               child: _StatGridCard(
                                 icon: Icons.lightbulb_rounded,
                                 iconColor: const Color(0xFFF59E0B),
-                                title: '${_topics.length}',
+                                title: '${_topics.isNotEmpty ? _topics.length : _course.topicCount}',
                                 label: AppLocalizations.text('Đề tài', en: 'Topics'),
                               ),
                             ),
@@ -385,9 +540,20 @@ class _LecturerCourseDetailScreenState
                                   children: [
                                     Icon(Icons.timer_outlined, size: 16, color: colors.primary),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      'Đợt đăng ký đề tài (${_periods.length})',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: colors.onSurface),
+                                    Expanded(
+                                      child: Text(
+                                        'Đợt đăng ký đề tài (${_periods.length})',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: colors.onSurface),
+                                      ),
+                                    ),
+                                    TextButton.icon(
+                                      style: TextButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                      ),
+                                      onPressed: _openCreatePeriodDialog,
+                                      icon: const Icon(Icons.add_rounded, size: 16),
+                                      label: const Text('Thêm đợt', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                     ),
                                   ],
                                 ),
@@ -569,7 +735,7 @@ class _LecturerCourseDetailScreenState
                             'Đề tài của học phần',
                             en: 'Course Topics',
                           ),
-                          trailing: Text('${_topics.length}'),
+                          trailing: Text('${_topics.isNotEmpty ? _topics.length : _course.topicCount}'),
                         ),
                         const SizedBox(height: 8),
                         if (_topics.isEmpty)

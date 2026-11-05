@@ -141,8 +141,10 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     final fullName = user['hoTen'] ?? user['HoTen'] ?? user['tenDangNhap'] ?? '—';
     final username = user['tenDangNhap'] ?? user['TenDangNhap'] ?? '';
     final email = user['email'] ?? user['Email'] ?? '';
-    final phone = user['soDienThoai'] ?? user['SoDienThoai'] ?? '—';
-    final role = user['roleName'] ?? user['RoleName'] ?? user['role'] ?? user['Role'] ?? '';
+    final rawPhone = user['soDienThoai'] ?? user['SoDienThoai'];
+    final phone = (rawPhone != null && rawPhone.toString().trim().isNotEmpty) ? rawPhone.toString().trim() : '—';
+    final rawRole = user['tenVaiTro'] ?? user['TenVaiTro'] ?? user['roleName'] ?? user['RoleName'] ?? user['maVaiTro'] ?? user['MaVaiTro'] ?? user['role'] ?? user['Role'];
+    final role = (rawRole != null && rawRole.toString().trim().isNotEmpty) ? rawRole.toString().trim() : '—';
     final isLocked = user['trangThai'] == false;
 
     return Scaffold(

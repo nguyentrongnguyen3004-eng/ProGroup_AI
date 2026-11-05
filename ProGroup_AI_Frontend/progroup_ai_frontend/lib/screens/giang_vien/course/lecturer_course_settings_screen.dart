@@ -44,29 +44,55 @@ class _LecturerCourseSettingsScreenState
     super.dispose();
   }
 
-  Future<DateTime?> _pickDate(DateTime current) => showDatePicker(
-    context: context,
-    initialDate: current,
-    firstDate: DateTime(2020),
-    lastDate: DateTime(2100),
-  );
+  Future<DateTime?> _pickDate(DateTime current, {DateTime? minDate}) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final effectiveMin = minDate ?? today;
+    final initial = current.isBefore(effectiveMin) ? effectiveMin : current;
+    return showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: effectiveMin,
+      lastDate: DateTime(2100),
+    );
+  }
 
   Future<void> _chooseDate(
     ValueChanged<DateTime> save,
-    DateTime current,
-  ) async {
-    final selected = await _pickDate(current);
+    DateTime current, {
+    DateTime? minDate,
+  }) async {
+    final selected = await _pickDate(current, minDate: minDate);
     if (selected != null && mounted) setState(() => save(selected));
   }
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (_groupStart.isBefore(today)) {
+      _message('Ngày bắt đầu lập nhóm không được ở trong quá khứ.');
+      return;
+    }
     if (!_groupStart.isBefore(_groupEnd)) {
       _message('Ngày bắt đầu lập nhóm phải trước ngày kết thúc.');
       return;
     }
+    if (_topicStart.isBefore(today)) {
+      _message('Ngày bắt đầu đăng ký đề tài không được ở trong quá khứ.');
+      return;
+    }
     if (!_topicStart.isBefore(_topicEnd)) {
       _message('Ngày bắt đầu đăng ký đề tài phải trước ngày kết thúc.');
+      return;
+    }
+    // TC_LEC_019: Đảm bảo tính nhất quán giữa thời gian lập nhóm và đăng ký đề tài
+    if (_topicStart.isBefore(_groupStart)) {
+      _message('Ngày bắt đầu đăng ký đề tài không thể diễn ra trước thời gian lập nhóm.');
+      return;
+    }
+    if (_topicEnd.isBefore(_groupStart)) {
+      _message('Thời hạn đăng ký đề tài phải diễn ra sau khi bắt đầu lập nhóm.');
       return;
     }
     final updated = widget.course.copyWith(

@@ -64,6 +64,7 @@ class _LecturerHomeScreenState extends State<LecturerHomeScreen> {
       _errorMessage = null;
     });
 
+
     try {
       final results = await Future.wait([
         LecturerApiService.instance.fetchProfile(),

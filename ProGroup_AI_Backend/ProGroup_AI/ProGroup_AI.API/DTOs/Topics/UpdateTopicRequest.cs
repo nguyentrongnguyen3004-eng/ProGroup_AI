@@ -18,4 +18,6 @@ public sealed class UpdateTopicRequest
     public string? CongNgheDuKien { get; set; }
 
     public int? DotDangKyId { get; set; }
+
+    public string? TrangThai { get; set; }
 }

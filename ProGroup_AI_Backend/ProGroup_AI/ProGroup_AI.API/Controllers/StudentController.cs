@@ -12,7 +12,7 @@ namespace ProGroup_AI.API.Controllers;
 
 [ApiController]
 [Route("api/student")]
-[Authorize(Roles = "SINHVIEN,ADMIN")]
+[Authorize(Roles = "SINHVIEN,ADMIN,PHONGDAOTAO,GIAOVUKHOA")]
 public sealed class StudentController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -28,6 +28,10 @@ public sealed class StudentController : ControllerBase
         var studentId = await GetCurrentStudentIdAsync();
         if (studentId is null)
         {
+            if (User.IsInRole("ADMIN") || User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA"))
+            {
+                return Ok(Array.Empty<StudentCourseResponse>());
+            }
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Tài khoản chưa có hồ sơ sinh viên." });
         }
 
@@ -56,7 +60,10 @@ public sealed class StudentController : ControllerBase
                     .Where(p => p.TrangThai)
                     .Select(p => p.GiangVien != null && p.GiangVien.NguoiDung != null ? p.GiangVien.NguoiDung.Email : null)
                     .FirstOrDefault() : null,
-                NgayThamGia = s.NgayThamGia
+                NgayThamGia = s.NgayThamGia,
+                TrangThai = s.LopHocPhan != null && s.LopHocPhan.DotDangKyDoAns.Any(d => d.TrangThai == "Đang mở" && DateTime.Now >= d.NgayBatDau && DateTime.Now <= d.NgayKetThuc)
+                    ? "Đang mở"
+                    : "Đã đóng"
             })
             .ToListAsync();
 
@@ -69,6 +76,10 @@ public sealed class StudentController : ControllerBase
         var studentId = await GetCurrentStudentIdAsync();
         if (studentId is null)
         {
+            if (User.IsInRole("ADMIN") || User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA"))
+            {
+                return Ok(Array.Empty<StudentCourseResponse>());
+            }
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Tài khoản chưa có hồ sơ sinh viên." });
         }
 
@@ -152,6 +163,10 @@ public sealed class StudentController : ControllerBase
         var studentId = await GetCurrentStudentIdAsync();
         if (studentId is null)
         {
+            if (User.IsInRole("ADMIN") || User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA"))
+            {
+                return Ok(Array.Empty<StudentCourseResponse>());
+            }
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Tài khoản chưa có hồ sơ sinh viên." });
         }
 
@@ -167,7 +182,7 @@ public sealed class StudentController : ControllerBase
 
         var query = _db.DeTaiDoAns.AsNoTracking()
             .Where(t => openPeriodIds.Contains(t.DotDangKyId) &&
-                        t.TrangThai == "Chưa sử dụng" &&
+                        (t.TrangThai == "Chưa sử dụng" || t.TrangThai == "Đang hoạt động") &&
                         t.TrangThaiDuyet == "Đã duyệt");
 
         var topics = await query

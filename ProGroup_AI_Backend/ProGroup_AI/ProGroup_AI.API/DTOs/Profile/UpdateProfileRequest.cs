@@ -8,6 +8,7 @@ public sealed class UpdateProfileRequest
     public string? HoTen { get; set; }
 
     [MaxLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
+    [RegularExpression(@"^[0-9]{9,11}$", ErrorMessage = "Số điện thoại chỉ được chứa các chữ số từ 0 đến 9 và có độ dài từ 9 đến 11 số.")]
     public string? SoDienThoai { get; set; }
 
     [MaxLength(500, ErrorMessage = "Avatar URL tối đa 500 ký tự.")]

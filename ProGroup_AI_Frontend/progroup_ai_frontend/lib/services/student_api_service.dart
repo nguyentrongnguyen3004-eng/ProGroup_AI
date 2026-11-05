@@ -292,6 +292,7 @@ class StudentApiService {
   }) async {
     await ApiService.instance.put('/api/groups/$nhomId/join-requests/$requestId', {
       'accept': accept,
+      'action': accept ? 'approve' : 'reject',
     });
   }
 

@@ -8,6 +8,8 @@ class LecturerCourseModel {
   final int studentCount;
   final int groupCount;
   final int topicCount;
+  final int? dotDangKyId;
+  final String dotDangKyName;
   final String groupRegistrationStart;
   final String groupRegistrationEnd;
   final String topicRegistrationStart;
@@ -26,6 +28,8 @@ class LecturerCourseModel {
     required this.studentCount,
     required this.groupCount,
     required this.topicCount,
+    this.dotDangKyId,
+    this.dotDangKyName = 'Đợt đăng ký',
     required this.groupRegistrationStart,
     required this.groupRegistrationEnd,
     required this.topicRegistrationStart,
@@ -45,27 +49,75 @@ class LecturerCourseModel {
         (json['tenHocKy'] != null && json['namHoc'] != null
             ? '${json['tenHocKy']} - ${json['namHoc']}'
             : (json['tenHocKy'] as String? ?? 'HK1 - 2026-2027'));
-    final studentCount = json['studentCount'] as int? ??
-        json['soSinhVien'] as int? ??
+
+    final studentCount = json['soSinhVien'] as int? ??
+        json['studentCount'] as int? ??
         json['SoSinhVien'] as int? ??
-        json['soLuongToiDa'] as int? ??
-        json['SoLuongToiDa'] as int? ??
-        45;
-    final groupCount = json['groupCount'] as int? ??
-        json['soNhom'] as int? ??
+        0;
+    final groupCount = json['soNhom'] as int? ??
+        json['groupCount'] as int? ??
         json['SoNhom'] as int? ??
         0;
-    final topicCount = json['topicCount'] as int? ??
-        json['soDeTai'] as int? ??
+    final topicCount = json['soDeTai'] as int? ??
+        json['topicCount'] as int? ??
         json['SoDeTai'] as int? ??
         0;
-    final groupRegistrationStart = json['groupRegistrationStart'] as String? ?? '01/09/2026';
-    final groupRegistrationEnd = json['groupRegistrationEnd'] as String? ?? '20/09/2026';
-    final topicRegistrationStart = json['topicRegistrationStart'] as String? ?? '21/09/2026';
-    final topicRegistrationEnd = json['topicRegistrationEnd'] as String? ?? '30/09/2026';
-    final minMembers = json['minMembers'] as int? ?? 3;
-    final maxMembers = json['maxMembers'] as int? ?? 5;
-    final status = json['status'] as String? ?? 'Đang mở đăng ký';
+
+    int? dotDangKyId;
+    String dotDangKyName = 'Chưa mở đợt';
+    String groupRegistrationStart = '01/09/2026';
+    String groupRegistrationEnd = '20/09/2026';
+    String topicRegistrationStart = '01/09/2026';
+    String topicRegistrationEnd = '20/09/2026';
+    int minMembers = json['minMembers'] as int? ?? 3;
+    int maxMembers = json['maxMembers'] as int? ?? 5;
+    String status = json['status'] as String? ?? 'Chưa mở';
+
+    if (json['dotDangKys'] is List && (json['dotDangKys'] as List).isNotEmpty) {
+      final dots = (json['dotDangKys'] as List).whereType<Map<String, dynamic>>().toList();
+      if (dots.isNotEmpty) {
+        final activeDot = dots.firstWhere(
+          (d) => d['trangThai'] == 'Đang mở',
+          orElse: () => dots.first,
+        );
+        dotDangKyId = activeDot['dotDangKyId'] as int? ?? activeDot['id'] as int?;
+        dotDangKyName = activeDot['tenDot']?.toString() ?? 'Đợt đăng ký đồ án';
+        status = activeDot['trangThai']?.toString() ?? 'Đang mở';
+        minMembers = activeDot['minMembers'] as int? ?? minMembers;
+        maxMembers = activeDot['maxMembers'] as int? ?? maxMembers;
+
+        String fmtDate(dynamic d) {
+          if (d == null) return '';
+          final dt = d is DateTime ? d : DateTime.tryParse(d.toString());
+          if (dt == null) return d.toString();
+          return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+        }
+
+        final startStr = fmtDate(activeDot['ngayBatDau']);
+        final endStr = fmtDate(activeDot['ngayKetThuc']);
+        if (startStr.isNotEmpty) {
+          groupRegistrationStart = startStr;
+          topicRegistrationStart = startStr;
+        }
+        if (endStr.isNotEmpty) {
+          groupRegistrationEnd = endStr;
+          topicRegistrationEnd = endStr;
+        }
+      }
+    } else {
+      if (json['groupRegistrationStart'] != null) {
+        groupRegistrationStart = json['groupRegistrationStart'].toString();
+      }
+      if (json['groupRegistrationEnd'] != null) {
+        groupRegistrationEnd = json['groupRegistrationEnd'].toString();
+      }
+      if (json['topicRegistrationStart'] != null) {
+        topicRegistrationStart = json['topicRegistrationStart'].toString();
+      }
+      if (json['topicRegistrationEnd'] != null) {
+        topicRegistrationEnd = json['topicRegistrationEnd'].toString();
+      }
+    }
 
     return LecturerCourseModel(
       id: id,
@@ -77,6 +129,8 @@ class LecturerCourseModel {
       studentCount: studentCount,
       groupCount: groupCount,
       topicCount: topicCount,
+      dotDangKyId: dotDangKyId,
+      dotDangKyName: dotDangKyName,
       groupRegistrationStart: groupRegistrationStart,
       groupRegistrationEnd: groupRegistrationEnd,
       topicRegistrationStart: topicRegistrationStart,
@@ -88,12 +142,15 @@ class LecturerCourseModel {
   }
 
   LecturerCourseModel copyWith({
+    int? dotDangKyId,
+    String? dotDangKyName,
     String? groupRegistrationStart,
     String? groupRegistrationEnd,
     String? topicRegistrationStart,
     String? topicRegistrationEnd,
     int? minMembers,
     int? maxMembers,
+    String? status,
   }) {
     return LecturerCourseModel(
       id: id,
@@ -105,6 +162,8 @@ class LecturerCourseModel {
       studentCount: studentCount,
       groupCount: groupCount,
       topicCount: topicCount,
+      dotDangKyId: dotDangKyId ?? this.dotDangKyId,
+      dotDangKyName: dotDangKyName ?? this.dotDangKyName,
       groupRegistrationStart:
           groupRegistrationStart ?? this.groupRegistrationStart,
       groupRegistrationEnd: groupRegistrationEnd ?? this.groupRegistrationEnd,
@@ -113,7 +172,7 @@ class LecturerCourseModel {
       topicRegistrationEnd: topicRegistrationEnd ?? this.topicRegistrationEnd,
       minMembers: minMembers ?? this.minMembers,
       maxMembers: maxMembers ?? this.maxMembers,
-      status: status,
+      status: status ?? this.status,
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../models/admin_account_model.dart';
 import '../../../services/admin_api_service.dart';
@@ -185,8 +186,23 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
                         controller: _phone,
                         label: adminText('Số điện thoại', 'Phone Number'),
                         icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
+                        keyboardType: TextInputType.number,
                         colors: colors,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(11),
+                        ],
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final clean = v.trim();
+                          if (!RegExp(r'^[0-9]+$').hasMatch(clean)) {
+                            return 'Số điện thoại chỉ được chứa các chữ số từ 0 đến 9';
+                          }
+                          if (clean.length < 9 || clean.length > 11) {
+                            return 'Số điện thoại phải từ 9 đến 11 chữ số';
+                          }
+                          return null;
+                        },
                       ),
                     ],
                   ),
@@ -337,12 +353,14 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     required ColorScheme colors,
     bool obscureText = false,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,

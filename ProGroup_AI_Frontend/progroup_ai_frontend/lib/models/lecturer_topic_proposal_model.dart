@@ -49,7 +49,7 @@ class LecturerTopicProposalModel {
       groupName: json['groupName'] as String? ?? json['tenNhom'] as String? ?? '',
       status: json['status'] as String? ?? json['trangThaiDuyet'] as String? ?? 'Chờ duyệt',
       createdAt: parseDate(json['createdAt'] ?? json['ngayTao']),
-      decisionReason: json['decisionReason'] as String? ?? json['lyDo'] as String? ?? json['ghiChu'] as String?,
+      decisionReason: json['decisionReason'] as String? ?? json['lyDoTuChoi'] as String? ?? json['lyDo'] as String? ?? json['ghiChu'] as String?,
     );
   }
 

@@ -73,7 +73,7 @@ class LecturerApiService {
         final allGroups = <GroupModel>[];
         for (final c in _cachedCourses) {
           try {
-            final grps = await fetchGroups(c.courseId);
+            final grps = await fetchGroups(c.id);
             allGroups.addAll(grps);
           } catch (_) {}
         }
@@ -128,13 +128,23 @@ class LecturerApiService {
       }
       _cachedTopics = list;
       if (courseId != null) {
-        return list.where((t) => t.courseId == courseId).toList();
+        return list
+            .where((t) =>
+                t.courseId == courseId ||
+                t.lopHocPhanId == courseId ||
+                t.dotDangKyId == courseId)
+            .toList();
       }
       return list;
     }
 
     if (courseId != null) {
-      return _cachedTopics.where((t) => t.courseId == courseId).toList();
+      return _cachedTopics
+          .where((t) =>
+              t.courseId == courseId ||
+              t.lopHocPhanId == courseId ||
+              t.dotDangKyId == courseId)
+          .toList();
     }
     return _cachedTopics;
   }
@@ -257,17 +267,25 @@ class LecturerApiService {
       final List<Map<String, dynamic>> list = [];
       for (final item in res) {
         if (item is Map<String, dynamic>) {
+          final regLopId = item['lopHocPhanId'] as int? ?? item['courseId'] as int?;
+          final regDotId = item['dotDangKyId'] as int?;
+          if (courseId != null && regLopId != null && regLopId != courseId && regDotId != courseId) {
+            continue;
+          }
           list.add({
             'id': item['id'] as int? ?? item['dangKyDeTaiId'] as int? ?? 0,
             'dangKyDeTaiId': item['dangKyDeTaiId'] as int? ?? item['id'] as int? ?? 0,
             'groupId': item['groupId'] as int? ?? item['nhomId'] as int? ?? 0,
             'nhomId': item['nhomId'] as int? ?? item['groupId'] as int? ?? 0,
-            'groupName': item['groupName'] as String? ?? item['nhomTen'] as String? ?? 'Nhóm',
-            'leaderName': item['leaderName'] as String? ?? item['truongNhomTen'] as String? ?? 'Trưởng nhóm',
-            'courseName': item['courseName'] as String? ?? item['lopHocPhanTen'] as String? ?? '',
+            'courseId': regLopId ?? 0,
+            'lopHocPhanId': regLopId ?? 0,
+            'dotDangKyId': regDotId ?? 0,
+            'groupName': item['groupName'] as String? ?? item['tenNhom'] as String? ?? item['nhomTen'] as String? ?? 'Nhóm',
+            'leaderName': item['leaderName'] as String? ?? item['tenTruongNhom'] as String? ?? item['truongNhomTen'] as String? ?? 'Trưởng nhóm',
+            'courseName': item['courseName'] as String? ?? item['tenLopHocPhan'] as String? ?? item['lopHocPhanTen'] as String? ?? '',
             'topicId': item['topicId'] as int? ?? item['deTaiId'] as int? ?? 0,
             'deTaiId': item['deTaiId'] as int? ?? item['topicId'] as int? ?? 0,
-            'topicTitle': item['topicTitle'] as String? ?? item['deTaiTen'] as String? ?? 'Đề tài',
+            'topicTitle': item['topicTitle'] as String? ?? item['tenDeTai'] as String? ?? item['deTaiTen'] as String? ?? 'Đề tài',
             'status': item['status'] as String? ?? item['trangThai'] as String? ?? 'Chờ duyệt',
             'registeredAt': item['registeredAt'] ?? item['ngayDangKy'] ?? DateTime.now().toIso8601String(),
             'note': item['note'] as String? ?? item['ghiChu'] as String?,
@@ -304,15 +322,20 @@ class LecturerApiService {
     String? phamVi,
     String? congNghe,
     required int dotDangKyId,
+    int? lopHocPhanId,
+    String? status,
   }) async {
-    await ApiService.instance.post('/api/de-tai', {
+    final body = <String, dynamic>{
       'tenDeTai': tenDeTai,
       'moTa': moTa ?? '',
       'mucTieu': mucTieu ?? '',
       'phamVi': phamVi ?? '',
       'congNgheDuKien': congNghe ?? '',
       'dotDangKyId': dotDangKyId,
-    });
+    };
+    if (lopHocPhanId != null) body['lopHocPhanId'] = lopHocPhanId;
+    if (status != null && status.isNotEmpty) body['trangThai'] = status;
+    await ApiService.instance.post('/api/de-tai', body);
     await fetchTopics();
   }
 
@@ -325,6 +348,7 @@ class LecturerApiService {
     String? mucTieu,
     String? phamVi,
     String? congNghe,
+    String? status,
   }) async {
     await ApiService.instance.put('/api/de-tai/$id', {
       'tenDeTai': tenDeTai,
@@ -332,6 +356,7 @@ class LecturerApiService {
       'mucTieu': mucTieu ?? '',
       'phamVi': phamVi ?? '',
       'congNgheDuKien': congNghe ?? '',
+      if (status != null && status.isNotEmpty) 'trangThai': status,
     });
     await fetchTopics();
   }
@@ -381,11 +406,13 @@ class LecturerApiService {
       await ApiService.instance.put('/api/de-tai/$id/duyet', {
         'chapNhan': chapNhan,
         'lyDo': lyDo,
+        'lyDoTuChoi': lyDo,
       });
     } catch (_) {
       await ApiService.instance.put('/api/de-tai/$id', {
         'trangThaiDuyet': chapNhan ? 'Đã duyệt' : 'Từ chối',
         'lyDo': lyDo,
+        'lyDoTuChoi': lyDo,
       });
     }
   }
@@ -407,6 +434,7 @@ class LecturerApiService {
           lecturerCode: res['maGiangVien'] as String? ?? res['tenDangNhap'] as String? ?? 'GV001',
           fullName: res['hoTen'] as String? ?? 'Giảng viên',
           email: res['email'] as String? ?? '',
+          phoneNumber: (res['soDienThoai'] ?? res['phoneNumber'] ?? '').toString(),
           faculty: 'Khoa Công nghệ thông tin',
           department: 'Bộ môn Công nghệ phần mềm',
           avatar: avatar,
@@ -459,6 +487,27 @@ class LecturerApiService {
   }
 
   /// Lấy danh sách đợt đăng ký của lớp học phần
+
+  /// Tạo đợt đăng ký mới cho lớp học phần (TC_LEC_027)
+  Future<Map<String, dynamic>> createRegistrationPeriod({
+    required String tenDot,
+    required int lopHocPhanId,
+    required DateTime ngayBatDau,
+    required DateTime ngayKetThuc,
+    int minMembers = 1,
+    int maxMembers = 5,
+  }) async {
+    final res = await ApiService.instance.post('/api/dot-dang-ky', {
+      'tenDot': tenDot,
+      'lopHocPhanId': lopHocPhanId,
+      'ngayBatDau': ngayBatDau.toIso8601String(),
+      'ngayKetThuc': ngayKetThuc.toIso8601String(),
+      'minMembers': minMembers,
+      'maxMembers': maxMembers,
+    });
+    return (res is Map) ? res.cast<String, dynamic>() : {};
+  }
+
   Future<List<Map<String, dynamic>>> fetchCourseRegistrationPeriods(int lopHocPhanId) async {
     try {
       final res = await ApiService.instance.get('/api/dot-dang-ky?lopHocPhanId=$lopHocPhanId');

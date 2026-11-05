@@ -229,9 +229,12 @@ class ProfileAvatarPickerHelper {
       }
     } catch (e) {
       if (context.mounted) {
+        final errText = e.toString().contains('kết nối mạng')
+            ? 'Tải ảnh thất bại, vui lòng kiểm tra kết nối mạng'
+            : 'Lỗi tải ảnh: ${e.toString().replaceAll('Exception: ', '')}';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi tải ảnh: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text(errText),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

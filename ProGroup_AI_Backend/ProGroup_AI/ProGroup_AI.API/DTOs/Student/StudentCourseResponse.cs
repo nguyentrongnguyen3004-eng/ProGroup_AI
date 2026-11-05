@@ -14,4 +14,5 @@ public sealed class StudentCourseResponse
     public string? GiangVienPhuTrach { get; set; }
     public string? EmailGiangVien { get; set; }
     public DateTime NgayThamGia { get; set; }
+    public string TrangThai { get; set; } = "Đang mở";
 }

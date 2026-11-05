@@ -125,51 +125,71 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   void _renameGroup() {
     final controller = TextEditingController(text: groupName);
+    String? errorMessage;
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Text(AppLocalizations.text('Đổi tên nhóm', en: 'Rename Group')),
-          content: SingleChildScrollView(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.text('Tên nhóm mới', en: 'New Group Name'),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: Text(AppLocalizations.text('Đổi tên nhóm', en: 'Rename Group')),
+              content: SingleChildScrollView(
+                child: TextField(
+                  controller: controller,
+                  onChanged: (val) {
+                    if (errorMessage != null && val.trim().isNotEmpty) {
+                      setDialogState(() => errorMessage = null);
+                    }
+                  },
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.text('Tên nhóm mới', en: 'New Group Name'),
+                    errorText: errorMessage,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final newName = controller.text.trim();
-                if (newName.isNotEmpty) {
-                  try {
-                    await StudentApiService.instance.updateGroupName(widget.group.id, newName);
-                    if (mounted) {
-                      setState(() => groupName = newName);
-                      if (dialogContext.mounted) {
-                        Navigator.pop(dialogContext);
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final newName = controller.text.trim();
+                    if (newName.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = AppLocalizations.text(
+                          'Tên nhóm không được để trống',
+                          en: 'Group name cannot be empty',
+                        );
+                      });
+                      return;
+                    }
+                    try {
+                      await StudentApiService.instance.updateGroupName(widget.group.id, newName);
+                      if (mounted) {
+                        setState(() => groupName = newName);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                        }
+                        _showMessage(
+                          AppLocalizations.text('Đã đổi tên nhóm thành công.', en: 'Group renamed successfully.'),
+                        );
                       }
-                      _showMessage(
-                        AppLocalizations.text('Đã đổi tên nhóm thành công.', en: 'Group renamed successfully.'),
-                      );
+                    } catch (e) {
+                      if (mounted) {
+                        setDialogState(() {
+                          errorMessage = e.toString().replaceAll("Exception: ", "");
+                        });
+                      }
                     }
-                  } catch (e) {
-                    if (mounted) {
-                      _showMessage('Lỗi khi đổi tên: ${e.toString().replaceAll("Exception: ", "")}');
-                    }
-                  }
-                }
-              },
-              child: Text(AppLocalizations.text('Lưu', en: 'Save')),
-            ),
-          ],
+                  },
+                  child: Text(AppLocalizations.text('Lưu', en: 'Save')),
+                ),
+              ],
+            );
+          },
         );
       },
     );

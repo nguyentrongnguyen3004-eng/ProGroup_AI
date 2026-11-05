@@ -397,7 +397,10 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<NguoiDung>(entity =>
         {
-            entity.ToTable("NguoiDungs");
+            entity.ToTable("NguoiDungs", table =>
+            {
+                table.HasCheckConstraint("CK_NguoiDungs_SoDienThoai", "SoDienThoai IS NULL OR (LEN(SoDienThoai) >= 9 AND LEN(SoDienThoai) <= 11 AND SoDienThoai NOT LIKE '%[^0-9]%')");
+            });
             ConfigureVarchar(entity.Property(x => x.TenDangNhap), 100).IsRequired();
             ConfigureNvarchar(entity.Property(x => x.MatKhauHash), 500).IsRequired();
             ConfigureVarchar(entity.Property(x => x.Email), 150).IsRequired();
@@ -537,7 +540,7 @@ public class ApplicationDbContext : DbContext
                     "NguonDeTai IN (N'Giảng viên', N'Sinh viên đề xuất')");
                 table.HasCheckConstraint(
                     "CK_DeTaiDoAns_TrangThai",
-                    "TrangThai IN (N'Chưa sử dụng', N'Đã đăng ký', N'Đã khóa', N'Đã hủy')");
+                    "TrangThai IN (N'Chưa sử dụng', N'Đang hoạt động', N'Tạm khóa', N'Đã khóa', N'Đã đăng ký', N'Đã hủy')");
                 table.HasCheckConstraint(
                     "CK_DeTaiDoAns_TrangThaiDuyet",
                     "TrangThaiDuyet IN (N'Chờ duyệt', N'Đã duyệt', N'Từ chối')");
@@ -637,6 +640,14 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<DeTaiDoAn>()
             .HasIndex(x => x.TrangThaiDuyet);
+
+        modelBuilder.Entity<BaoCaoTienDo>(entity =>
+        {
+            entity.ToTable("BaoCaoTienDos", table =>
+            {
+                table.HasCheckConstraint("CK_BaoCaoTienDos_Diem", "Diem IS NULL OR (Diem >= 0.0 AND Diem <= 10.0)");
+            });
+        });
     }
 
     private static PropertyBuilder<TProperty> ConfigureVarchar<TProperty>(

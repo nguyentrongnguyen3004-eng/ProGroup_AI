@@ -17,6 +17,7 @@ public sealed class CreateTopicRequest
     [MaxLength(1000, ErrorMessage = "Công nghệ dự kiến tối đa 1000 ký tự.")]
     public string? CongNgheDuKien { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "DotDangKyId không hợp lệ.")]
-    public int DotDangKyId { get; set; }
+    public int? DotDangKyId { get; set; }
+    public int? LopHocPhanId { get; set; }
+    public string? TrangThai { get; set; }
 }

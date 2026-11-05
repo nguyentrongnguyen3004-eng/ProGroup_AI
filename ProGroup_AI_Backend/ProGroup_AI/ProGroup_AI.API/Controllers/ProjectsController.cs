@@ -21,7 +21,7 @@ public sealed class ProjectsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ProjectResponse>>> GetAll([FromQuery] int? dotDangKyId, [FromQuery] int? lopHocPhanId)
     {
         var query = _db.DeTaiDoAns.AsNoTracking()
-            .Where(x => x.TrangThai == "Chưa sử dụng" && x.TrangThaiDuyet == "Đã duyệt");
+            .Where(x => (x.TrangThai == "Chưa sử dụng" || x.TrangThai == "Đang hoạt động") && x.TrangThaiDuyet == "Đã duyệt");
 
         if (dotDangKyId.HasValue) 
             query = query.Where(x => x.DotDangKyId == dotDangKyId.Value);
@@ -194,7 +194,7 @@ public sealed class ProjectsController : ControllerBase
 
         var activeMembers = group.ThanhVienNhoms.Count(x => x.TrangThai == "Đã tham gia");
         if (!group.ThanhVienNhoms.Any(x => x.SinhVienId == group.TruongNhomId && x.TrangThai == "Đã tham gia")) activeMembers++;
-        if (activeMembers < period.MinMembers) return Conflict(new { message = "Nhóm chưa đủ số thành viên tối thiểu." });
+        if (activeMembers < period.MinMembers) return Conflict(new { message = $"Nhóm của bạn chưa đủ số thành viên tối thiểu (yêu cầu tối thiểu {period.MinMembers} thành viên)." });
 
         var hasRegistration = await _db.DangKyDeTais.AnyAsync(x => x.NhomId == group.NhomId &&
             (x.TrangThai == "Chờ duyệt" || x.TrangThai == "Đã duyệt"));
@@ -202,7 +202,7 @@ public sealed class ProjectsController : ControllerBase
 
         var topic = await _db.DeTaiDoAns.FirstOrDefaultAsync(x => x.DeTaiId == request.DeTaiId && x.DotDangKyId == period.DotDangKyId);
         if (topic is null) return NotFound(new { message = "Đề tài không tồn tại trong đợt đăng ký của nhóm." });
-        if (topic.TrangThai != "Chưa sử dụng" || topic.TrangThaiDuyet != "Đã duyệt")
+        if ((topic.TrangThai != "Chưa sử dụng" && topic.TrangThai != "Đang hoạt động") || topic.TrangThaiDuyet != "Đã duyệt")
             return Conflict(new { message = "Đề tài không còn khả dụng hoặc chưa được duyệt." });
         if (await _db.DangKyDeTais.AnyAsync(x => x.DeTaiId == topic.DeTaiId &&
             (x.TrangThai == "Chờ duyệt" || x.TrangThai == "Đã duyệt")))

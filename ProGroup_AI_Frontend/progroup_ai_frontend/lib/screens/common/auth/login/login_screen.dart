@@ -101,15 +101,18 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       Navigator.pushReplacementNamed(context, destination, arguments: user);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
 
       setState(() => loading = false);
+      final raw = e.toString().replaceAll('Exception: ', '').trim();
       showMessage(
-        AppLocalizations.text(
-          'Không thể đăng nhập lúc này. Vui lòng thử lại.',
-          en: 'Unable to sign in right now. Please try again.',
-        ),
+        raw.isNotEmpty
+            ? raw
+            : AppLocalizations.text(
+                'Không thể đăng nhập lúc này. Vui lòng thử lại.',
+                en: 'Unable to sign in right now. Please try again.',
+              ),
       );
     }
   }
