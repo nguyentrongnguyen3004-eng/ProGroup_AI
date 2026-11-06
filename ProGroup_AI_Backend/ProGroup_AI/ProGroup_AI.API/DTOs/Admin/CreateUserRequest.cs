@@ -22,7 +22,7 @@ public sealed class CreateUserRequest
     public string HoTen { get; set; } = string.Empty;
 
     [MaxLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
-    [RegularExpression(@"^[0-9]{9,11}$", ErrorMessage = "Số điện thoại chỉ được chứa các chữ số từ 0 đến 9 và có độ dài từ 9 đến 11 số.")]
+    [RegularExpression(@"^[0-9]{10,11}$", ErrorMessage = "Số điện thoại phải từ 10-11 chữ số và không chứa ký tự chữ.")]
     public string? SoDienThoai { get; set; }
 
     public int? VaiTroId { get; set; }

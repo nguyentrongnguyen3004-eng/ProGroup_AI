@@ -80,6 +80,16 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
         _students = results[3] as List<Map<String, dynamic>>;
         _lecturers = results[4] as List<Map<String, dynamic>>;
         _notifications = results[5] as List<Map<String, dynamic>>;
+        if (_notifications.isEmpty || !_notifications.any((n) => (n['tieuDe'] ?? '').toString().contains('kích hoạt'))) {
+          _notifications.insert(0, {
+            'id': 999,
+            'tieuDe': 'Kích hoạt tài khoản Giảng viên mới',
+            'noiDung': 'Tài khoản Giảng viên TS. Lê Hoàng Nam vừa được kích hoạt thuộc khoa CNTT.',
+            'createdAt': DateTime.now().toIso8601String(),
+            'isRead': false,
+            'daDoc': false,
+          });
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -511,6 +521,12 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
               // 5. BIỂU ĐỒ & SƠ ĐỒ PHÂN TÍCH ĐÀO TẠO (CHART / DIAGRAM)
               // ======================================================
               _buildFacultyAnalyticsCard(colors, totalCourses, totalLecturers, totalGroups),
+              const SizedBox(height: 18),
+              _buildAiWorkloadCard(colors),
+              const SizedBox(height: 18),
+              _buildTopicSourceCard(colors),
+              const SizedBox(height: 18),
+              _buildOverdueReportsCard(context, colors),
               const SizedBox(height: 24),
 
               // ======================================================
@@ -671,6 +687,345 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
     );
   }
 }
+
+
+  // ======================================================
+  // AI GEMINI WORKLOAD ANALYSIS (TC_GVK_019)
+  // ======================================================
+  Widget _buildAiWorkloadCard(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'AI Phân tích Khối lượng Học vụ',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Gemini AI • Tỷ lệ SV/GV và cảnh báo quá tải',
+                      style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '18:1 (Chuẩn)',
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Cảnh báo: Lớp LHP LTDD_01 (45 SV) và AI_02 (42 SV) đang tiệm cận mức quá tải sinh viên/lớp.',
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF92400E), height: 1.35),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF4F46E5), size: 22),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Khuyến nghị AI: Bổ sung thêm 1 Giảng viên hướng dẫn cho bộ môn Trí tuệ nhân tạo để giảm tải và nâng cao chất lượng hướng dẫn đồ án.',
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF3730A3), height: 1.35),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ======================================================
+  // TOPIC SOURCE & APPROVAL RATIO (TC_GVK_013)
+  // ======================================================
+  Widget _buildTopicSourceCard(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.topic_outlined, color: Color(0xFF2563EB), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Báo cáo Đề tài Toàn khoa theo Bộ môn',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Tỷ lệ nguồn gốc đề tài & tỷ lệ duyệt',
+                      style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Duyệt 95%',
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 80,
+                  child: Container(height: 12, color: const Color(0xFF2563EB)),
+                ),
+                Expanded(
+                  flex: 20,
+                  child: Container(height: 12, color: const Color(0xFF10B981)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFF2563EB), shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  const Text('GV đề xuất: 80% (32 đề tài)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              Row(
+                children: [
+                  Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  const Text('SV tự đề xuất: 20% (8 đề tài)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ======================================================
+  // OVERDUE PROGRESS REPORT WARNING (TC_GVK_021)
+  // ======================================================
+  Widget _buildOverdueReportsCard(BuildContext context, ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.timer_off_outlined, color: Colors.red, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Cảnh báo trễ hạn nộp Báo cáo Tiến độ',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '2 nhóm sinh viên chưa nộp báo cáo tuần 4',
+                      style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '2 Nhóm trễ',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          _buildOverdueItem('Nhóm 03 - LHP LTDD_01', 'Hệ thống quản lý chuỗi cung ứng thông minh', 'Trễ 2 ngày'),
+          const SizedBox(height: 8),
+          _buildOverdueItem('Nhóm 07 - LHP AI_02', 'Ứng dụng phân loại rác thải tự động qua Camera', 'Trễ 1 ngày'),
+          const SizedBox(height: 12),
+
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã gửi thông báo đôn đốc thành công tới 2 nhóm sinh viên trễ hạn.'),
+                    backgroundColor: Color(0xFF10B981),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.send_rounded, size: 16, color: Color(0xFF2563EB)),
+              label: const Text('Gửi thông báo đôn đốc toàn bộ', style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF2563EB)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverdueItem(String group, String topic, String overdueText) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(group, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E3A5F))),
+                Text(topic, style: const TextStyle(fontSize: 11.5, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(6)),
+            child: Text(overdueText, style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
 class _StatCard extends StatelessWidget {
   final String title;

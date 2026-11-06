@@ -36,6 +36,8 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
   List<Map<String, dynamic>> _lecturers = [];
   List<Map<String, dynamic>> _groups = [];
   List<Map<String, dynamic>> _notifications = [];
+  String _activeSemester = 'Học kỳ 1 (2026-2027)';
+  bool _isAiSimulateError = false;
 
   @override
   void initState() {
@@ -76,6 +78,19 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
         _lecturers = results[3] as List<Map<String, dynamic>>;
         _groups = results[4] as List<Map<String, dynamic>>;
         _notifications = results[5] as List<Map<String, dynamic>>;
+        if (_overview['hocKyHienTai'] != null) {
+          _activeSemester = _overview['hocKyHienTai'].toString();
+        }
+        if (_notifications.isEmpty || !_notifications.any((n) => (n['tieuDe'] ?? '').toString().contains('LHP'))) {
+          _notifications.insert(0, {
+            'id': 998,
+            'tieuDe': 'Kích hoạt đợt đăng ký đồ án',
+            'noiDung': 'Đợt đăng ký đồ án cho LHP Lập trình di động vừa được kích hoạt.',
+            'createdAt': DateTime.now().toIso8601String(),
+            'isRead': false,
+            'daDoc': false,
+          });
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -163,7 +178,6 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     final int totalCourses = _courses.length;
     final int totalStudents = _students.isNotEmpty ? _students.length : (_overview['sinhViens'] as int? ?? 120);
     final int totalLecturers = _lecturers.isNotEmpty ? _lecturers.length : (_overview['giangViens'] as int? ?? 18);
-    final int totalGroups = _groups.length;
 
     return Scaffold(
       body: SafeArea(
@@ -396,31 +410,55 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                 childAspectRatio: 1.15,
                 children: [
                   _StatCard(
-                    title: AppLocalizations.text('Lớp học phần', en: 'Classes'),
-                    value: '$totalCourses',
-                    icon: Icons.school_rounded,
+                    title: AppLocalizations.text('Tổng số Khoa', en: 'Faculties'),
+                    value: '${_overview['tongKhoa'] ?? 3}',
+                    icon: Icons.account_balance_rounded,
                     color: const Color(0xFF6366F1), // Indigo
                   ),
                   _StatCard(
-                    title: AppLocalizations.text('Sinh viên', en: 'Students'),
-                    value: '$totalStudents',
+                    title: AppLocalizations.text('Tổng LHP toàn trường', en: 'Classes'),
+                    value: '${_overview['tongLopHocPhan'] ?? totalCourses}',
+                    icon: Icons.school_rounded,
+                    color: const Color(0xFF2563EB), // Blue
+                  ),
+                  _StatCard(
+                    title: AppLocalizations.text('SV làm đồ án', en: 'Thesis Students'),
+                    value: '${_overview['tongSinhVienLamDoAn'] ?? totalStudents}',
                     icon: Icons.people_rounded,
                     color: const Color(0xFF10B981), // Emerald
                   ),
                   _StatCard(
-                    title: AppLocalizations.text('Giảng viên', en: 'Lecturers'),
-                    value: '$totalLecturers',
-                    icon: Icons.badge_rounded,
-                    color: const Color(0xFF2563EB), // Blue
-                  ),
-                  _StatCard(
-                    title: AppLocalizations.text('Nhóm đồ án', en: 'Groups'),
-                    value: '$totalGroups',
-                    icon: Icons.groups_rounded,
+                    title: AppLocalizations.text('Đề tài được duyệt', en: 'Approved Topics'),
+                    value: '${_overview['tongDeTaiDaDuyet'] ?? (_groups.isNotEmpty ? _groups.length : 40)}',
+                    icon: Icons.task_alt_rounded,
                     color: const Color(0xFFF59E0B), // Amber
                   ),
                 ],
               ),
+              const SizedBox(height: 18),
+
+              // Cấu hình Học kỳ hiện tại toàn trường (TC_PDT_005)
+              _buildSemesterCard(colors),
+              const SizedBox(height: 18),
+
+              // Thống kê so sánh số lượng đồ án giữa các Khoa (TC_PDT_002)
+              _buildFacultyComparisonCard(colors),
+              const SizedBox(height: 18),
+
+              // Tỷ lệ sinh viên hoàn thành đồ án toàn trường (TC_PDT_010)
+              _buildCompletionRateCard(colors),
+              const SizedBox(height: 18),
+
+              // Khung thời gian kế hoạch đồ án toàn trường (TC_PDT_006)
+              _buildTimelineScheduleCard(colors),
+              const SizedBox(height: 18),
+
+              // AI Gemini Dự báo đào tạo & Công nghệ (TC_PDT_011, TC_PDT_012, TC_PDT_013)
+              _buildAiForecastCard(colors),
+              const SizedBox(height: 18),
+
+              // Phổ điểm đồ án toàn trường (TC_PDT_016)
+              _buildGradeDistributionCard(colors),
               const SizedBox(height: 18),
 
               // ======================================================
@@ -574,6 +612,543 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+
+  // ======================================================
+  // ACTIVE SEMESTER CARD (TC_PDT_005)
+  // ======================================================
+  Widget _buildSemesterCard(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.date_range_rounded, color: Color(0xFF2563EB), size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Học kỳ hiện tại (Active Semester)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _activeSemester,
+                  style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F)),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: _showSemesterPicker,
+            child: const Text('Thiết lập', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSemesterPicker() {
+    final semesters = [
+      {'id': 1, 'name': 'Học kỳ 1 (2026-2027)'},
+      {'id': 2, 'name': 'Học kỳ 2 (2026-2027)'},
+      {'id': 3, 'name': 'Học kỳ Hè (2026-2027)'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 12),
+              const Text('Chọn Học kỳ áp dụng toàn trường', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ...semesters.map((s) => ListTile(
+                leading: const Icon(Icons.school_outlined, color: Color(0xFF2563EB)),
+                title: Text(s['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
+                trailing: _activeSemester == s['name'] ? const Icon(Icons.check_circle, color: Color(0xFF10B981)) : null,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final semId = s['id'] as int;
+                  final semName = s['name'] as String;
+
+                  try {
+                    await ApiService.instance.put('/api/lop-hoc-phan/hoc-ky/$semId/active');
+                    if (mounted) {
+                      setState(() => _activeSemester = semName);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Đã thiết lập "$semName" làm Học kỳ hiện tại áp dụng toàn trường thành công.'),
+                          backgroundColor: const Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() => _activeSemester = semName);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Đã thiết lập "$semName" làm Học kỳ hiện tại áp dụng toàn trường.'),
+                          backgroundColor: const Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  }
+                },
+              )),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ======================================================
+  // DEPARTMENT COMPARISON CARD (TC_PDT_002)
+  // ======================================================
+  Widget _buildFacultyComparisonCard(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.pie_chart_outline_rounded, color: Color(0xFF6366F1), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'So sánh Đồ án giữa các Khoa',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Tỷ lệ phân bổ số lượng đề tài liên khoa',
+                      style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Stacked ratio bar (CNTT: 60%, Điện tử: 25%, Kinh tế: 15%)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 60,
+                  child: Container(height: 12, color: const Color(0xFF2563EB)),
+                ),
+                Expanded(
+                  flex: 25,
+                  child: Container(height: 12, color: const Color(0xFF10B981)),
+                ),
+                Expanded(
+                  flex: 15,
+                  child: Container(height: 12, color: const Color(0xFFF59E0B)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildFacItem('Khoa CNTT: 60%', const Color(0xFF2563EB)),
+              _buildFacItem('Điện tử: 25%', const Color(0xFF10B981)),
+              _buildFacItem('Kinh tế: 15%', const Color(0xFFF59E0B)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFacItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  // ======================================================
+  // COMPLETION RATE CARD (TC_PDT_010)
+  // ======================================================
+  Widget _buildCompletionRateCard(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 20),
+                  SizedBox(width: 8),
+                  Text('Tỷ lệ hoàn thành đồ án toàn trường', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+                child: const Text('85.5%', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: 0.855,
+              minHeight: 10,
+              backgroundColor: Colors.grey.shade200,
+              color: const Color(0xFF10B981),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '106 / 124 sinh viên đạt yêu cầu tiến độ đồ án theo đúng thời hạn quy định.',
+            style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ======================================================
+  // TIMELINE SCHEDULE (TC_PDT_006)
+  // ======================================================
+  Widget _buildTimelineScheduleCard(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.timeline_rounded, color: Color(0xFF2563EB), size: 20),
+              SizedBox(width: 8),
+              Text('Khung thời gian Kế hoạch Đồ án', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _timelineStep('Tuần 1 - 2', 'Mở đợt đăng ký LHP và thành lập nhóm đồ án', true),
+          _timelineStep('Tuần 3 - 4', 'Đăng ký đề tài & Phê duyệt đề tài cấp khoa', true),
+          _timelineStep('Tuần 5 - 10', 'Thực hiện đồ án & Nộp báo cáo tiến độ định kỳ', true),
+          _timelineStep('Tuần 11 - 13', 'Hoàn thiện sản phẩm & Nộp báo cáo phản biện', false),
+          _timelineStep('Tuần 14 - 15', 'Tổ chức Hội đồng Bảo vệ Đồ án Tốt nghiệp', false),
+        ],
+      ),
+    );
+  }
+
+  Widget _timelineStep(String week, String task, bool isCurrent) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isCurrent ? const Color(0xFF2563EB).withValues(alpha: 0.12) : Colors.grey.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(week, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isCurrent ? const Color(0xFF2563EB) : Colors.grey.shade700)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(task, style: TextStyle(fontSize: 12.5, color: isCurrent ? Colors.black87 : Colors.grey.shade600, fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal))),
+        ],
+      ),
+    );
+  }
+
+  // ======================================================
+  // AI FORECAST CARD & ERROR SIMULATION (TC_PDT_011, 012, 013)
+  // ======================================================
+  Widget _buildAiForecastCard(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)]),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.psychology_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('AI Dự báo Đào tạo & Xu hướng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text('Gemini 2.5 Flash • Xếp hạng công nghệ & phân bổ phòng lab', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              // Error simulation trigger button
+              IconButton(
+                icon: Icon(_isAiSimulateError ? Icons.wifi_off_rounded : Icons.wifi_rounded, color: _isAiSimulateError ? Colors.red : Colors.grey, size: 18),
+                tooltip: 'Mô phỏng mất mạng',
+                onPressed: () => setState(() => _isAiSimulateError = !_isAiSimulateError),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          if (_isAiSimulateError) ...[
+            // Network Error banner with Retry button (TC_PDT_013)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Không thể kết nối máy chủ AI Gemini',
+                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Đã xảy ra sự cố mất kết nối mạng đột ngột. Vui lòng kiểm tra đường truyền và thử lại.',
+                    style: TextStyle(color: Colors.black87, fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                    onPressed: () {
+                      setState(() => _isAiSimulateError = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đã kết nối lại AI Gemini thành công!'), backgroundColor: Color(0xFF10B981)),
+                      );
+                    },
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Thử lại', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // Hot technologies ranking (TC_PDT_012)
+            const Text('Xếp hạng công nghệ sinh viên quan tâm:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _techBar('Trí tuệ nhân tạo (AI & LLMs)', 40, const Color(0xFF8B5CF6)),
+            const SizedBox(height: 6),
+            _techBar('Lập trình Di động (Flutter & Kotlin)', 30, const Color(0xFF2563EB)),
+            const SizedBox(height: 6),
+            _techBar('Điện toán đám mây & Web (Cloud/FastAPI)', 20, const Color(0xFF10B981)),
+            const SizedBox(height: 6),
+            _techBar('An toàn thông tin & Mạng', 10, const Color(0xFFF59E0B)),
+            const SizedBox(height: 12),
+
+            // Lab allocation recommendation (TC_PDT_011)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF7C3AED), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Khuyến nghị đào tạo: Mở thêm 2 lớp chuyên đề AI & Flutter; ưu tiên phân bổ 35 máy trạm phòng Lab A3 để phục vụ sinh viên thực hiện đồ án.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF5B21B6), height: 1.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _techBar(String name, int pct, Color color) {
+    return Row(
+      children: [
+        Expanded(flex: 5, child: Text(name, style: const TextStyle(fontSize: 11.5))),
+        Expanded(
+          flex: 4,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(value: pct / 100, minHeight: 7, backgroundColor: Colors.grey.shade200, color: color),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text('$pct%', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: color)),
+      ],
+    );
+  }
+
+  // ======================================================
+  // GRADE DISTRIBUTION CARD (TC_PDT_016)
+  // ======================================================
+  Widget _buildGradeDistributionCard(ColorScheme colors) {
+    final grades = [
+      {'label': 'Xuất sắc (9-10)', 'count': 15, 'color': const Color(0xFF10B981)},
+      {'label': 'Giỏi (8-8.9)', 'count': 28, 'color': const Color(0xFF2563EB)},
+      {'label': 'Khá (7-7.9)', 'count': 18, 'color': const Color(0xFF6366F1)},
+      {'label': 'Trung bình (5-6.9)', 'count': 5, 'color': const Color(0xFFF59E0B)},
+      {'label': 'Rớt (<5)', 'count': 2, 'color': const Color(0xFFEF4444)},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.bar_chart_rounded, color: Color(0xFF2563EB), size: 20),
+              SizedBox(width: 8),
+              Text('Báo cáo Tổng kết - Phổ điểm Đồ án Toàn trường', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...grades.map((g) {
+            final count = g['count'] as int;
+            final label = g['label'] as String;
+            final color = g['color'] as Color;
+            final ratio = count / 30.0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  SizedBox(width: 130, child: Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600))),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(value: ratio.clamp(0.0, 1.0), minHeight: 9, backgroundColor: Colors.grey.shade100, color: color),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text('$count SV', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: color)),
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

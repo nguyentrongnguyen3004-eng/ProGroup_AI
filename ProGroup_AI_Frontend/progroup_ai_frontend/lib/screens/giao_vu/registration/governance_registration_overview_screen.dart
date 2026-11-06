@@ -221,7 +221,138 @@ class _GovernanceRegistrationOverviewScreenState extends State<GovernanceRegistr
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // ======================================================
+          // GIÁM SÁT THEO TỪNG MÔN HỌC (TC_GVK_012)
+          // ======================================================
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Giám sát Đăng ký theo từng Môn học',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E3A5F),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${_courses.length} Môn học',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          ...(_courses.isNotEmpty ? _courses : [
+            {'tenHocPhan': 'Lập trình di động', 'maLopHocPhan': 'LTDD_01', 'soNhom': 6, 'soDeTai': 5},
+            {'tenHocPhan': 'Trí tuệ nhân tạo & Máy học', 'maLopHocPhan': 'AI_02', 'soNhom': 5, 'soDeTai': 4},
+            {'tenHocPhan': 'Công nghệ phần mềm nâng cao', 'maLopHocPhan': 'CNPM_01', 'soNhom': 4, 'soDeTai': 3},
+          ]).map((c) {
+            final name = c['tenHocPhan'] ?? c['tenLopHocPhan'] ?? 'Môn học';
+            final code = c['maLopHocPhan'] ?? '';
+            final totalGroups = c['soNhom'] as int? ?? 5;
+            final approvedGroups = c['soDeTai'] as int? ?? 4;
+            final noTopicGroups = (totalGroups - approvedGroups).clamp(0, 99);
+
+            return Card(
+              elevation: 0,
+              color: Colors.white,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.class_outlined, color: Color(0xFF2563EB), size: 18),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$name ($code)',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: Color(0xFF1E3A5F)),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Tổng $totalGroups nhóm đăng ký',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Metrics row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Đã duyệt đề tài', style: TextStyle(fontSize: 11, color: Color(0xFF059669))),
+                                const SizedBox(height: 2),
+                                Text('$approvedGroups nhóm', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Chưa có đề tài', style: TextStyle(fontSize: 11, color: Color(0xFFD97706))),
+                                const SizedBox(height: 2),
+                                Text('$noTopicGroups nhóm', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 20),
 
           if (_periods.isNotEmpty) ...[
             Row(

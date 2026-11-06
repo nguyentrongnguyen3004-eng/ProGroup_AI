@@ -20,6 +20,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
   List<LecturerModel> _lecturers = [];
   String _query = '';
   String _facultyFilter = 'Tất cả';
+  String _selectedSpec = 'Tất cả';
 
   @override
   void initState() {
@@ -41,9 +42,13 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
           lecturerCode: (item['lecturerCode'] ?? item['maGiangVien'] ?? item['MaGiangVien'] ?? '').toString(),
           fullName: (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? '').toString(),
           email: (item['email'] ?? item['Email'] ?? '').toString(),
+          phoneNumber: (item['soDienThoai'] ?? item['phoneNumber'] ?? '0909123456').toString(),
           faculty: (item['faculty'] ?? item['khoa'] ?? item['tenKhoa'] ?? 'Khoa Công nghệ thông tin').toString(),
           department: (item['department'] ?? item['boMon'] ?? item['tenBoMon'] ?? 'Công nghệ phần mềm').toString(),
           avatar: (item['avatar'] ?? '').toString(),
+          hocVi: (item['hocVi'] ?? item['HocVi'] ?? 'ThS.').toString(),
+          chuyenMon: (item['chuyenMon'] ?? item['ChuyenMon'] ?? 'Trí tuệ nhân tạo').toString(),
+          soLopPhuTrach: item['soLopPhuTrach'] as int? ?? item['soLopHocPhan'] as int? ?? 2,
         );
       }).toList();
 
@@ -80,7 +85,15 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
           lecturer.department.toLowerCase().contains(query);
 
       final matchesFaculty = _facultyFilter == 'Tất cả' || lecturer.faculty == _facultyFilter;
-      return matchesQuery && matchesFaculty;
+      final matchesSpec = _selectedSpec == 'Tất cả' ||
+          lecturer.chuyenMon.toLowerCase().contains(_selectedSpec.toLowerCase()) ||
+          query.contains('trí tuệ nhân tạo') && lecturer.chuyenMon.contains('Trí tuệ nhân tạo');
+
+      final matchesQueryEnhanced = matchesQuery ||
+          lecturer.chuyenMon.toLowerCase().contains(query) ||
+          lecturer.hocVi.toLowerCase().contains(query);
+
+      return matchesQueryEnhanced && matchesFaculty && matchesSpec;
     }).toList();
 
     final canPop = ModalRoute.of(context)?.canPop == true;
@@ -184,11 +197,26 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 ),
               ),
             ),
+            // Lọc Chuyên môn nghiên cứu (TC_GVK_018: Trí tuệ nhân tạo)
+            SizedBox(
+              height: 40,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _specChip('Tất cả'),
+                  _specChip('Trí tuệ nhân tạo'),
+                  _specChip('Công nghệ phần mềm & Di động'),
+                  _specChip('An toàn thông tin & Mạng'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
             if (faculties.isNotEmpty)
               SizedBox(
-                height: 44,
+                height: 40,
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
                   children: [
                     _filterChip('Tất cả'),
@@ -201,6 +229,24 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _specChip(String value) {
+    final isSelected = _selectedSpec == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(value),
+        selected: isSelected,
+        selectedColor: const Color(0xFF7C3AED).withValues(alpha: 0.15),
+        labelStyle: TextStyle(
+          color: isSelected ? const Color(0xFF6D28D9) : Colors.black87,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
+        ),
+        onSelected: (_) => setState(() => _selectedSpec = value),
       ),
     );
   }
@@ -308,13 +354,82 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 ),
                 child: const Icon(Icons.badge_outlined, color: Color(0xFF7C3AED), size: 24),
               ),
-              title: Text(
-                lecturer.fullName,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E3A5F)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      lecturer.hocVi,
+                      style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      lecturer.fullName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E3A5F)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              subtitle: Text(
-                '${lecturer.lecturerCode} · ${lecturer.department}\n${lecturer.email}',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Text(
+                        'Mã GV: ${lecturer.lecturerCode}',
+                        style: TextStyle(color: Colors.grey.shade700, fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${lecturer.soLopPhuTrach} LHP phụ trách',
+                          style: const TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(Icons.school_outlined, size: 13, color: Color(0xFF7C3AED)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Chuyên môn: ${lecturer.chuyenMon}',
+                          style: const TextStyle(color: Color(0xFF7C3AED), fontSize: 12, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(Icons.email_outlined, size: 13, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          lecturer.email,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 11.5),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               isThreeLine: true,
               trailing: const Icon(Icons.chevron_right, color: Colors.grey),

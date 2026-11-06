@@ -20,6 +20,7 @@ class ProfileAvatarPickerHelper {
     required BuildContext context,
     required ValueChanged<String> onAvatarSelected,
     VoidCallback? onAvatarRemoved,
+    String? username,
   }) async {
     final colors = Theme.of(context).colorScheme;
 
@@ -68,6 +69,7 @@ class ProfileAvatarPickerHelper {
                       context: context,
                       source: ImageSource.camera,
                       onAvatarSelected: onAvatarSelected,
+                      username: username,
                     );
                   },
                 ),
@@ -92,6 +94,7 @@ class ProfileAvatarPickerHelper {
                       context: context,
                       source: ImageSource.gallery,
                       onAvatarSelected: onAvatarSelected,
+                      username: username,
                     );
                   },
                 ),
@@ -112,7 +115,7 @@ class ProfileAvatarPickerHelper {
                   ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
-                    await AvatarService.instance.removeAvatar();
+                    await AvatarService.instance.removeAvatar(username);
                     if (onAvatarRemoved != null) {
                       onAvatarRemoved();
                     } else {
@@ -144,6 +147,7 @@ class ProfileAvatarPickerHelper {
     required BuildContext context,
     required ImageSource source,
     required ValueChanged<String> onAvatarSelected,
+    String? username,
   }) async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -213,7 +217,7 @@ class ProfileAvatarPickerHelper {
 
       if (confirmed == true && context.mounted) {
         // Lưu avatar đồng bộ vào SharedPreferences & Backend database
-        await AvatarService.instance.saveAvatar(dataUri);
+        await AvatarService.instance.saveAvatar(dataUri, username);
         onAvatarSelected(dataUri);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

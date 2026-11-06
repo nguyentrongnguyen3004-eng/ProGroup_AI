@@ -195,11 +195,8 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) return null;
                           final clean = v.trim();
-                          if (!RegExp(r'^[0-9]+$').hasMatch(clean)) {
-                            return 'Số điện thoại chỉ được chứa các chữ số từ 0 đến 9';
-                          }
-                          if (clean.length < 9 || clean.length > 11) {
-                            return 'Số điện thoại phải từ 9 đến 11 chữ số';
+                          if (!RegExp(r'^[0-9]+$').hasMatch(clean) || clean.length < 10 || clean.length > 11) {
+                            return 'Số điện thoại phải từ 10-11 chữ số và không chứa ký tự chữ';
                           }
                           return null;
                         },

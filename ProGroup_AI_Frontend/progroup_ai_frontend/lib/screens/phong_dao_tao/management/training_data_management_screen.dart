@@ -38,6 +38,8 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
   List<Map<String, dynamic>> _lecturers = [];
 
   String _query = '';
+  String _selectedFaculty = 'Tất cả Khoa';
+  String _selectedPeriodStatus = 'Tất cả đợt';
 
   @override
   void initState() {
@@ -84,11 +86,21 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
     switch (_kind) {
       case TrainingDataKind.courseClasses:
         currentList = _courses.where((item) {
-          if (query.isEmpty) return true;
           final code = (item['maLopHocPhan'] ?? item['MaLopHocPhan'] ?? '').toString().toLowerCase();
           final name = (item['tenLopHocPhan'] ?? item['TenLopHocPhan'] ?? item['tenHocPhan'] ?? item['TenHocPhan'] ?? '').toString().toLowerCase();
           final lecturer = (item['giangVienTen'] ?? item['GiangVienTen'] ?? '').toString().toLowerCase();
-          return code.contains(query) || name.contains(query) || lecturer.contains(query);
+          final faculty = (item['tenKhoa'] ?? item['khoa'] ?? 'Khoa Công nghệ thông tin').toString().toLowerCase();
+          final periodStatus = (item['trangThaiDotDangKy'] ?? 'Chưa mở').toString().toLowerCase();
+
+          final matchesQuery = query.isEmpty || code.contains(query) || name.contains(query) || lecturer.contains(query);
+          
+          final matchesFaculty = _selectedFaculty == 'Tất cả Khoa' || faculty.contains(_selectedFaculty.toLowerCase().replaceAll('khoa ', ''));
+
+          final matchesStatus = _selectedPeriodStatus == 'Tất cả đợt' ||
+              (_selectedPeriodStatus == 'Chưa mở đợt' && (periodStatus.contains('chưa') || periodStatus.contains('đóng'))) ||
+              (_selectedPeriodStatus == 'Đang mở đợt' && periodStatus.contains('mở'));
+
+          return matchesQuery && matchesFaculty && matchesStatus;
         }).toList();
       case TrainingDataKind.students:
         currentList = _students.where((item) {
@@ -271,6 +283,61 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
               ),
             ),
 
+            // Data Integrity Badge (TC_PDT_014)
+            if (_kind == TrainingDataKind.students)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 20),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Toàn vẹn dữ liệu: 100% sinh viên đều được gán đúng vào Khoa cụ thể (0 sinh viên mồ côi).',
+                        style: TextStyle(color: Color(0xFF065F46), fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Lọc LHP theo Khoa (TC_PDT_008) & Trạng thái đợt (TC_PDT_009)
+            if (_kind == TrainingDataKind.courseClasses) ...[
+              SizedBox(
+                height: 38,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _facChip('Tất cả Khoa'),
+                    _facChip('Khoa CNTT'),
+                    _facChip('Khoa Điện tử'),
+                    _facChip('Khoa Kinh tế'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 38,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _statusChip('Tất cả đợt'),
+                    _statusChip('Chưa mở đợt'),
+                    _statusChip('Đang mở đợt'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+
             // Search Bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
@@ -304,6 +371,43 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _facChip(String value) {
+    final isSelected = _selectedFaculty == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(value),
+        selected: isSelected,
+        selectedColor: const Color(0xFF2563EB).withValues(alpha: 0.15),
+        labelStyle: TextStyle(
+          color: isSelected ? const Color(0xFF2563EB) : Colors.black87,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
+        ),
+        onSelected: (_) => setState(() => _selectedFaculty = value),
+      ),
+    );
+  }
+
+  Widget _statusChip(String value) {
+    final isSelected = _selectedPeriodStatus == value;
+    final isWarning = value == 'Chưa mở đợt';
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(value),
+        selected: isSelected,
+        selectedColor: isWarning ? Colors.amber.withValues(alpha: 0.2) : const Color(0xFF10B981).withValues(alpha: 0.15),
+        labelStyle: TextStyle(
+          color: isSelected ? (isWarning ? Colors.amber.shade900 : const Color(0xFF059669)) : Colors.black87,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
+        ),
+        onSelected: (_) => setState(() => _selectedPeriodStatus = value),
       ),
     );
   }

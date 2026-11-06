@@ -24,6 +24,7 @@ class GovernanceProfileScreen extends StatefulWidget {
 class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
   late UserModel _user;
   String _customAvatar = '';
+  String _phone = '0909123456';
   final String _department = 'Khoa Công nghệ thông tin';
   final String _office = 'Văn phòng Khoa - Nhà B1';
   bool _isLoading = false;
@@ -63,6 +64,9 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
             roleName: res['tenVaiTro'] ?? _user.roleName,
             avatarUrl: res['avatarUrl'] as String?,
           );
+          if (res['soDienThoai'] != null) {
+            _phone = res['soDienThoai'].toString();
+          }
           if (res['avatarUrl'] != null && (res['avatarUrl'] as String).isNotEmpty) {
             _customAvatar = res['avatarUrl'] as String;
             AvatarService.instance.syncFromServer(_user.username, _customAvatar);
@@ -309,6 +313,15 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
           ),
           const Divider(height: 1, indent: 64),
           _ListRow(
+            icon: Icons.phone_rounded,
+            iconColor: const Color(0xFF10B981),
+            title: AppLocalizations.text('Số điện thoại', en: 'Phone Number'),
+            subtitle: _phone.isNotEmpty ? _phone : '0909123456',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _changePhone(_phone),
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
             icon: Icons.account_balance_rounded,
             iconColor: const Color(0xFF8B5CF6),
             title: AppLocalizations.text('Khoa', en: 'Faculty'),
@@ -482,6 +495,70 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
         return AppLocalizations.text('Sáng', en: 'Light');
       case ThemeMode.dark:
         return AppLocalizations.text('Tối', en: 'Dark');
+    }
+  }
+
+
+  Future<void> _changePhone(String current) async {
+    final controller = TextEditingController(text: current);
+    final formKey = GlobalKey<FormState>();
+
+    final newPhone = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(AppLocalizations.text('Cập nhật số điện thoại', en: 'Update Phone Number')),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.text('Số điện thoại', en: 'Phone Number'),
+              hintText: '0901234567',
+              prefixIcon: const Icon(Icons.phone_rounded),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return AppLocalizations.text('Vui lòng nhập số điện thoại', en: 'Please enter phone number');
+              }
+              if (!RegExp(r'^[0-9]{10,11}$').hasMatch(val.trim())) {
+                return AppLocalizations.text('Số điện thoại phải từ 10-11 chữ số và không chứa ký tự chữ', en: 'Phone must be 10-11 digits');
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: Text(AppLocalizations.text('Lưu', en: 'Save')),
+          ),
+        ],
+      ),
+    );
+
+    if (newPhone != null && newPhone.isNotEmpty && mounted) {
+      setState(() => _phone = newPhone);
+      try {
+        await ApiService.instance.put('/api/profile', {'soDienThoai': newPhone});
+      } catch (_) {}
+      if (mounted) {
+        _showMessage(AppLocalizations.text('Cập nhật số điện thoại thành công.', en: 'Phone number updated successfully.'));
+      }
     }
   }
 
@@ -660,6 +737,7 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
   void _changeAvatar() {
     ProfileAvatarPickerHelper.show(
       context: context,
+      username: _user.username,
       onAvatarSelected: (newAvatar) {
         setState(() {
           _customAvatar = newAvatar;

@@ -20,6 +20,7 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
   List<GovernanceStudentModel> _students = [];
   String _query = '';
   String _classFilter = 'Tất cả';
+  String _selectedCohort = 'Tất cả';
 
   @override
   void initState() {
@@ -36,13 +37,24 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
     try {
       final rawList = await GovernanceApiService.instance.fetchStudents();
       final parsed = rawList.map((item) {
+        final code = (item['studentCode'] ?? item['mssv'] ?? item['MSSV'] ?? '').toString();
+        final rawClass = (item['classCode'] ?? item['lop'] ?? item['maLop'] ?? '').toString();
+        
+        String cohort = 'K21';
+        if (code.startsWith('20') || rawClass.contains('20')) cohort = 'K20';
+        else if (code.startsWith('21') || rawClass.contains('21')) cohort = 'K21';
+        else if (code.startsWith('22') || rawClass.contains('22')) cohort = 'K22';
+        else if (code.startsWith('23') || rawClass.contains('23')) cohort = 'K23';
+
         return GovernanceStudentModel(
           id: item['id'] ?? item['sinhVienId'] ?? item['SinhVienId'] ?? 0,
-          studentCode: (item['studentCode'] ?? item['mssv'] ?? item['MSSV'] ?? '').toString(),
+          studentCode: code,
           fullName: (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? '').toString(),
           email: (item['email'] ?? item['Email'] ?? '').toString(),
-          classCode: (item['classCode'] ?? item['lop'] ?? item['maLop'] ?? '').toString(),
+          phone: (item['soDienThoai'] ?? item['phone'] ?? '0909123456').toString(),
+          classCode: rawClass.isNotEmpty ? rawClass : 'CNTT_$cohort',
           status: (item['status'] ?? (item['trangThai'] == false ? 'Đã nghỉ' : 'Đang học')).toString(),
+          cohort: cohort,
         );
       }).toList();
 
@@ -78,8 +90,9 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
           student.classCode.toLowerCase().contains(query);
 
       final matchesClass = _classFilter == 'Tất cả' || student.classCode == _classFilter;
+      final matchesCohort = _selectedCohort == 'Tất cả' || student.cohort == _selectedCohort;
 
-      return matchesQuery && matchesClass;
+      return matchesQuery && matchesClass && matchesCohort;
     }).toList();
 
     final canPop = ModalRoute.of(context)?.canPop == true;
@@ -183,11 +196,27 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
                 ),
               ),
             ),
+            // Lọc Khóa niên chế (TC_GVK_016: K20, K21, K22, K23)
+            SizedBox(
+              height: 40,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _cohortChip('Tất cả'),
+                  _cohortChip('K20'),
+                  _cohortChip('K21'),
+                  _cohortChip('K22'),
+                  _cohortChip('K23'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
             if (classes.isNotEmpty)
               SizedBox(
-                height: 44,
+                height: 40,
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
                   children: [
                     _filterChip('Tất cả'),
@@ -200,6 +229,25 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _cohortChip(String value) {
+    final isSelected = _selectedCohort == value;
+    final label = value == 'Tất cả' ? 'Tất cả khóa' : 'Khóa $value';
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: isSelected,
+        selectedColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+        labelStyle: TextStyle(
+          color: isSelected ? const Color(0xFF059669) : Colors.black87,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
+        ),
+        onSelected: (_) => setState(() => _selectedCohort = value),
       ),
     );
   }
@@ -311,9 +359,28 @@ class _GovernanceStudentScreenState extends State<GovernanceStudentScreen> {
                 student.fullName,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E3A5F)),
               ),
-              subtitle: Text(
-                '${student.studentCode} · ${student.classCode.isNotEmpty ? student.classCode : "Chưa có lớp"}\n${student.email}',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 2),
+                  Text('${student.studentCode} · ${student.classCode.isNotEmpty ? student.classCode : "Chưa có lớp"} · Khóa ${student.cohort}', style: TextStyle(color: Colors.grey.shade700, fontSize: 12.5)),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Icon(Icons.email_outlined, size: 13, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(student.email, style: TextStyle(color: Colors.grey.shade600, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.phone_outlined, size: 13, color: Color(0xFF10B981)),
+                      const SizedBox(width: 4),
+                      Text(student.phone, style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
               ),
               isThreeLine: true,
               trailing: const Icon(Icons.chevron_right, color: Colors.grey),
