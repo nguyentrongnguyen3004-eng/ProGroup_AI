@@ -28,7 +28,12 @@ class TopicRegistrationModel {
       topicId: json['topicId'] as int? ?? json['deTaiId'] as int? ?? 0,
       status: json['status'] as String? ?? json['trangThai'] as String? ?? 'Chờ duyệt',
       registeredAt: parseDate(json['registeredAt'] ?? json['ngayDangKy']),
-      rejectionReason: json['rejectionReason'] as String? ?? json['ghiChu'] as String?,
+      rejectionReason: json['rejectionReason'] as String? ??
+          json['ghiChu'] as String? ??
+          json['lyDoTuChoi'] as String? ??
+          json['lyDo'] as String? ??
+          json['reason'] as String? ??
+          json['feedback'] as String?,
     );
   }
 

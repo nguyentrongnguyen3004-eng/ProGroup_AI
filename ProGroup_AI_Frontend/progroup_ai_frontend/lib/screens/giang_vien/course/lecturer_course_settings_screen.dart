@@ -86,13 +86,13 @@ class _LecturerCourseSettingsScreenState
       _message('Ngày bắt đầu đăng ký đề tài phải trước ngày kết thúc.');
       return;
     }
-    // TC_LEC_019: Đảm bảo tính nhất quán giữa thời gian lập nhóm và đăng ký đề tài
-    if (_topicStart.isBefore(_groupStart)) {
-      _message('Ngày bắt đầu đăng ký đề tài không thể diễn ra trước thời gian lập nhóm.');
+    // TC_LEC_019: Đảm bảo tính nhất quán hợp lý giữa thời gian lập nhóm và đăng ký đề tài
+    if (_groupStart.isAfter(_topicStart)) {
+      _message('Thời gian bắt đầu lập nhóm phải trước hoặc bằng thời gian bắt đầu đăng ký đề tài.');
       return;
     }
-    if (_topicEnd.isBefore(_groupStart)) {
-      _message('Thời hạn đăng ký đề tài phải diễn ra sau khi bắt đầu lập nhóm.');
+    if (_topicEnd.isBefore(_groupEnd)) {
+      _message('Hạn kết thúc đăng ký đề tài phải sau hoặc bằng hạn kết thúc lập nhóm (không thể kết thúc đăng ký đề tài trước khi lập nhóm xong).');
       return;
     }
     final updated = widget.course.copyWith(
@@ -229,26 +229,37 @@ class _LecturerCourseSettingsScreenState
                     label: 'Bắt đầu lập nhóm',
                     value: _format(_groupStart),
                     iconColor: const Color(0xFF2563EB),
-                    onTap: () => _chooseDate((v) => _groupStart = v, _groupStart),
+                    onTap: () => _chooseDate((v) {
+                      _groupStart = v;
+                      if (_groupEnd.isBefore(v)) _groupEnd = v.add(const Duration(days: 7));
+                      if (_topicStart.isBefore(v)) _topicStart = v;
+                      if (_topicEnd.isBefore(_groupEnd)) _topicEnd = _groupEnd.add(const Duration(days: 7));
+                    }, _groupStart),
                   ),
                   _DateField(
                     label: 'Kết thúc lập nhóm',
                     value: _format(_groupEnd),
                     iconColor: const Color(0xFF2563EB),
-                    onTap: () => _chooseDate((v) => _groupEnd = v, _groupEnd),
+                    onTap: () => _chooseDate((v) {
+                      _groupEnd = v;
+                      if (_topicEnd.isBefore(v)) _topicEnd = v;
+                    }, _groupEnd, minDate: _groupStart),
                   ),
                   const SizedBox(height: 6),
                   _DateField(
                     label: 'Bắt đầu đăng ký đề tài',
                     value: _format(_topicStart),
                     iconColor: const Color(0xFF8B5CF6),
-                    onTap: () => _chooseDate((v) => _topicStart = v, _topicStart),
+                    onTap: () => _chooseDate((v) {
+                      _topicStart = v;
+                      if (_topicEnd.isBefore(v)) _topicEnd = v.add(const Duration(days: 7));
+                    }, _topicStart, minDate: _groupStart),
                   ),
                   _DateField(
                     label: 'Kết thúc đăng ký đề tài',
                     value: _format(_topicEnd),
                     iconColor: const Color(0xFF8B5CF6),
-                    onTap: () => _chooseDate((v) => _topicEnd = v, _topicEnd),
+                    onTap: () => _chooseDate((v) => _topicEnd = v, _topicEnd, minDate: _groupEnd.isAfter(_topicStart) ? _groupEnd : _topicStart),
                   ),
                 ],
               ),

@@ -304,6 +304,9 @@ class LecturerApiService {
       await ApiService.instance.put('/api/dang-ky-de-tai/$id/duyet', {
         'chapNhan': chapNhan,
         'ghiChu': ghiChu,
+        'lyDo': ghiChu,
+        'lyDoTuChoi': ghiChu,
+        'reason': ghiChu,
       });
     } catch (_) {
       await ApiService.instance.put('/api/de-tai/registrations/$id/decide', {
@@ -407,6 +410,9 @@ class LecturerApiService {
         'chapNhan': chapNhan,
         'lyDo': lyDo,
         'lyDoTuChoi': lyDo,
+        'ghiChu': lyDo,
+        'reason': lyDo,
+        'feedback': lyDo,
       });
     } catch (_) {
       await ApiService.instance.put('/api/de-tai/$id', {
@@ -429,22 +435,43 @@ class LecturerApiService {
       }
       if (res is Map<String, dynamic>) {
         final avatar = (res['avatarUrl'] ?? res['avatar'] ?? '').toString();
+        final gvInfo = res['giangVien'] as Map<String, dynamic>?;
+        final hocVi = (gvInfo?['hocVi'] ?? res['hocVi'] ?? 'ThS.').toString();
+        final chuyenMon = (gvInfo?['chuyenMon'] ?? res['chuyenMon'] ?? 'Công nghệ phần mềm & Di động').toString();
+        final faculty = (gvInfo?['tenKhoa'] ?? res['tenKhoa'] ?? 'Khoa Công nghệ thông tin').toString();
         return LecturerModel(
-          id: res['giangVienId'] as int? ?? res['nguoiDungId'] as int? ?? 1,
-          lecturerCode: res['maGiangVien'] as String? ?? res['tenDangNhap'] as String? ?? 'GV001',
+          id: gvInfo?['giangVienId'] as int? ?? res['nguoiDungId'] as int? ?? 1,
+          lecturerCode: gvInfo?['maGiangVien'] as String? ?? res['tenDangNhap'] as String? ?? 'GV001',
           fullName: res['hoTen'] as String? ?? 'Giảng viên',
           email: res['email'] as String? ?? '',
           phoneNumber: (res['soDienThoai'] ?? res['phoneNumber'] ?? '').toString(),
-          faculty: 'Khoa Công nghệ thông tin',
+          faculty: faculty,
           department: 'Bộ môn Công nghệ phần mềm',
           avatar: avatar,
+          hocVi: hocVi,
+          chuyenMon: chuyenMon,
         );
       }
     } catch (_) {}
     return null;
   }
 
-  /// 14. Đổi mật khẩu
+    /// Cập nhật thông tin giảng viên (Họ tên, SĐT, Học vị, Chuyên môn)
+  Future<bool> updateProfile({String? fullName, String? phoneNumber, String? hocVi, String? chuyenMon}) async {
+    try {
+      final body = <String, dynamic>{};
+      if (fullName != null) body['hoTen'] = fullName;
+      if (phoneNumber != null) body['soDienThoai'] = phoneNumber;
+      if (hocVi != null) body['hocVi'] = hocVi;
+      if (chuyenMon != null) body['chuyenMon'] = chuyenMon;
+      await ApiService.instance.put('/api/profile', body);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+/// 14. Đổi mật khẩu
   Future<bool> changePassword(String currentPassword, String newPassword) async {
     try {
       await ApiService.instance.post('/api/auth/change-password', {

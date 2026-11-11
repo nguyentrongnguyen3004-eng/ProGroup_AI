@@ -100,7 +100,7 @@ public sealed class NotificationsController : ControllerBase
         var userDbNotifs = await _db.ThongBaos.AsNoTracking()
             .Where(t => t.NguoiDungId == userId)
             .OrderByDescending(t => t.CreatedAt)
-            .Take(30)
+            .Take(40)
             .ToListAsync();
 
         foreach (var tb in userDbNotifs)
@@ -137,12 +137,19 @@ public sealed class NotificationsController : ControllerBase
             var id = 100000 + reg.DangKyDeTaiId;
             var isRead = (readSet != null && readSet.Contains(id)) || reg.TrangThai == "Đã duyệt";
 
+            var isRejected = string.Equals(reg.TrangThai, "Từ chối", StringComparison.OrdinalIgnoreCase);
+            var title = isRejected ? $"Đăng ký đề tài bị từ chối: {tenDeTai}" : $"Đăng ký đề tài: {tenDeTai}";
+            var reason = !string.IsNullOrWhiteSpace(reg.GhiChu) ? reg.GhiChu : "Không có lý do cụ thể";
+            var content = isRejected
+                ? $"{tenNhom} đã bị từ chối đăng ký đề tài '{tenDeTai}'. Lý do: {reason}"
+                : $"{tenNhom} đã đăng ký đề tài và đang ở trạng thái '{reg.TrangThai}'.";
+
             notifications.Add(new NotificationItem
             {
                 id = id,
                 type = "Đăng ký",
-                title = $"Đăng ký đề tài: {tenDeTai}",
-                content = $"{tenNhom} đã đăng ký đề tài và đang ở trạng thái '{reg.TrangThai}'.",
+                title = title,
+                content = content,
                 time = FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,
@@ -199,6 +206,34 @@ public sealed class NotificationsController : ControllerBase
                 type = "Đề tài",
                 title = $"Đề tài đã duyệt: {topic.TenDeTai}",
                 content = $"Đề tài '{topic.TenDeTai}' nguồn {topic.NguonDeTai} đã sẵn sàng cho sinh viên đăng ký.",
+                time = FormatTimeAgo(timeDiff),
+                isRead = isRead,
+                read = isRead,
+                createdAt = localCreated
+            });
+        }
+
+        // 3.5 Đề xuất đề tài bị từ chối (Bảng DeTaiDoAns)
+        var rejectedTopics = await _db.DeTaiDoAns.AsNoTracking()
+            .Where(t => t.TrangThaiDuyet == "Từ chối" && t.SinhVienDeXuatId != null)
+            .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
+            .Take(10)
+            .ToListAsync();
+
+        foreach (var topic in rejectedTopics)
+        {
+            var eventTime = topic.UpdatedAt ?? topic.CreatedAt;
+            var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
+            var id = 350000 + topic.DeTaiId;
+            var isRead = readSet != null && readSet.Contains(id);
+            var reason = !string.IsNullOrWhiteSpace(topic.LyDoTuChoi) ? topic.LyDoTuChoi : "Không có lý do cụ thể";
+
+            notifications.Add(new NotificationItem
+            {
+                id = id,
+                type = "Đề tài",
+                title = $"Đề xuất đề tài bị từ chối: {topic.TenDeTai}",
+                content = $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {reason}",
                 time = FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,

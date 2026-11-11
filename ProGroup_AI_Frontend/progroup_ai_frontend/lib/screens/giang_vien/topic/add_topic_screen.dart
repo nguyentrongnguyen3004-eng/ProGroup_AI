@@ -37,15 +37,18 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
 
   List<LecturerCourseModel> get _availableCourses {
     if (widget.lecturerCourseId != null) {
-      return _assignedCourses
+      final filtered = _assignedCourses
           .where((course) => course.courseId == widget.lecturerCourseId)
           .toList();
+      if (filtered.isNotEmpty) return filtered;
     }
-    if (widget.course == null) return _assignedCourses;
-
-    return _assignedCourses
-        .where((course) => course.courseId == widget.course!.id)
-        .toList();
+    if (widget.course != null) {
+      final filtered = _assignedCourses
+          .where((course) => course.courseId == widget.course!.id)
+          .toList();
+      if (filtered.isNotEmpty) return filtered;
+    }
+    return _assignedCourses;
   }
 
   List<String> get _statusOptions => const [
@@ -246,13 +249,10 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
                             ),
                           )
                           .toList(),
-                      onChanged:
-                          widget.course != null || widget.lecturerCourseId != null
-                          ? null
-                          : (value) {
-                              if (value == null) return;
-                              setState(() => _selectedCourseId = value);
-                            },
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => _selectedCourseId = value);
+                      },
                       validator: (value) => value == null
                           ? AppLocalizations.text(
                               'Hãy chọn lớp học phần.',

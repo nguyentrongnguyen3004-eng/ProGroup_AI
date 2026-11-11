@@ -148,9 +148,68 @@ public sealed class DeTaiController : ControllerBase
                 .FirstOrDefaultAsync();
         }
 
+        // Tự động tạo hoặc tìm đợt đăng ký nếu học phần chưa có đợt đăng ký đồ án nào
         if (period is null)
         {
-            return BadRequest(new { message = "Đợt đăng ký hoặc lớp học phần không tồn tại." });
+            var lhpId = (request.LopHocPhanId.HasValue && request.LopHocPhanId.Value > 0)
+                ? request.LopHocPhanId.Value
+                : (request.DotDangKyId.HasValue && request.DotDangKyId.Value > 0 ? request.DotDangKyId.Value : 0);
+
+            var lhp = lhpId > 0 ? await _db.LopHocPhans.FindAsync(lhpId) : null;
+            if (lhp != null)
+            {
+                period = new DotDangKyDoAn
+                {
+                    LopHocPhanId = lhp.LopHocPhanId,
+                    TenDot = $"Đợt đăng ký {lhp.TenLopHocPhan}",
+                    NgayBatDau = DateTime.Now.Date,
+                    NgayKetThuc = DateTime.Now.Date.AddDays(30),
+                    MinMembers = 3,
+                    MaxMembers = 5,
+                    TrangThai = "Đang mở",
+                    CreatedAt = DateTime.Now
+                };
+                _db.DotDangKyDoAns.Add(period);
+                await _db.SaveChangesAsync();
+            }
+            else
+            {
+                period = await _db.DotDangKyDoAns
+                    .OrderByDescending(d => d.TrangThai == "Đang mở")
+                    .ThenByDescending(d => d.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (period == null)
+                {
+                    var defaultLhp = await _db.LopHocPhans.FirstOrDefaultAsync();
+                    if (defaultLhp == null)
+                    {
+                        defaultLhp = new LopHocPhan
+                        {
+                            MaLopHocPhan = "HP_DEFAULT",
+                            TenLopHocPhan = "Học phần đồ án chung",
+                            TrangThai = true,
+                            CreatedAt = DateTime.Now
+                        };
+                        _db.LopHocPhans.Add(defaultLhp);
+                        await _db.SaveChangesAsync();
+                    }
+
+                    period = new DotDangKyDoAn
+                    {
+                        LopHocPhanId = defaultLhp.LopHocPhanId,
+                        TenDot = $"Đợt đăng ký {defaultLhp.TenLopHocPhan}",
+                        NgayBatDau = DateTime.Now.Date,
+                        NgayKetThuc = DateTime.Now.Date.AddDays(30),
+                        MinMembers = 3,
+                        MaxMembers = 5,
+                        TrangThai = "Đang mở",
+                        CreatedAt = DateTime.Now
+                    };
+                    _db.DotDangKyDoAns.Add(period);
+                    await _db.SaveChangesAsync();
+                }
+            }
         }
 
         int? lecturerId = await GetCurrentLecturerIdAsync();
@@ -265,7 +324,6 @@ public sealed class DeTaiController : ControllerBase
 
         topic.UpdatedAt = DateTime.Now;
 
-
         await _db.SaveChangesAsync();
 
         var updated = await _db.DeTaiDoAns.AsNoTracking()
@@ -319,14 +377,23 @@ public sealed class DeTaiController : ControllerBase
     }
 
     [HttpPut("{id:int}/duyet")]
+    [HttpPut("{id:int}/tu-choi")]
+    [HttpPut("{id:int}/reject")]
+    [HttpPut("{id:int}/decide")]
     [Authorize(Roles = "GIANGVIEN,ADMIN")]
     public async Task<IActionResult> Approve(int id, [FromBody] ApproveTopicRequest request)
     {
         var topic = await _db.DeTaiDoAns.FindAsync(id);
         if (topic is null) return NotFound(new { message = "Không tìm thấy đề tài." });
 
+        var path = Request.Path.Value ?? string.Empty;
+        var isExplicitReject = path.Contains("tu-choi", StringComparison.OrdinalIgnoreCase)
+            || path.Contains("reject", StringComparison.OrdinalIgnoreCase);
+
+        var isApproved = !isExplicitReject && request.IsApproved;
         var rejectReason = request.Reason?.Trim();
-        if (request.IsApproved)
+
+        if (isApproved)
         {
             topic.TrangThaiDuyet = "Đã duyệt";
             topic.LyDoTuChoi = null;
@@ -334,7 +401,7 @@ public sealed class DeTaiController : ControllerBase
         else
         {
             topic.TrangThaiDuyet = "Từ chối";
-            topic.LyDoTuChoi = rejectReason;
+            topic.LyDoTuChoi = !string.IsNullOrWhiteSpace(rejectReason) ? rejectReason : "Không có lý do cụ thể";
         }
 
         topic.UpdatedAt = DateTime.Now;
@@ -345,13 +412,14 @@ public sealed class DeTaiController : ControllerBase
             var sv = await _db.SinhViens.FirstOrDefaultAsync(s => s.SinhVienId == topic.SinhVienDeXuatId.Value);
             if (sv != null && sv.NguoiDungId > 0)
             {
+                var reasonText = !string.IsNullOrWhiteSpace(topic.LyDoTuChoi) ? topic.LyDoTuChoi : "Không có lý do cụ thể";
                 _db.ThongBaos.Add(new ThongBao
                 {
                     NguoiDungId = sv.NguoiDungId,
-                    TieuDe = request.IsApproved ? "Đề xuất đề tài được duyệt" : "Đề xuất đề tài bị từ chối",
-                    NoiDung = request.IsApproved
+                    TieuDe = isApproved ? "Đề xuất đề tài được duyệt" : "Đề xuất đề tài bị từ chối",
+                    NoiDung = isApproved
                         ? $"Đề xuất đề tài '{topic.TenDeTai}' của bạn đã được giảng viên phê duyệt."
-                        : $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {(!string.IsNullOrWhiteSpace(rejectReason) ? rejectReason : "Không có")}",
+                        : $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {reasonText}",
                     LoaiThongBao = "Đề tài",
                     DaDoc = false,
                     CreatedAt = DateTime.UtcNow,
@@ -448,17 +516,11 @@ public sealed class DeTaiController : ControllerBase
 
         topic.TrangThai = "Đã đăng ký";
         _db.DangKyDeTais.Add(registration);
+
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = topic.DeTaiId }, new
-        {
-            registration.DangKyDeTaiId,
-            registration.NhomId,
-            registration.DeTaiId,
-            registration.TrangThai,
-            registration.NgayDangKy
-        });
+        return Ok(new { success = true, message = "Đăng ký đề tài thành công." });
     }
 
     private int? GetCurrentUserId()

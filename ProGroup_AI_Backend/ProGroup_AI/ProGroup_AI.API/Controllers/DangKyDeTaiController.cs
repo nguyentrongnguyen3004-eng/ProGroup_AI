@@ -187,8 +187,13 @@ public sealed class DangKyDeTaiController : ControllerBase
     }
 
     [HttpPut("{id:int}/duyet")]
+    [HttpPut("{id:int}/tu-choi")]
+    [HttpPut("{id:int}/reject")]
     [HttpPut("{id:int}/decide")]
     [HttpPut("/api/de-tai/registrations/{id:int}/decide")]
+    [HttpPut("/api/de-tai/registrations/{id:int}/duyet")]
+    [HttpPut("/api/de-tai/registrations/{id:int}/tu-choi")]
+    [HttpPut("/api/de-tai/registrations/{id:int}/reject")]
     [Authorize(Roles = "GIANGVIEN,ADMIN")]
     public async Task<IActionResult> DecideRegistration(int id, [FromBody] ApproveDangKyDeTaiRequest request)
     {
@@ -203,12 +208,19 @@ public sealed class DangKyDeTaiController : ControllerBase
 
         int? lecturerId = await GetCurrentLecturerIdAsync();
 
-        if (request.IsApproved)
+        var path = Request.Path.Value ?? string.Empty;
+        var isExplicitReject = path.Contains("tu-choi", StringComparison.OrdinalIgnoreCase)
+            || path.Contains("reject", StringComparison.OrdinalIgnoreCase);
+
+        var isApproved = !isExplicitReject && request.IsApproved;
+        var ghiChu = request.ResolvedGhiChu?.Trim();
+
+        if (isApproved)
         {
             registration.TrangThai = "Đã duyệt";
             registration.NgayDuyet = DateTime.Now;
             registration.GiangVienDuyetId = lecturerId;
-            registration.GhiChu = request.ResolvedGhiChu?.Trim();
+            registration.GhiChu = ghiChu;
 
             if (registration.DeTai is not null)
             {
@@ -220,40 +232,51 @@ public sealed class DangKyDeTaiController : ControllerBase
             registration.TrangThai = "Từ chối";
             registration.NgayDuyet = DateTime.Now;
             registration.GiangVienDuyetId = lecturerId;
-            registration.GhiChu = request.ResolvedGhiChu?.Trim();
+            registration.GhiChu = ghiChu;
 
+            // Giải phóng đề tài để các nhóm khác có thể đăng ký
             if (registration.DeTai is not null)
             {
                 registration.DeTai.TrangThai = "Chưa sử dụng";
             }
         }
 
-
-        // Tạo thông báo cho toàn bộ thành viên nhóm
+        // Tạo thông báo cho toàn bộ thành viên nhóm và trưởng nhóm
         try
         {
-            var grp = await _db.NhomDoAns
-                .Include(g => g.TruongNhom)
-                .Include(g => g.ThanhVienNhoms).ThenInclude(m => m.SinhVien)
-                .FirstOrDefaultAsync(g => g.NhomId == registration.NhomId);
-
+            var grp = await _db.NhomDoAns.AsNoTracking().FirstOrDefaultAsync(g => g.NhomId == registration.NhomId);
             if (grp != null)
             {
-                var userIds = new HashSet<int>();
-                if (grp.TruongNhom?.NguoiDungId > 0)
-                    userIds.Add(grp.TruongNhom.NguoiDungId);
-
-                foreach (var m in grp.ThanhVienNhoms)
+                var studentIds = new HashSet<int>();
+                if (grp.TruongNhomId > 0)
                 {
-                    if (m.SinhVien?.NguoiDungId > 0)
-                        userIds.Add(m.SinhVien.NguoiDungId);
+                    studentIds.Add(grp.TruongNhomId);
                 }
 
+                var memberStudentIds = await _db.ThanhVienNhoms
+                    .AsNoTracking()
+                    .Where(m => m.NhomId == grp.NhomId && m.TrangThai != "Đã rời nhóm" && m.TrangThai != "Từ chối")
+                    .Select(m => m.SinhVienId)
+                    .ToListAsync();
+
+                foreach (var sid in memberStudentIds)
+                {
+                    if (sid > 0) studentIds.Add(sid);
+                }
+
+                var userIds = await _db.SinhViens
+                    .AsNoTracking()
+                    .Where(s => studentIds.Contains(s.SinhVienId) && s.NguoiDungId > 0)
+                    .Select(s => s.NguoiDungId)
+                    .Distinct()
+                    .ToListAsync();
+
                 var tenDeTai = registration.DeTai?.TenDeTai ?? "đề tài";
-                var tieuDe = request.IsApproved ? "Đăng ký đề tài được duyệt" : "Đăng ký đề tài bị từ chối";
-                var noiDung = request.IsApproved
+                var tieuDe = isApproved ? "Đăng ký đề tài được duyệt" : "Đăng ký đề tài bị từ chối";
+                var reason = !string.IsNullOrWhiteSpace(ghiChu) ? ghiChu : "Không có lý do cụ thể";
+                var noiDung = isApproved
                     ? $"Giảng viên đã duyệt đăng ký đề tài '{tenDeTai}' cho nhóm '{grp.TenNhom}'."
-                    : $"Giảng viên từ chối đăng ký đề tài '{tenDeTai}' của nhóm '{grp.TenNhom}'. Lý do: {request.ResolvedGhiChu ?? "Không có"}";
+                    : $"Giảng viên từ chối đăng ký đề tài '{tenDeTai}' của nhóm '{grp.TenNhom}'. Lý do: {reason}";
 
                 foreach (var uid in userIds)
                 {
@@ -271,7 +294,10 @@ public sealed class DangKyDeTaiController : ControllerBase
                 }
             }
         }
-        catch { }
+        catch
+        {
+            // Phòng tránh lỗi thông báo làm chặn transaction duyệt/từ chối
+        }
 
         await _db.SaveChangesAsync();
 

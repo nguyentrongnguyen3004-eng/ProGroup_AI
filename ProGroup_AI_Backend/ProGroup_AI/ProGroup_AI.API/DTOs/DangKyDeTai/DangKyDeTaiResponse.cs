@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ProGroup_AI.API.DTOs.DangKyDeTai;
 
 public sealed class DangKyDeTaiResponse
@@ -16,6 +18,16 @@ public sealed class DangKyDeTaiResponse
     public string? TenLopHocPhan { get; set; }
     public string TrangThai { get; set; } = string.Empty;
     public string? GhiChu { get; set; }
+
+    [JsonPropertyName("lyDoTuChoi")]
+    public string? LyDoTuChoi => GhiChu;
+
+    [JsonPropertyName("lyDo")]
+    public string? LyDo => GhiChu;
+
+    [JsonPropertyName("rejectionReason")]
+    public string? RejectionReason => GhiChu;
+
     public DateTime NgayDangKy { get; set; }
     public DateTime? NgayDuyet { get; set; }
     public int? GiangVienDuyetId { get; set; }

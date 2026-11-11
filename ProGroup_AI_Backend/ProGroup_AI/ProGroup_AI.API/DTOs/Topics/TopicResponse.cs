@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ProGroup_AI.API.DTOs.Topics;
 
 public sealed class TopicResponse
@@ -23,6 +25,16 @@ public sealed class TopicResponse
     public string TrangThai { get; set; } = string.Empty;
     public string TrangThaiDuyet { get; set; } = string.Empty;
     public string? LyDoTuChoi { get; set; }
+
+    [JsonPropertyName("ghiChu")]
+    public string? GhiChu => LyDoTuChoi;
+
+    [JsonPropertyName("lyDo")]
+    public string? LyDo => LyDoTuChoi;
+
+    [JsonPropertyName("rejectionReason")]
+    public string? RejectionReason => LyDoTuChoi;
+
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

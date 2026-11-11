@@ -66,7 +66,10 @@ class TopicModel {
         json['giangVien'] as String?;
     final rejectionReason = json['rejectionReason'] as String? ??
         json['lyDoTuChoi'] as String? ??
-        json['ghiChu'] as String?;
+        json['ghiChu'] as String? ??
+        json['lyDo'] as String? ??
+        json['reason'] as String? ??
+        json['feedback'] as String?;
 
     return TopicModel(
       id: id,

@@ -18,9 +18,51 @@ public sealed class ApproveTopicRequest
     [JsonPropertyName("lyDoTuChoi")]
     public string? LyDoTuChoi { get; set; }
 
+    [JsonPropertyName("ly_do_tu_choi")]
+    public string? LyDoTuChoiSnake { get; set; }
+
     [JsonPropertyName("lyDo")]
     public string? LyDo { get; set; }
 
+    [JsonPropertyName("ly_do")]
+    public string? LyDoSnake { get; set; }
+
+    [JsonPropertyName("ghiChu")]
+    public string? GhiChu { get; set; }
+
+    [JsonPropertyName("note")]
+    public string? Note { get; set; }
+
+    [JsonPropertyName("reason")]
+    public string? ReasonField { get; set; }
+
+    [JsonPropertyName("gopY")]
+    public string? GopY { get; set; }
+
+    [JsonPropertyName("feedback")]
+    public string? Feedback { get; set; }
+
+    [JsonPropertyName("comment")]
+    public string? Comment { get; set; }
+
     [JsonIgnore]
-    public string? Reason => !string.IsNullOrWhiteSpace(LyDoTuChoi) ? LyDoTuChoi : LyDo;
+    public string? Reason => !string.IsNullOrWhiteSpace(LyDoTuChoi)
+        ? LyDoTuChoi
+        : !string.IsNullOrWhiteSpace(LyDoTuChoiSnake)
+            ? LyDoTuChoiSnake
+            : !string.IsNullOrWhiteSpace(LyDo)
+                ? LyDo
+                : !string.IsNullOrWhiteSpace(LyDoSnake)
+                    ? LyDoSnake
+                    : !string.IsNullOrWhiteSpace(GhiChu)
+                        ? GhiChu
+                        : !string.IsNullOrWhiteSpace(Note)
+                            ? Note
+                            : !string.IsNullOrWhiteSpace(ReasonField)
+                                ? ReasonField
+                                : !string.IsNullOrWhiteSpace(GopY)
+                                    ? GopY
+                                    : !string.IsNullOrWhiteSpace(Feedback)
+                                        ? Feedback
+                                        : Comment;
 }

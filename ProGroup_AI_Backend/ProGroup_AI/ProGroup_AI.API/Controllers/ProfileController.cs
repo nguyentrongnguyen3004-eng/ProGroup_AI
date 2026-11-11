@@ -110,7 +110,9 @@ public sealed class ProfileController : ControllerBase
             return Unauthorized();
         }
 
-        var user = await _db.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungId == userId);
+        var user = await _db.NguoiDungs
+            .Include(u => u.GiangVien)
+            .FirstOrDefaultAsync(u => u.NguoiDungId == userId);
         if (user is null)
         {
             return NotFound(new { message = "Không tìm thấy người dùng." });
@@ -141,6 +143,18 @@ public sealed class ProfileController : ControllerBase
         if (request.AvatarUrl is not null)
         {
             user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        }
+
+        if (user.GiangVien is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(request.HocVi))
+            {
+                user.GiangVien.HocVi = request.HocVi.Trim();
+            }
+            if (!string.IsNullOrWhiteSpace(request.ChuyenMon))
+            {
+                user.GiangVien.ChuyenMon = request.ChuyenMon.Trim();
+            }
         }
 
         user.UpdatedAt = DateTime.Now;

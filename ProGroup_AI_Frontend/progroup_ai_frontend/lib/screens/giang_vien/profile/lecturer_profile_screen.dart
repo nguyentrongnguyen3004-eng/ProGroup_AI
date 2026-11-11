@@ -398,6 +398,26 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
             subtitle: (lecturer.phoneNumber != null && lecturer.phoneNumber.isNotEmpty)
                 ? lecturer.phoneNumber
                 : AppLocalizations.text('Chưa cập nhật', en: 'Not updated'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _changePhone(lecturer.phoneNumber),
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.school_rounded,
+            iconColor: const Color(0xFF3B82F6),
+            title: AppLocalizations.text('Học vị', en: 'Academic Degree'),
+            subtitle: lecturer.hocVi.isNotEmpty ? lecturer.hocVi : 'ThS.',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _changeHocVi(lecturer.hocVi),
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
+            icon: Icons.psychology_rounded,
+            iconColor: const Color(0xFFEC4899),
+            title: AppLocalizations.text('Chuyên môn nghiên cứu', en: 'Field of Expertise'),
+            subtitle: lecturer.chuyenMon.isNotEmpty ? lecturer.chuyenMon : 'Công nghệ phần mềm & Di động',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _changeChuyenMon(lecturer.chuyenMon),
           ),
           const Divider(height: 1, indent: 64),
           _ListRow(
@@ -639,7 +659,234 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
   }
 
   // ============================================================
-  // CHANGE PASSWORD
+    // ============================================================
+  // CHANGE PHONE NUMBER
+  // ============================================================
+
+  Future<void> _changePhone(String currentPhone) async {
+    final controller = TextEditingController(text: currentPhone);
+    final formKey = GlobalKey<FormState>();
+
+    final newPhone = await showDialog<String>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(AppLocalizations.text('Cập nhật số điện thoại', en: 'Update Phone Number')),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppLocalizations.text(
+                  'Nhập số điện thoại liên hệ (9 - 11 chữ số):',
+                  en: 'Enter new contact phone number (9 - 11 digits):',
+                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.phone,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Số điện thoại',
+                  prefixIcon: Icon(Icons.phone_rounded),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                validator: (val) {
+                  final text = (val ?? '').trim();
+                  if (text.isEmpty) {
+                    return 'Vui lòng nhập số điện thoại.';
+                  }
+                  if (!RegExp(r'^[0-9]{9,11}$').hasMatch(text)) {
+                    return 'Số điện thoại phải từ 9 đến 11 chữ số.';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.pop(dCtx, controller.text.trim());
+              }
+            },
+            child: Text(AppLocalizations.text('Lưu', en: 'Save')),
+          ),
+        ],
+      ),
+    );
+
+    if (newPhone != null && newPhone.isNotEmpty && mounted) {
+      try {
+        final success = await LecturerApiService.instance.updateProfile(phoneNumber: newPhone);
+        if (success) {
+          setState(() {
+            _lecturer = _lecturer?.copyWith(phoneNumber: newPhone);
+          });
+          _showMessage(AppLocalizations.text('Cập nhật số điện thoại thành công.', en: 'Phone number updated successfully.'));
+        } else {
+          _showMessage('Không thể cập nhật số điện thoại. Vui lòng thử lại.', isError: true);
+        }
+      } catch (e) {
+        _showMessage('Lỗi: \$e', isError: true);
+      }
+    }
+  }
+
+  // ============================================================
+  // CHANGE ACADEMIC DEGREE (HỌC VỊ)
+  // ============================================================
+
+  Future<void> _changeHocVi(String currentHocVi) async {
+    final options = ['ThS.', 'TS.', 'PGS.TS.', 'GS.TS.', 'Kỹ sư', 'Cử nhân'];
+    String selected = options.contains(currentHocVi) ? currentHocVi : options.first;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(AppLocalizations.text('Cập nhật học vị', en: 'Update Academic Degree')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((opt) {
+              return RadioListTile<String>(
+                title: Text(opt),
+                value: opt,
+                groupValue: selected,
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() => selected = val);
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx),
+              child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dCtx, selected),
+              child: Text(AppLocalizations.text('Lưu', en: 'Save')),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && mounted) {
+      try {
+        final success = await LecturerApiService.instance.updateProfile(hocVi: result);
+        if (success) {
+          setState(() {
+            _lecturer = _lecturer?.copyWith(hocVi: result);
+          });
+          _showMessage('Cập nhật học vị thành công.');
+        } else {
+          _showMessage('Không thể cập nhật học vị.', isError: true);
+        }
+      } catch (e) {
+        _showMessage('Lỗi: \$e', isError: true);
+      }
+    }
+  }
+
+  // ============================================================
+  // CHANGE EXPERTISE (CHUYÊN MÔN)
+  // ============================================================
+
+  Future<void> _changeChuyenMon(String currentChuyenMon) async {
+    final controller = TextEditingController(text: currentChuyenMon);
+    final formKey = GlobalKey<FormState>();
+
+    final newExpertise = await showDialog<String>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(AppLocalizations.text('Cập nhật chuyên môn', en: 'Update Expertise')),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppLocalizations.text(
+                  'Nhập lĩnh vực chuyên môn nghiên cứu của bạn:',
+                  en: 'Enter your research specialization / expertise:',
+                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: controller,
+                maxLines: 2,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Chuyên môn',
+                  prefixIcon: Icon(Icons.psychology_rounded),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                validator: (val) {
+                  final text = (val ?? '').trim();
+                  if (text.isEmpty) {
+                    return 'Vui lòng nhập chuyên môn.';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.pop(dCtx, controller.text.trim());
+              }
+            },
+            child: Text(AppLocalizations.text('Lưu', en: 'Save')),
+          ),
+        ],
+      ),
+    );
+
+    if (newExpertise != null && newExpertise.isNotEmpty && mounted) {
+      try {
+        final success = await LecturerApiService.instance.updateProfile(chuyenMon: newExpertise);
+        if (success) {
+          setState(() {
+            _lecturer = _lecturer?.copyWith(chuyenMon: newExpertise);
+          });
+          _showMessage('Cập nhật chuyên môn thành công.');
+        } else {
+          _showMessage('Không thể cập nhật chuyên môn.', isError: true);
+        }
+      } catch (e) {
+        _showMessage('Lỗi: \$e', isError: true);
+      }
+    }
+  }
+
+// CHANGE PASSWORD
   // ============================================================
 
   Future<void> _changePassword() async {
@@ -919,11 +1166,12 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
     }
   }
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {bool isError = false}) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        backgroundColor: isError ? const Color(0xFFEF4444) : null,
         content: Text(message),
       ),
     );

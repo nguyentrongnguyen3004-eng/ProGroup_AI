@@ -50,7 +50,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           registeredAt: regData['ngayDangKy'] != null
               ? DateTime.tryParse(regData['ngayDangKy'].toString()) ?? DateTime.now()
               : DateTime.now(),
-          rejectionReason: regData['ghiChu'] as String?,
+          rejectionReason: regData['rejectionReason'] as String? ??
+              regData['ghiChu'] as String? ??
+              regData['lyDoTuChoi'] as String? ??
+              regData['lyDo'] as String? ??
+              regData['reason'] as String?,
         );
 
         if (deTaiId > 0) {
@@ -624,52 +628,130 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    AppLocalizations.status(registration.status),
-                                    style: const TextStyle(
-                                      color: Color(0xFFD97706),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
+                            Builder(
+                              builder: (context) {
+                                final isRejected = registration.status == 'Từ chối';
+                                final isApproved = registration.status == 'Đã duyệt';
+                                final badgeBg = isRejected
+                                    ? const Color(0xFFEF4444).withValues(alpha: 0.12)
+                                    : isApproved
+                                        ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                                        : const Color(0xFFF59E0B).withValues(alpha: 0.12);
+                                final badgeText = isRejected
+                                    ? const Color(0xFFDC2626)
+                                    : isApproved
+                                        ? const Color(0xFF059669)
+                                        : const Color(0xFFD97706);
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: badgeBg,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            AppLocalizations.status(registration.status),
+                                            style: TextStyle(
+                                              color: badgeText,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        if (topic != null)
+                                          Expanded(
+                                            child: Text(
+                                              topic.technology,
+                                              style: TextStyle(
+                                                color: colors.onSurfaceVariant,
+                                                fontSize: 12,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                if (topic != null)
-                                  Expanded(
-                                    child: Text(
-                                      topic.technology,
-                                      style: TextStyle(
-                                        color: colors.onSurfaceVariant,
-                                        fontSize: 12,
+                                    if (isRejected || (registration.rejectionReason != null && registration.rejectionReason!.trim().isNotEmpty)) ...[
+                                      const SizedBox(height: 10),
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFEF2F2),
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: const Color(0xFFFECACA)),
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Icon(Icons.info_outline, color: Color(0xFFDC2626), size: 18),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text(
+                                                    'Lý do từ chối / Góp ý từ Giảng viên:',
+                                                    style: TextStyle(
+                                                      color: Color(0xFFDC2626),
+                                                      fontSize: 12.5,
+                                                      fontWeight: FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    (registration.rejectionReason != null && registration.rejectionReason!.trim().isNotEmpty)
+                                                        ? registration.rejectionReason!.trim()
+                                                        : 'Không có lý do cụ thể.',
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF991B1B),
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                              ],
+                                    ],
+                                  ],
+                                );
+                              },
                             ),
                             if (isLeader && registration.status != 'Đã duyệt') ...[
                               const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: _cancelRegistration,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFFEF4444),
-                                    side: const BorderSide(color: Color(0xFFEF4444)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              if (registration.status == 'Từ chối') ...[
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton.tonalIcon(
+                                    onPressed: _openCourseTopics,
+                                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                                    label: const Text('Chọn & Đăng ký đề tài khác', style: TextStyle(fontWeight: FontWeight.w700)),
                                   ),
-                                  icon: const Icon(Icons.cancel_outlined, size: 16),
-                                  label: const Text('Hủy đăng ký đề tài này', style: TextStyle(fontWeight: FontWeight.w600)),
                                 ),
-                              ),
+                              ] else ...[
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _cancelRegistration,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFFEF4444),
+                                      side: const BorderSide(color: Color(0xFFEF4444)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    icon: const Icon(Icons.cancel_outlined, size: 16),
+                                    label: const Text('Hủy đăng ký đề tài này', style: TextStyle(fontWeight: FontWeight.w600)),
+                                  ),
+                                ),
+                              ],
                             ],
                           ],
                         ],

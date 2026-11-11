@@ -118,32 +118,180 @@ class _LecturerTopicAssistantScreenState
   }
 
   Future<void> _useSuggestion(LecturerTopicSuggestionModel suggestion) async {
-    final result = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AddTopicScreen(
-          lecturerCourseId: _courseId,
-          initialValues: {
-            'title': suggestion.title,
-            'description': suggestion.description,
-            'objective': suggestion.objective,
-            'scope': suggestion.scope,
-            'technology': suggestion.technology,
-            'source': _isUsingGeminiLive ? 'Google Gemini AI' : 'AI đề xuất',
-          },
-        ),
+    var courses = _courses;
+    if (courses.isEmpty) {
+      courses = await LecturerApiService.instance.fetchCourses();
+      if (mounted) setState(() => _courses = courses);
+    }
+
+    if (courses.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không tìm thấy lớp học phần nào được phân công để áp dụng đề tài.')),
+        );
+      }
+      return;
+    }
+
+    int selectedId = _courseId ?? courses.first.courseId;
+    if (!courses.any((c) => c.courseId == selectedId)) {
+      selectedId = courses.first.courseId;
+    }
+
+    if (!mounted) return;
+    final chosenAction = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (bCtx) {
+        int tempCourseId = selectedId;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Áp dụng đề tài vào học phần',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Đề tài: ${suggestion.title}',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    initialValue: tempCourseId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Lớp học phần áp dụng',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    items: courses.map((c) => DropdownMenuItem(
+                      value: c.courseId,
+                      child: Text('${c.name} (${c.classCode})', overflow: TextOverflow.ellipsis),
+                    )).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setModalState(() => tempCourseId = val);
+                        selectedId = val;
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(bCtx, 'CUSTOMIZE'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Chỉnh sửa thêm'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(bCtx, 'APPLY_NOW'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Áp dụng ngay'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
-    if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.text(
-              'Đề tài đã được lưu vào lớp học phần.',
-              en: 'Topic has been added to the course class.',
+
+    if (chosenAction == null) return;
+
+    if (chosenAction == 'APPLY_NOW') {
+      final targetCourse = courses.firstWhere(
+        (c) => c.courseId == selectedId,
+        orElse: () => courses.first,
+      );
+      try {
+        await LecturerApiService.instance.createTopic(
+          tenDeTai: suggestion.title.trim(),
+          moTa: suggestion.description.trim(),
+          mucTieu: suggestion.objective.trim(),
+          phamVi: suggestion.scope.trim(),
+          congNghe: suggestion.technology.trim(),
+          dotDangKyId: targetCourse.dotDangKyId ?? targetCourse.courseId,
+          lopHocPhanId: targetCourse.courseId,
+          status: 'Đang hoạt động',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF10B981),
+              content: Text('Đã áp dụng đề tài "${suggestion.title}" vào lớp ${targetCourse.name} thành công!'),
             ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi khi áp dụng đề tài: $e')),
+          );
+        }
+      }
+    } else if (chosenAction == 'CUSTOMIZE') {
+      if (!mounted) return;
+      final result = await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AddTopicScreen(
+            lecturerCourseId: selectedId,
+            initialValues: {
+              'title': suggestion.title,
+              'description': suggestion.description,
+              'objective': suggestion.objective,
+              'scope': suggestion.scope,
+              'technology': suggestion.technology,
+              'source': _isUsingGeminiLive ? 'Google Gemini AI' : 'AI đề xuất',
+            },
           ),
         ),
       );
+      if (result != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.text(
+                'Đề tài đã được lưu vào lớp học phần.',
+                en: 'Topic has been added to the course class.',
+              ),
+            ),
+          ),
+        );
+      }
     }
   }
 

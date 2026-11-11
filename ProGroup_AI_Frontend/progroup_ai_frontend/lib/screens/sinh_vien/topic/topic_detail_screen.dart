@@ -57,7 +57,11 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
             registeredAt: regData['ngayDangKy'] != null
                 ? DateTime.tryParse(regData['ngayDangKy'].toString()) ?? DateTime.now()
                 : DateTime.now(),
-            rejectionReason: regData['ghiChu'] as String?,
+            rejectionReason: regData['rejectionReason'] as String? ??
+                regData['ghiChu'] as String? ??
+                regData['lyDoTuChoi'] as String? ??
+                regData['lyDo'] as String? ??
+                regData['reason'] as String?,
           );
         }
       }

@@ -13,4 +13,10 @@ public sealed class UpdateProfileRequest
 
     [MaxLength(500, ErrorMessage = "Avatar URL tối đa 500 ký tự.")]
     public string? AvatarUrl { get; set; }
+
+    [MaxLength(100, ErrorMessage = "Học vị tối đa 100 ký tự.")]
+    public string? HocVi { get; set; }
+
+    [MaxLength(255, ErrorMessage = "Chuyên môn tối đa 255 ký tự.")]
+    public string? ChuyenMon { get; set; }
 }
