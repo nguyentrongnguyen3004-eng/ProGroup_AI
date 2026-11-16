@@ -327,6 +327,7 @@ class LecturerApiService {
     required int dotDangKyId,
     int? lopHocPhanId,
     String? status,
+    String? nguonDeTai,
   }) async {
     final body = <String, dynamic>{
       'tenDeTai': tenDeTai,
@@ -338,6 +339,10 @@ class LecturerApiService {
     };
     if (lopHocPhanId != null) body['lopHocPhanId'] = lopHocPhanId;
     if (status != null && status.isNotEmpty) body['trangThai'] = status;
+    if (nguonDeTai != null && nguonDeTai.isNotEmpty) {
+      body['nguonDeTai'] = nguonDeTai;
+      body['source'] = nguonDeTai;
+    }
     await ApiService.instance.post('/api/de-tai', body);
     await fetchTopics();
   }

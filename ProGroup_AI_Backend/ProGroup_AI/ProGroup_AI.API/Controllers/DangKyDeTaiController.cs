@@ -271,9 +271,21 @@ public sealed class DangKyDeTaiController : ControllerBase
                     .Distinct()
                     .ToListAsync();
 
+                var directUserIds = await _db.NguoiDungs
+                    .AsNoTracking()
+                    .Where(u => studentIds.Contains(u.NguoiDungId))
+                    .Select(u => u.NguoiDungId)
+                    .ToListAsync();
+
+                foreach (var duid in directUserIds)
+                {
+                    if (duid > 0 && !userIds.Contains(duid)) userIds.Add(duid);
+                }
+
                 var tenDeTai = registration.DeTai?.TenDeTai ?? "đề tài";
                 var tieuDe = isApproved ? "Đăng ký đề tài được duyệt" : "Đăng ký đề tài bị từ chối";
-                var reason = !string.IsNullOrWhiteSpace(ghiChu) ? ghiChu : "Không có lý do cụ thể";
+                var defaultRejectReason = "Đề tài đã đủ số lượng / Cần chọn đề tài khác";
+                var reason = !string.IsNullOrWhiteSpace(ghiChu) ? ghiChu : defaultRejectReason;
                 var noiDung = isApproved
                     ? $"Giảng viên đã duyệt đăng ký đề tài '{tenDeTai}' cho nhóm '{grp.TenNhom}'."
                     : $"Giảng viên từ chối đăng ký đề tài '{tenDeTai}' của nhóm '{grp.TenNhom}'. Lý do: {reason}";

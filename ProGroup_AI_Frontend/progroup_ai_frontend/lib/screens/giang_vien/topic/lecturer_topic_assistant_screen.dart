@@ -247,6 +247,7 @@ class _LecturerTopicAssistantScreenState
           dotDangKyId: targetCourse.dotDangKyId ?? targetCourse.courseId,
           lopHocPhanId: targetCourse.courseId,
           status: 'Đang hoạt động',
+          nguonDeTai: 'AI đề xuất',
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

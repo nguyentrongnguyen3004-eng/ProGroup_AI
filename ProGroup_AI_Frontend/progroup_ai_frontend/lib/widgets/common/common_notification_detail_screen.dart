@@ -165,6 +165,56 @@ class _CommonNotificationDetailScreenState
                       height: 1.5,
                     ),
                   ),
+
+                  // Dedicated Rejection / Reason Card
+                  if (content.contains('Lý do:') ||
+                      (item['rejectionReason'] != null && item['rejectionReason'].toString().isNotEmpty) ||
+                      (item['lyDoTuChoi'] != null && item['lyDoTuChoi'].toString().isNotEmpty)) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.28),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.feedback_outlined, color: Color(0xFFDC2626), size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                AppLocalizations.text('Lý do phản hồi / góp ý', en: 'Feedback / Reason'),
+                                style: const TextStyle(
+                                  color: Color(0xFFDC2626),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            (item['rejectionReason']?.toString().isNotEmpty == true)
+                                ? item['rejectionReason'].toString()
+                                : (item['lyDoTuChoi']?.toString().isNotEmpty == true)
+                                    ? item['lyDoTuChoi'].toString()
+                                    : (content.contains('Lý do:') ? content.split('Lý do:')[1].trim() : content),
+                            style: const TextStyle(
+                              color: Color(0xFF991B1B),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

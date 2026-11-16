@@ -13,19 +13,24 @@ class TopicCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isPending = topic.status == 'Chờ duyệt';
-    final isApproved = topic.status == 'Đã duyệt' || topic.status == 'Chính thức';
+    final isApproved = topic.status == 'Đã duyệt' || topic.status == 'Chính thức' || topic.status == 'Đã đăng ký';
+    final isRejected = topic.status == 'Từ chối';
 
     final statusBgColor = isPending
         ? const Color(0xFFF59E0B).withValues(alpha: 0.12)
         : isApproved
             ? const Color(0xFF10B981).withValues(alpha: 0.12)
-            : colors.primary.withValues(alpha: 0.12);
+            : isRejected
+                ? const Color(0xFFEF4444).withValues(alpha: 0.12)
+                : colors.primary.withValues(alpha: 0.12);
 
     final statusTextColor = isPending
         ? const Color(0xFFD97706)
         : isApproved
             ? const Color(0xFF059669)
-            : colors.primary;
+            : isRejected
+                ? const Color(0xFFDC2626)
+                : colors.primary;
 
     return Container(
       decoration: BoxDecoration(
@@ -168,6 +173,42 @@ class TopicCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Color(0xFF2563EB),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                if (topic.rejectionReason != null && topic.rejectionReason!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.feedback_outlined,
+                          size: 14,
+                          color: Color(0xFFDC2626),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Lý do: ${topic.rejectionReason!}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF991B1B),
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),

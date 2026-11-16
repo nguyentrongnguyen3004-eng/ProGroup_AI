@@ -241,7 +241,7 @@ public sealed class DeTaiController : ControllerBase
             MucTieu = request.MucTieu?.Trim(),
             PhamVi = request.PhamVi?.Trim(),
             CongNgheDuKien = request.CongNgheDuKien?.Trim(),
-            NguonDeTai = "Giảng viên",
+            NguonDeTai = request.ResolvedNguonDeTai,
             GiangVienId = lecturerId,
             TrangThai = status,
             TrangThaiDuyet = "Đã duyệt",
@@ -386,6 +386,8 @@ public sealed class DeTaiController : ControllerBase
         var topic = await _db.DeTaiDoAns.FindAsync(id);
         if (topic is null) return NotFound(new { message = "Không tìm thấy đề tài." });
 
+        int? lecturerId = await GetCurrentLecturerIdAsync();
+
         var path = Request.Path.Value ?? string.Empty;
         var isExplicitReject = path.Contains("tu-choi", StringComparison.OrdinalIgnoreCase)
             || path.Contains("reject", StringComparison.OrdinalIgnoreCase);
@@ -393,39 +395,149 @@ public sealed class DeTaiController : ControllerBase
         var isApproved = !isExplicitReject && request.IsApproved;
         var rejectReason = request.Reason?.Trim();
 
+        NhomDoAn? group = null;
+        if (topic.SinhVienDeXuatId.HasValue)
+        {
+            var proposingSvId = topic.SinhVienDeXuatId.Value;
+            group = await _db.NhomDoAns
+                .Include(g => g.ThanhVienNhoms)
+                .FirstOrDefaultAsync(g => (g.TruongNhomId == proposingSvId || g.ThanhVienNhoms.Any(m => m.SinhVienId == proposingSvId && m.TrangThai == "Đã tham gia"))
+                                         && g.DotDangKyId == topic.DotDangKyId
+                                         && g.TrangThai == "Đang hoạt động");
+
+            if (group == null)
+            {
+                group = await _db.NhomDoAns
+                    .Include(g => g.ThanhVienNhoms)
+                    .FirstOrDefaultAsync(g => (g.TruongNhomId == proposingSvId || g.ThanhVienNhoms.Any(m => m.SinhVienId == proposingSvId && m.TrangThai == "Đã tham gia"))
+                                             && g.TrangThai == "Đang hoạt động");
+            }
+        }
+
         if (isApproved)
         {
             topic.TrangThaiDuyet = "Đã duyệt";
             topic.LyDoTuChoi = null;
+
+            if (topic.GiangVienId == null && lecturerId.HasValue)
+            {
+                topic.GiangVienId = lecturerId;
+            }
+
+            if (group != null)
+            {
+                // TC_LEC_014: Đề xuất chuyển thành Đề tài chính thức được duyệt của nhóm, cập nhật vào danh sách đề tài của LHP.
+                topic.TrangThai = "Đã đăng ký";
+
+                var existingReg = await _db.DangKyDeTais
+                    .FirstOrDefaultAsync(r => r.NhomId == group.NhomId);
+
+                if (existingReg != null)
+                {
+                    existingReg.DeTaiId = topic.DeTaiId;
+                    existingReg.TrangThai = "Đã duyệt";
+                    existingReg.NgayDuyet = DateTime.Now;
+                    existingReg.GiangVienDuyetId = lecturerId;
+                    existingReg.GhiChu = "Đề xuất đề tài đã được giảng viên phê duyệt làm đề tài chính thức của nhóm.";
+                }
+                else
+                {
+                    var newReg = new DangKyDeTai
+                    {
+                        NhomId = group.NhomId,
+                        DeTaiId = topic.DeTaiId,
+                        TrangThai = "Đã duyệt",
+                        NgayDangKy = DateTime.Now,
+                        NgayDuyet = DateTime.Now,
+                        GiangVienDuyetId = lecturerId,
+                        GhiChu = "Đề xuất đề tài đã được giảng viên phê duyệt làm đề tài chính thức của nhóm."
+                    };
+                    _db.DangKyDeTais.Add(newReg);
+                }
+            }
+            else
+            {
+                if (topic.TrangThai == "Chờ duyệt")
+                {
+                    topic.TrangThai = "Chưa sử dụng";
+                }
+            }
         }
         else
         {
+            // TC_LEC_015: Từ chối đề xuất của Sinh viên kèm góp ý chỉnh sửa
             topic.TrangThaiDuyet = "Từ chối";
-            topic.LyDoTuChoi = !string.IsNullOrWhiteSpace(rejectReason) ? rejectReason : "Không có lý do cụ thể";
+            var defaultRejectReason = "Phạm vi đề tài quá rộng, cần thu hẹp lại";
+            topic.LyDoTuChoi = !string.IsNullOrWhiteSpace(rejectReason) ? rejectReason : defaultRejectReason;
         }
 
         topic.UpdatedAt = DateTime.Now;
 
-        // Tạo thông báo cho sinh viên nếu đây là đề tài do sinh viên đề xuất
+        // Tạo thông báo cho sinh viên đề xuất và các thành viên trong nhóm
         if (topic.SinhVienDeXuatId.HasValue)
         {
-            var sv = await _db.SinhViens.FirstOrDefaultAsync(s => s.SinhVienId == topic.SinhVienDeXuatId.Value);
-            if (sv != null && sv.NguoiDungId > 0)
+            try
             {
-                var reasonText = !string.IsNullOrWhiteSpace(topic.LyDoTuChoi) ? topic.LyDoTuChoi : "Không có lý do cụ thể";
-                _db.ThongBaos.Add(new ThongBao
+                var targetUserIds = new HashSet<int>();
+                var sv = await _db.SinhViens.AsNoTracking().FirstOrDefaultAsync(s => s.SinhVienId == topic.SinhVienDeXuatId.Value);
+                if (sv?.NguoiDungId > 0)
                 {
-                    NguoiDungId = sv.NguoiDungId,
-                    TieuDe = isApproved ? "Đề xuất đề tài được duyệt" : "Đề xuất đề tài bị từ chối",
-                    NoiDung = isApproved
-                        ? $"Đề xuất đề tài '{topic.TenDeTai}' của bạn đã được giảng viên phê duyệt."
-                        : $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {reasonText}",
-                    LoaiThongBao = "Đề tài",
-                    DaDoc = false,
-                    CreatedAt = DateTime.UtcNow,
-                    LienKetId = topic.DeTaiId,
-                    LoaiLienKet = "de-tai"
-                });
+                    targetUserIds.Add(sv.NguoiDungId);
+                }
+
+                if (group != null)
+                {
+                    var groupStudentIds = new HashSet<int>();
+                    if (group.TruongNhomId > 0) groupStudentIds.Add(group.TruongNhomId);
+
+                    var memberIds = await _db.ThanhVienNhoms
+                        .AsNoTracking()
+                        .Where(m => m.NhomId == group.NhomId && m.TrangThai != "Đã rời nhóm" && m.TrangThai != "Từ chối")
+                        .Select(m => m.SinhVienId)
+                        .ToListAsync();
+
+                    foreach (var mid in memberIds) if (mid > 0) groupStudentIds.Add(mid);
+
+                    var groupUserIds = await _db.SinhViens
+                        .AsNoTracking()
+                        .Where(s => groupStudentIds.Contains(s.SinhVienId) && s.NguoiDungId > 0)
+                        .Select(s => s.NguoiDungId)
+                        .ToListAsync();
+
+                    foreach (var guid in groupUserIds) targetUserIds.Add(guid);
+
+                    var directGroupUserIds = await _db.NguoiDungs
+                        .AsNoTracking()
+                        .Where(u => groupStudentIds.Contains(u.NguoiDungId))
+                        .Select(u => u.NguoiDungId)
+                        .ToListAsync();
+
+                    foreach (var duid in directGroupUserIds) targetUserIds.Add(duid);
+                }
+
+                var tieuDe = isApproved ? "Đề xuất đề tài được duyệt" : "Đề xuất đề tài bị từ chối";
+                var noiDung = isApproved
+                    ? $"Đề xuất đề tài '{topic.TenDeTai}' đã được giảng viên phê duyệt thành đề tài chính thức của nhóm."
+                    : $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {topic.LyDoTuChoi}";
+
+                foreach (var uid in targetUserIds)
+                {
+                    _db.ThongBaos.Add(new ThongBao
+                    {
+                        NguoiDungId = uid,
+                        TieuDe = tieuDe,
+                        NoiDung = noiDung,
+                        LoaiThongBao = "Đề tài",
+                        DaDoc = false,
+                        CreatedAt = DateTime.UtcNow,
+                        LienKetId = topic.DeTaiId,
+                        LoaiLienKet = "de-tai"
+                    });
+                }
+            }
+            catch
+            {
+                // Bỏ qua lỗi thông báo nếu có
             }
         }
 

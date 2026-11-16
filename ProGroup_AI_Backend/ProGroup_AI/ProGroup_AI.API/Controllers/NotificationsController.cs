@@ -121,6 +121,94 @@ public sealed class NotificationsController : ControllerBase
             });
         }
 
+        // 0.5 Thông báo thời gian thực trực tiếp cho sinh viên về đăng ký đề tài và đề xuất đề tài
+        var currentStudent = await _db.SinhViens.AsNoTracking().FirstOrDefaultAsync(s => s.NguoiDungId == userId);
+        if (currentStudent != null)
+        {
+            var myGroupIds = await _db.NhomDoAns.AsNoTracking()
+                .Where(g => g.TruongNhomId == currentStudent.SinhVienId || g.ThanhVienNhoms.Any(m => m.SinhVienId == currentStudent.SinhVienId && m.TrangThai == "Đã tham gia"))
+                .Select(g => g.NhomId)
+                .ToListAsync();
+
+            if (myGroupIds.Any())
+            {
+                var myDecidedRegs = await _db.DangKyDeTais.AsNoTracking()
+                    .Include(r => r.DeTai)
+                    .Include(r => r.Nhom)
+                    .Where(r => myGroupIds.Contains(r.NhomId) && (r.TrangThai == "Từ chối" || r.TrangThai == "Đã duyệt"))
+                    .OrderByDescending(r => r.NgayDuyet ?? r.NgayDangKy)
+                    .Take(10)
+                    .ToListAsync();
+
+                foreach (var reg in myDecidedRegs)
+                {
+                    var isRej = reg.TrangThai == "Từ chối";
+                    var tenDeTai = reg.DeTai?.TenDeTai ?? "đề tài";
+                    var tenNhom = reg.Nhom?.TenNhom ?? "Nhóm";
+                    var reason = !string.IsNullOrWhiteSpace(reg.GhiChu) ? reg.GhiChu : "Đề tài đã đủ số lượng / Cần chọn đề tài khác";
+                    var title = isRej ? "Đăng ký đề tài bị từ chối" : "Đăng ký đề tài được duyệt";
+                    var content = isRej
+                        ? $"Giảng viên từ chối đăng ký đề tài '{tenDeTai}' của nhóm '{tenNhom}'. Lý do: {reason}"
+                        : $"Giảng viên đã duyệt đăng ký đề tài '{tenDeTai}' cho nhóm '{tenNhom}'.";
+
+                    var notifId = 150000 + reg.DangKyDeTaiId;
+                    if (!notifications.Any(n => n.id == notifId || (n.content != null && n.content.Contains(tenDeTai) && n.content.Contains(isRej ? "từ chối" : "duyệt"))))
+                    {
+                        var eventTime = reg.NgayDuyet ?? reg.NgayDangKy;
+                        var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
+                        var isRead = readSet != null && readSet.Contains(notifId);
+                        notifications.Add(new NotificationItem
+                        {
+                            id = notifId,
+                            type = "Đề tài",
+                            title = title,
+                            content = content,
+                            time = FormatTimeAgo(timeDiff),
+                            isRead = isRead,
+                            read = isRead,
+                            createdAt = localCreated
+                        });
+                    }
+                }
+            }
+
+            // Đề xuất của chính sinh viên này
+            var myProposals = await _db.DeTaiDoAns.AsNoTracking()
+                .Where(t => t.SinhVienDeXuatId == currentStudent.SinhVienId && (t.TrangThaiDuyet == "Từ chối" || t.TrangThaiDuyet == "Đã duyệt"))
+                .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
+                .Take(10)
+                .ToListAsync();
+
+            foreach (var prop in myProposals)
+            {
+                var isRej = prop.TrangThaiDuyet == "Từ chối";
+                var reason = !string.IsNullOrWhiteSpace(prop.LyDoTuChoi) ? prop.LyDoTuChoi : "Phạm vi đề tài quá rộng, cần thu hẹp lại";
+                var title = isRej ? $"Đề xuất đề tài bị từ chối: {prop.TenDeTai}" : $"Đề xuất đề tài được duyệt: {prop.TenDeTai}";
+                var content = isRej
+                    ? $"Đề xuất đề tài '{prop.TenDeTai}' bị từ chối. Lý do: {reason}"
+                    : $"Đề xuất đề tài '{prop.TenDeTai}' đã được giảng viên phê duyệt thành đề tài chính thức của nhóm.";
+
+                var notifId = 350000 + prop.DeTaiId;
+                if (!notifications.Any(n => n.id == notifId || (n.content != null && n.content.Contains(prop.TenDeTai) && n.content.Contains(isRej ? "từ chối" : "phê duyệt"))))
+                {
+                    var eventTime = prop.UpdatedAt ?? prop.CreatedAt;
+                    var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
+                    var isRead = readSet != null && readSet.Contains(notifId);
+                    notifications.Add(new NotificationItem
+                    {
+                        id = notifId,
+                        type = "Đề tài",
+                        title = title,
+                        content = content,
+                        time = FormatTimeAgo(timeDiff),
+                        isRead = isRead,
+                        read = isRead,
+                        createdAt = localCreated
+                    });
+                }
+            }
+        }
+
         // 1. Đăng ký đề tài gần đây (Bảng DangKyDeTais)
         var recentRegistrations = await _db.DangKyDeTais.AsNoTracking()
             .Include(r => r.Nhom)
