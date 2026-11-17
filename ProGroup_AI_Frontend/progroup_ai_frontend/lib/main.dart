@@ -193,7 +193,7 @@ class ProGroupApp extends StatelessWidget {
                   name: topic.title,
                   classCode: 'LHP-${topic.courseId}',
                   semester: 'HK1 2026-2027',
-                  lecturer: topic.lecturerName ?? 'Giảng viên phụ trách',
+                  lecturer: topic.lecturerName ?? 'Chưa phân công',
                   status: 'Đang mở',
                 );
 

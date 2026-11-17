@@ -20,6 +20,11 @@ public sealed class LopHocPhanResponse
     public int? GiangVienId { get; set; }
     public string? MaGiangVien { get; set; }
     public string GiangVienTen { get; set; } = "Chưa phân công";
+    public string? GiangVienPhuTrach => GiangVienTen;
+    public string? GiangVien => GiangVienTen;
+    public string? Lecturer => GiangVienTen;
+    public string? LecturerName => GiangVienTen;
+    public string? TenGiangVien => GiangVienTen;
     public string TrangThaiDotDangKy { get; set; } = "Chưa mở";
     public string? TenDotDangKy { get; set; }
     public int SoNhom { get; set; }

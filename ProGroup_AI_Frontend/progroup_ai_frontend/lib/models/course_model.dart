@@ -48,9 +48,16 @@ class CourseModel {
       semester = 'HK1 2026-2027';
     }
 
-    final lecturer = json['lecturer'] as String? ??
+    final rawLecturer = json['giangVienPhuTrach'] as String? ??
+        json['giangVienTen'] as String? ??
+        json['tenGiangVien'] as String? ??
+        json['lecturer'] as String? ??
         json['giangVien'] as String? ??
-        'Giảng viên phụ trách';
+        json['lecturerName'] as String? ??
+        json['teacher'] as String?;
+    final lecturer = (rawLecturer != null && rawLecturer.trim().isNotEmpty)
+        ? rawLecturer.trim()
+        : 'Chưa phân công';
     final status = json['status'] as String? ??
         json['trangThai'] as String? ??
         'Đang đăng ký';

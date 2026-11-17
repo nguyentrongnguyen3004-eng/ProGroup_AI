@@ -12,6 +12,11 @@ public sealed class StudentCourseResponse
     public string TenHocKy { get; set; } = string.Empty;
     public string NamHoc { get; set; } = string.Empty;
     public string? GiangVienPhuTrach { get; set; }
+    public string? GiangVienTen => GiangVienPhuTrach;
+    public string? GiangVien => GiangVienPhuTrach;
+    public string? Lecturer => GiangVienPhuTrach;
+    public string? LecturerName => GiangVienPhuTrach;
+    public string? TenGiangVien => GiangVienPhuTrach;
     public string? EmailGiangVien { get; set; }
     public DateTime NgayThamGia { get; set; }
     public string TrangThai { get; set; } = "Đang mở";
