@@ -1,6 +1,8 @@
 import '../data/mock/mock_lecturer_courses.dart';
+import '../models/lecturer_course_model.dart';
 import '../models/lecturer_topic_suggestion_model.dart';
 import 'gemini_service.dart';
+import 'lecturer_api_service.dart';
 
 class LecturerTopicSuggestionService {
   final GeminiService _geminiService;
@@ -18,7 +20,10 @@ class LecturerTopicSuggestionService {
     int topicCount = 3,
     bool forceAiOnly = false,
   }) async {
-    final course = MockLecturerCourses.getByCourseId(courseId);
+    final realCourse = LecturerApiService.instance.cachedCourses
+        .cast<LecturerCourseModel?>()
+        .firstWhere((c) => c?.id == courseId || c?.courseId == courseId, orElse: () => null);
+    final course = realCourse ?? MockLecturerCourses.getByCourseId(courseId);
     final courseName = course?.name ?? 'Lớp học phần';
     final classCode = course?.classCode ?? 'N01';
 

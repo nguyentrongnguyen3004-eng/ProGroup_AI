@@ -168,6 +168,8 @@ class _CommonNotificationDetailScreenState
 
                   // Dedicated Rejection / Reason Card
                   if (content.contains('Lý do:') ||
+                      title.toLowerCase().contains('từ chối') ||
+                      content.toLowerCase().contains('từ chối') ||
                       (item['rejectionReason'] != null && item['rejectionReason'].toString().isNotEmpty) ||
                       (item['lyDoTuChoi'] != null && item['lyDoTuChoi'].toString().isNotEmpty)) ...[
                     const SizedBox(height: 14),

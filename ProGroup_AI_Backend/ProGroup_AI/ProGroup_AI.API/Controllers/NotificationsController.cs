@@ -108,6 +108,13 @@ public sealed class NotificationsController : ControllerBase
             var isRead = tb.DaDoc || (readSet != null && readSet.Contains(tb.ThongBaoId));
             var (timeDiff, localCreated) = CalculateTimeDifference(tb.CreatedAt);
 
+            string? rejReason = null;
+            if (!string.IsNullOrEmpty(tb.NoiDung) && tb.NoiDung.Contains("Lý do:"))
+            {
+                var parts = tb.NoiDung.Split("Lý do:", 2);
+                if (parts.Length > 1) rejReason = parts[1].Trim();
+            }
+
             notifications.Add(new NotificationItem
             {
                 id = tb.ThongBaoId,
@@ -117,7 +124,9 @@ public sealed class NotificationsController : ControllerBase
                 time = FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,
-                createdAt = localCreated
+                createdAt = localCreated,
+                rejectionReason = rejReason,
+                lyDoTuChoi = rejReason
             });
         }
 
@@ -126,7 +135,7 @@ public sealed class NotificationsController : ControllerBase
         if (currentStudent != null)
         {
             var myGroupIds = await _db.NhomDoAns.AsNoTracking()
-                .Where(g => g.TruongNhomId == currentStudent.SinhVienId || g.ThanhVienNhoms.Any(m => m.SinhVienId == currentStudent.SinhVienId && m.TrangThai == "Đã tham gia"))
+                .Where(g => g.TruongNhomId == currentStudent.SinhVienId || g.ThanhVienNhoms.Any(m => m.SinhVienId == currentStudent.SinhVienId && m.TrangThai != "Đã rời nhóm" && m.TrangThai != "Từ chối"))
                 .Select(g => g.NhomId)
                 .ToListAsync();
 
@@ -166,7 +175,9 @@ public sealed class NotificationsController : ControllerBase
                             time = FormatTimeAgo(timeDiff),
                             isRead = isRead,
                             read = isRead,
-                            createdAt = localCreated
+                            createdAt = localCreated,
+                            rejectionReason = isRej ? reason : null,
+                            lyDoTuChoi = isRej ? reason : null
                         });
                     }
                 }
@@ -203,7 +214,9 @@ public sealed class NotificationsController : ControllerBase
                         time = FormatTimeAgo(timeDiff),
                         isRead = isRead,
                         read = isRead,
-                        createdAt = localCreated
+                        createdAt = localCreated,
+                        rejectionReason = isRej ? reason : null,
+                        lyDoTuChoi = isRej ? reason : null
                     });
                 }
             }
@@ -416,5 +429,7 @@ public sealed class NotificationsController : ControllerBase
         public bool isRead { get; set; }
         public bool read { get; set; }
         public DateTime createdAt { get; set; }
+        public string? rejectionReason { get; set; }
+        public string? lyDoTuChoi { get; set; }
     }
 }

@@ -47,10 +47,10 @@ class _LecturerCourseDetailScreenState
 
     try {
       final results = await Future.wait([
-        LecturerApiService.instance.fetchGroups(_course.courseId),
-        LecturerApiService.instance.fetchTopics(_course.courseId),
-        LecturerApiService.instance.fetchTopicRegistrations(_course.courseId),
-        LecturerApiService.instance.fetchCourseRegistrationPeriods(_course.courseId),
+        LecturerApiService.instance.fetchGroups(_course.id),
+        LecturerApiService.instance.fetchTopics(_course.id),
+        LecturerApiService.instance.fetchTopicRegistrations(_course.id),
+        LecturerApiService.instance.fetchCourseRegistrationPeriods(_course.id),
       ]);
 
       if (mounted) {
@@ -94,9 +94,15 @@ class _LecturerCourseDetailScreenState
 
   Future<void> _openCreatePeriodDialog() async {
     final nameController = TextEditingController(text: 'Đợt đăng ký mới');
-    DateTime startDate = DateTime.now();
-    DateTime endDate = DateTime.now().add(const Duration(days: 14));
+    final minMembersController = TextEditingController(text: '${_course.minMembers > 0 ? _course.minMembers : 2}');
+    final maxMembersController = TextEditingController(text: '${_course.maxMembers > 0 ? _course.maxMembers : 4}');
+    final now = DateTime.now();
+    DateTime startDate = DateTime(now.year, now.month, now.day);
+    DateTime groupEndDate = startDate.add(const Duration(days: 7));
+    DateTime topicEndDate = startDate.add(const Duration(days: 14));
     bool isSubmitting = false;
+
+    String fmt(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
     await showDialog(
       context: context,
@@ -123,10 +129,36 @@ class _LecturerCourseDetailScreenState
                   ),
                 ),
                 const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: minMembersController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'SV tối thiểu',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: maxMembersController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'SV tối đa',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Ngày bắt đầu', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: Text('//'),
+                  subtitle: Text(fmt(startDate)),
                   trailing: const Icon(Icons.calendar_month_rounded, color: Color(0xFF2563EB)),
                   onTap: () async {
                     final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -139,8 +171,11 @@ class _LecturerCourseDetailScreenState
                     if (picked != null) {
                       setDialogState(() {
                         startDate = picked;
-                        if (endDate.isBefore(startDate)) {
-                          endDate = startDate.add(const Duration(days: 7));
+                        if (groupEndDate.isBefore(startDate)) {
+                          groupEndDate = startDate.add(const Duration(days: 7));
+                        }
+                        if (topicEndDate.isBefore(groupEndDate)) {
+                          topicEndDate = groupEndDate.add(const Duration(days: 7));
                         }
                       });
                     }
@@ -148,18 +183,40 @@ class _LecturerCourseDetailScreenState
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Ngày kết thúc', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: Text('//'),
-                  trailing: const Icon(Icons.event_available_rounded, color: Color(0xFF10B981)),
+                  title: const Text('Hạn lập nhóm', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text(fmt(groupEndDate)),
+                  trailing: const Icon(Icons.group_add_rounded, color: Color(0xFF2563EB)),
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: ctx,
-                      initialDate: endDate.isBefore(startDate) ? startDate : endDate,
+                      initialDate: groupEndDate.isBefore(startDate) ? startDate : groupEndDate,
                       firstDate: startDate,
                       lastDate: DateTime(2100),
                     );
                     if (picked != null) {
-                      setDialogState(() => endDate = picked);
+                      setDialogState(() {
+                        groupEndDate = picked;
+                        if (topicEndDate.isBefore(groupEndDate)) {
+                          topicEndDate = groupEndDate;
+                        }
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Hạn đăng ký đề tài', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text(fmt(topicEndDate)),
+                  trailing: const Icon(Icons.event_available_rounded, color: Color(0xFF10B981)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: topicEndDate.isBefore(startDate) ? startDate : topicEndDate,
+                      firstDate: startDate,
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => topicEndDate = picked);
                     }
                   },
                 ),
@@ -186,9 +243,36 @@ class _LecturerCourseDetailScreenState
                         );
                         return;
                       }
-                      if (endDate.isBefore(startDate) || endDate.isAtSameMomentAs(startDate)) {
+                      if (groupEndDate.isBefore(startDate)) {
                         ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                          const SnackBar(content: Text('Ngày kết thúc phải sau ngày bắt đầu.'), backgroundColor: Colors.red),
+                          const SnackBar(content: Text('Hạn lập nhóm phải sau hoặc bằng ngày bắt đầu.'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      if (topicEndDate.isBefore(startDate)) {
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          const SnackBar(content: Text('Hạn đăng ký đề tài phải sau hoặc bằng ngày bắt đầu.'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      // TC_LEC_019: Thời gian đăng ký nhóm phải sớm hơn hoặc bằng thời gian đăng ký đề tài
+                      if (groupEndDate.isAfter(topicEndDate)) {
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          const SnackBar(
+                            content: Text('Thời gian đăng ký nhóm phải sớm hơn hoặc bằng thời gian đăng ký đề tài.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      final minMembers = int.tryParse(minMembersController.text.trim()) ?? 2;
+                      final maxMembers = int.tryParse(maxMembersController.text.trim()) ?? 4;
+                      if (minMembers <= 0 || maxMembers < minMembers) {
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          const SnackBar(
+                            content: Text('Số lượng thành viên không hợp lệ (Min > 0 và Max >= Min).'),
+                            backgroundColor: Colors.red,
+                          ),
                         );
                         return;
                       }
@@ -199,9 +283,9 @@ class _LecturerCourseDetailScreenState
                           tenDot: name,
                           lopHocPhanId: _course.id,
                           ngayBatDau: startDate,
-                          ngayKetThuc: endDate,
-                          minMembers: _course.minMembers,
-                          maxMembers: _course.maxMembers,
+                          ngayKetThuc: topicEndDate,
+                          minMembers: minMembers,
+                          maxMembers: maxMembers,
                         );
                         if (dialogCtx.mounted) Navigator.pop(dialogCtx);
                         if (mounted) {
@@ -214,7 +298,7 @@ class _LecturerCourseDetailScreenState
                         setDialogState(() => isSubmitting = false);
                         if (dialogCtx.mounted) {
                           ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                            SnackBar(content: Text('Lỗi: '), backgroundColor: Colors.red),
+                            SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
                           );
                         }
                       }

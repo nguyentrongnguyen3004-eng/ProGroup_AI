@@ -40,14 +40,14 @@ class _LecturerTopicAssistantScreenState
     _service = LecturerTopicSuggestionService(geminiService: _geminiService);
     _courses = LecturerApiService.instance.cachedCourses;
     if (_courses.isNotEmpty) {
-      _courseId = _courses.first.courseId;
+      _courseId = _courses.first.id;
     } else {
       LecturerApiService.instance.fetchCourses().then((c) {
         if (mounted) {
           setState(() {
             _courses = c;
             if (_courseId == null && c.isNotEmpty) {
-              _courseId = c.first.courseId;
+              _courseId = c.first.id;
             }
           });
         }
@@ -133,9 +133,9 @@ class _LecturerTopicAssistantScreenState
       return;
     }
 
-    int selectedId = _courseId ?? courses.first.courseId;
-    if (!courses.any((c) => c.courseId == selectedId)) {
-      selectedId = courses.first.courseId;
+    int selectedId = _courseId ?? courses.first.id;
+    if (!courses.any((c) => c.id == selectedId)) {
+      selectedId = courses.first.id;
     }
 
     if (!mounted) return;
@@ -186,7 +186,7 @@ class _LecturerTopicAssistantScreenState
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     ),
                     items: courses.map((c) => DropdownMenuItem(
-                      value: c.courseId,
+                      value: c.id,
                       child: Text('${c.name} (${c.classCode})', overflow: TextOverflow.ellipsis),
                     )).toList(),
                     onChanged: (val) {
@@ -234,7 +234,7 @@ class _LecturerTopicAssistantScreenState
 
     if (chosenAction == 'APPLY_NOW') {
       final targetCourse = courses.firstWhere(
-        (c) => c.courseId == selectedId,
+        (c) => c.id == selectedId,
         orElse: () => courses.first,
       );
       try {
@@ -244,10 +244,10 @@ class _LecturerTopicAssistantScreenState
           mucTieu: suggestion.objective.trim(),
           phamVi: suggestion.scope.trim(),
           congNghe: suggestion.technology.trim(),
-          dotDangKyId: targetCourse.dotDangKyId ?? targetCourse.courseId,
-          lopHocPhanId: targetCourse.courseId,
+          dotDangKyId: targetCourse.dotDangKyId ?? 0,
+          lopHocPhanId: targetCourse.id,
           status: 'Đang hoạt động',
-          nguonDeTai: 'AI đề xuất',
+          nguonDeTai: _isUsingGeminiLive ? 'Google Gemini AI' : 'AI đề xuất',
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -480,7 +480,7 @@ class _LecturerTopicAssistantScreenState
                     items: courses
                         .map(
                           (course) => DropdownMenuItem(
-                            value: course.courseId,
+                            value: course.id,
                             child: Text(
                               '${course.name} • ${course.classCode}',
                               maxLines: 1,

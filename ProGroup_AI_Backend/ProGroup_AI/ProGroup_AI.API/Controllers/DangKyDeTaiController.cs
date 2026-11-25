@@ -241,6 +241,12 @@ public sealed class DangKyDeTaiController : ControllerBase
             }
         }
 
+        // Đảm bảo đề tài đã được nạp đủ thông tin tên đề tài
+        if (registration.DeTai == null && registration.DeTaiId > 0)
+        {
+            registration.DeTai = await _db.DeTaiDoAns.FindAsync(registration.DeTaiId);
+        }
+
         // Tạo thông báo cho toàn bộ thành viên nhóm và trưởng nhóm
         try
         {
@@ -306,9 +312,9 @@ public sealed class DangKyDeTaiController : ControllerBase
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Phòng tránh lỗi thông báo làm chặn transaction duyệt/từ chối
+            Console.WriteLine($"[DangKyDeTaiController] Lỗi tạo thông báo: {ex.Message}");
         }
 
         await _db.SaveChangesAsync();

@@ -38,15 +38,27 @@ class _NotificationScreenState extends State<NotificationScreen> {
           final map = Map<String, dynamic>.from(item);
           final isRead =
               map['isRead'] as bool? ?? !(map['unread'] as bool? ?? false);
+          final content = map['content'] as String? ?? map['noiDung'] as String? ?? '';
+          String? rejReason = map['rejectionReason'] as String? ??
+              map['lyDoTuChoi'] as String? ??
+              map['reason'] as String? ??
+              map['ghiChu'] as String?;
+          if ((rejReason == null || rejReason.isEmpty) && content.contains('Lý do:')) {
+            rejReason = content.split('Lý do:').last.trim();
+          }
+
           return <String, dynamic>{
+            ...map,
             'id': map['id'] as int? ?? 0,
             'type': map['type'] as String? ?? 'Hệ thống',
-            'title': map['title'] as String? ?? '',
-            'content': map['content'] as String? ?? '',
+            'title': map['title'] as String? ?? map['tieuDe'] as String? ?? '',
+            'content': content,
             'time': map['time'] as String? ?? 'Gần đây',
             'unread': !isRead,
             'isRead': isRead,
             'createdAt': map['createdAt'],
+            'rejectionReason': rejReason,
+            'lyDoTuChoi': rejReason,
           };
         }
         return <String, dynamic>{};

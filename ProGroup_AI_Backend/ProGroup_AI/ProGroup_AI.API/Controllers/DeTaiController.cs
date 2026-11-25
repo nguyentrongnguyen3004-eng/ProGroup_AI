@@ -130,13 +130,16 @@ public sealed class DeTaiController : ControllerBase
             period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId.Value);
         }
 
-        if (period == null && request.LopHocPhanId.HasValue && request.LopHocPhanId.Value > 0)
+        if (request.LopHocPhanId.HasValue && request.LopHocPhanId.Value > 0)
         {
-            period = await _db.DotDangKyDoAns
-                .Where(d => d.LopHocPhanId == request.LopHocPhanId.Value)
-                .OrderByDescending(d => d.TrangThai == "Đang mở")
-                .ThenByDescending(d => d.CreatedAt)
-                .FirstOrDefaultAsync();
+            if (period == null || period.LopHocPhanId != request.LopHocPhanId.Value)
+            {
+                period = await _db.DotDangKyDoAns
+                    .Where(d => d.LopHocPhanId == request.LopHocPhanId.Value)
+                    .OrderByDescending(d => d.TrangThai == "Đang mở")
+                    .ThenByDescending(d => d.CreatedAt)
+                    .FirstOrDefaultAsync();
+            }
         }
 
         if (period == null && request.DotDangKyId.HasValue && request.DotDangKyId.Value > 0)

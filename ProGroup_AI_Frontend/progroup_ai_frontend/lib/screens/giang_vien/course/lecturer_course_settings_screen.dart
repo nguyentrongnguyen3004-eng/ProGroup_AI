@@ -92,7 +92,7 @@ class _LecturerCourseSettingsScreenState
       return;
     }
     if (_topicEnd.isBefore(_groupEnd)) {
-      _message('Hạn kết thúc đăng ký đề tài phải sau hoặc bằng hạn kết thúc lập nhóm (không thể kết thúc đăng ký đề tài trước khi lập nhóm xong).');
+      _message('Thời gian đăng ký nhóm phải sớm hơn hoặc bằng thời gian đăng ký đề tài (không thể kết thúc đăng ký đề tài trước khi lập nhóm xong).');
       return;
     }
     final updated = widget.course.copyWith(

@@ -38,13 +38,13 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
   List<LecturerCourseModel> get _availableCourses {
     if (widget.lecturerCourseId != null) {
       final filtered = _assignedCourses
-          .where((course) => course.courseId == widget.lecturerCourseId)
+          .where((course) => course.id == widget.lecturerCourseId || course.courseId == widget.lecturerCourseId)
           .toList();
       if (filtered.isNotEmpty) return filtered;
     }
     if (widget.course != null) {
       final filtered = _assignedCourses
-          .where((course) => course.courseId == widget.course!.id)
+          .where((course) => course.id == widget.course!.id || course.courseId == widget.course!.id)
           .toList();
       if (filtered.isNotEmpty) return filtered;
     }
@@ -72,10 +72,11 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
     final requestedCourseId = widget.lecturerCourseId ?? widget.course?.id;
 
     if (requestedCourseId != null &&
-        _assignedCourses.any((course) => course.courseId == requestedCourseId)) {
-      _selectedCourseId = requestedCourseId;
+        _assignedCourses.any((course) => course.id == requestedCourseId || course.courseId == requestedCourseId)) {
+      final matched = _assignedCourses.firstWhere((c) => c.id == requestedCourseId || c.courseId == requestedCourseId);
+      _selectedCourseId = matched.id;
     } else if (_assignedCourses.isNotEmpty) {
-      _selectedCourseId = _assignedCourses.first.courseId;
+      _selectedCourseId = _assignedCourses.first.id;
     }
 
     _status = 'Đang hoạt động';
@@ -86,7 +87,7 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
           setState(() {
             _assignedCourses = courses;
             if (_selectedCourseId == null && courses.isNotEmpty) {
-              _selectedCourseId = courses.first.courseId;
+              _selectedCourseId = courses.first.id;
             }
           });
         }
@@ -110,7 +111,7 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
 
     LecturerCourseModel? selectedCourse;
     for (final course in _availableCourses) {
-      if (course.courseId == _selectedCourseId) {
+      if (course.id == _selectedCourseId || course.courseId == _selectedCourseId) {
         selectedCourse = course;
         break;
       }
@@ -137,8 +138,8 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
         mucTieu: _objectiveController.text.trim(),
         phamVi: _scopeController.text.trim(),
         congNghe: _technologyController.text.trim(),
-        dotDangKyId: selectedCourse.dotDangKyId ?? selectedCourse.courseId,
-        lopHocPhanId: selectedCourse.courseId,
+        dotDangKyId: selectedCourse.dotDangKyId ?? 0,
+        lopHocPhanId: selectedCourse.id,
         status: _status,
       );
 
@@ -240,7 +241,7 @@ class _AddTopicScreenState extends State<AddTopicScreen> {
                       items: courses
                           .map(
                             (course) => DropdownMenuItem<int>(
-                              value: course.courseId,
+                              value: course.id,
                               child: Text(
                                 '${course.name} • ${course.classCode}',
                                 maxLines: 1,
