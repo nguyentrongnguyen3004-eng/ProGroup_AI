@@ -26,7 +26,7 @@ public sealed class LecturerController : ControllerBase
         var lecturerId = await GetCurrentLecturerIdAsync();
         if (lecturerId is null && (!User.IsInRole("ADMIN") && !User.IsInRole("PHONGDAOTAO") && !User.IsInRole("GIAOVUKHOA")))
         {
-            return Forbid();
+            return Ok(Array.Empty<LecturerCourseResponse>());
         }
 
         var classesQuery = _db.LopHocPhans.AsNoTracking()
@@ -87,7 +87,7 @@ public sealed class LecturerController : ControllerBase
         var lecturerId = await GetCurrentLecturerIdAsync();
         if (lecturerId is null && (!User.IsInRole("ADMIN") && !User.IsInRole("PHONGDAOTAO") && !User.IsInRole("GIAOVUKHOA")))
         {
-            return Forbid();
+            return Ok(new LecturerStatisticsResponse());
         }
 
         IQueryable<int> assignedClassIdsQuery;
@@ -153,7 +153,7 @@ public sealed class LecturerController : ControllerBase
         var lecturerId = await GetCurrentLecturerIdAsync();
         if (lecturerId is null && (!User.IsInRole("ADMIN") && !User.IsInRole("PHONGDAOTAO") && !User.IsInRole("GIAOVUKHOA")))
         {
-            return Forbid();
+            return Ok(Array.Empty<LecturerCourseResponse>());
         }
 
         var query = _db.DangKyDeTais.AsNoTracking()

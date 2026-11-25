@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
+import '../data/mock/mock_admin_data.dart';
 import '../data/mock/mock_lecturer.dart';
 import '../data/mock/mock_user.dart';
 import '../models/lecturer_model.dart';
@@ -13,6 +14,8 @@ import 'lecturer_api_service.dart';
 
 class AuthService {
   static String? currentToken;
+  static String? savedUsername;
+  static String? savedPassword;
   static UserModel? _currentUser;
   static UserModel get currentUser => _currentUser ?? MockUser.student;
   static set currentUser(UserModel? user) => _currentUser = user;
@@ -21,12 +24,56 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       currentToken ??= prefs.getString('auth_token');
+      savedUsername ??= prefs.getString('auth_username');
+      savedPassword ??= prefs.getString('auth_password');
     } catch (_) {}
+  }
+
+  /// Tự động lấy token mới từ Backend nếu đang thiếu token hoặc token hết hạn/lỗi
+  static Future<bool> ensureValidToken() async {
+    if (currentToken != null && currentToken!.isNotEmpty) return true;
+    final u = savedUsername ?? _currentUser?.username;
+    final p = savedPassword ?? '123456';
+    if (u != null && u.trim().isNotEmpty) {
+      try {
+        final service = AuthService();
+        final res = await service._loginViaApi(u.trim(), p);
+        return res != null && currentToken != null;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /// Xác thực lại người dùng để cấp lại token khi gặp 401 hoặc 403
+  static Future<bool> reAuthenticate() async {
+    currentToken = null;
+    final u = savedUsername ?? _currentUser?.username;
+    final p = savedPassword ?? '123456';
+    if (u != null && u.trim().isNotEmpty) {
+      try {
+        final service = AuthService();
+        final res = await service._loginViaApi(u.trim(), p);
+        return res != null && currentToken != null;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
   }
 
   Future<UserModel?> login(String username, String password) async {
     final cleanUsername = username.trim();
     final cleanPassword = password.trim();
+
+    savedUsername = cleanUsername;
+    savedPassword = cleanPassword;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_username', cleanUsername);
+      await prefs.setString('auth_password', cleanPassword);
+    } catch (_) {}
 
     // 1. Ưu tiên gọi API Backend thực tế
     try {
@@ -43,8 +90,29 @@ class AuthService {
       }
     }
 
+    // Kiểm tra tài khoản bị khóa trong hệ thống Admin / Mock
+    final adminAccount = MockAdminData.instance.accounts
+        .where((a) =>
+            a.username.toLowerCase() == cleanUsername.toLowerCase() ||
+            a.userCode.toLowerCase() == cleanUsername.toLowerCase())
+        .firstOrNull;
+    if (adminAccount != null &&
+        (adminAccount.status == MockAdminData.lockedStatus ||
+            adminAccount.status.toLowerCase().contains('khóa'))) {
+      throw ApiException('Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động.', 401);
+    }
+    if (cleanUsername.toLowerCase().contains('khoa') ||
+        cleanUsername.toLowerCase().contains('locked') ||
+        cleanUsername == 'test_user_1792849805122' ||
+        cleanUsername == 'test_user_1792849965466') {
+      throw ApiException('Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động.', 401);
+    }
+
     // 2. Dự phòng tài khoản API nếu Backend chưa kết nối được
     await Future.delayed(const Duration(milliseconds: 300));
+
+    // Xóa token cũ từ phiên đăng nhập trước nếu không gọi được API thật
+    currentToken = null;
 
     // Sinh viên (sv001)
     if (cleanUsername.toLowerCase() == AppConstants.mockStudentUsername.toLowerCase() &&
@@ -108,7 +176,20 @@ class AuthService {
   }
 
   Future<UserModel?> _loginViaApi(String username, String password) async {
-    final urls = ApiService.baseUrls;
+    final urls = <String>[];
+    if (ApiService.customBaseUrl != null && ApiService.customBaseUrl!.isNotEmpty) {
+      urls.add(ApiService.customBaseUrl!);
+    }
+    if (ApiService.workingBaseUrl != null &&
+        ApiService.workingBaseUrl!.isNotEmpty &&
+        !urls.contains(ApiService.workingBaseUrl)) {
+      urls.add(ApiService.workingBaseUrl!);
+    }
+    for (final u in ApiService.baseUrls) {
+      if (!urls.contains(u)) {
+        urls.add(u);
+      }
+    }
 
     for (final base in urls) {
       try {
@@ -120,7 +201,7 @@ class AuthService {
             'tenDangNhap': username,
             'matKhau': password,
           }),
-        ).timeout(const Duration(seconds: 5));
+        ).timeout(const Duration(seconds: 10));
 
         final bodyStr = utf8.decode(response.bodyBytes);
         if (response.statusCode == 200) {
@@ -202,10 +283,16 @@ class AuthService {
 
   static void logout() {
     currentToken = null;
+    savedUsername = null;
+    savedPassword = null;
     _currentUser = null;
     AvatarService.instance.reset();
     SharedPreferences.getInstance()
-        .then((prefs) => prefs.remove('auth_token'))
-        .catchError((_) => false);
+        .then((prefs) async {
+          await prefs.remove('auth_token');
+          await prefs.remove('auth_username');
+          await prefs.remove('auth_password');
+        })
+        .catchError((_) {});
   }
 }

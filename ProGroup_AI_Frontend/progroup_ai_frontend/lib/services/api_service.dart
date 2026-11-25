@@ -130,6 +130,7 @@ class ApiService {
     String method,
     String path, [
     Map<String, dynamic>? body,
+    bool isRetry = false,
   ]) async {
     ApiException? lastError;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
@@ -137,6 +138,11 @@ class ApiService {
     // Xây dựng danh sách ưu tiên kết nối: Custom -> Working -> Defaults
     if (_workingBaseUrl == null) {
       await autoDetectServer();
+    }
+
+    // Đảm bảo có token nếu tài khoản đã đăng nhập
+    if (AuthService.currentToken == null || AuthService.currentToken!.isEmpty) {
+      await AuthService.ensureValidToken();
     }
 
     final candidateUrls = <String>[];
@@ -196,6 +202,15 @@ class ApiService {
             return jsonDecode(responseBody);
           } catch (_) {
             return responseBody;
+          }
+        }
+
+        // Tự động cấp lại token và thử lại nếu nhận 401 hoặc 403 do token cũ hoặc hết hạn
+        if ((response.statusCode == 401 || response.statusCode == 403) && !isRetry) {
+          final reAuthed = await AuthService.reAuthenticate();
+          if (reAuthed) {
+            _workingBaseUrl = baseUrl;
+            return _send(method, path, body, true);
           }
         }
 

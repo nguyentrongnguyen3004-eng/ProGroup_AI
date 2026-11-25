@@ -8,6 +8,7 @@ import 'package:progroup_ai_frontend/screens/sinh_vien/course/course_detail_scre
 import 'package:progroup_ai_frontend/screens/sinh_vien/notification/notification_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/ai_topic_screen.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/topic_screen.dart';
+import 'package:progroup_ai_frontend/services/api_service.dart';
 import 'package:progroup_ai_frontend/services/auth_service.dart';
 import 'package:progroup_ai_frontend/services/avatar_service.dart';
 import 'package:progroup_ai_frontend/services/student_api_service.dart';
@@ -53,6 +54,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _errorMessage = null;
     });
 
+    // Tự động kiểm tra lại máy chủ và đảm bảo có token hợp lệ khi vừa có mạng trở lại
+    if (ApiService.workingBaseUrl == null) {
+      await ApiService.autoDetectServer();
+    }
+    await AuthService.ensureValidToken();
 
     try {
       final results = await Future.wait([
@@ -495,7 +501,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
-                        onPressed: _loadData,
+                        onPressed: () async {
+                          await ApiService.autoDetectServer();
+                          await AuthService.ensureValidToken();
+                          await _loadData();
+                        },
                         icon: const Icon(Icons.refresh_rounded, size: 16),
                         label: const Text('Thử lại'),
                       ),

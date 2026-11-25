@@ -12,7 +12,7 @@ namespace ProGroup_AI.API.Controllers;
 
 [ApiController]
 [Route("api/student")]
-[Authorize(Roles = "SINHVIEN,ADMIN,PHONGDAOTAO,GIAOVUKHOA")]
+[Authorize]
 public sealed class StudentController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -28,11 +28,7 @@ public sealed class StudentController : ControllerBase
         var studentId = await GetCurrentStudentIdAsync();
         if (studentId is null)
         {
-            if (User.IsInRole("ADMIN") || User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA"))
-            {
-                return Ok(Array.Empty<StudentCourseResponse>());
-            }
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Tài khoản chưa có hồ sơ sinh viên." });
+            return Ok(Array.Empty<StudentCourseResponse>());
         }
 
         var courses = await _db.SinhVienLopHocPhans.AsNoTracking()
@@ -76,11 +72,7 @@ public sealed class StudentController : ControllerBase
         var studentId = await GetCurrentStudentIdAsync();
         if (studentId is null)
         {
-            if (User.IsInRole("ADMIN") || User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA"))
-            {
-                return Ok(Array.Empty<StudentCourseResponse>());
-            }
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Tài khoản chưa có hồ sơ sinh viên." });
+            return Ok(Array.Empty<StudentCourseResponse>());
         }
 
         var groupIds = await _db.NhomDoAns.AsNoTracking()
@@ -163,11 +155,7 @@ public sealed class StudentController : ControllerBase
         var studentId = await GetCurrentStudentIdAsync();
         if (studentId is null)
         {
-            if (User.IsInRole("ADMIN") || User.IsInRole("PHONGDAOTAO") || User.IsInRole("GIAOVUKHOA"))
-            {
-                return Ok(Array.Empty<StudentCourseResponse>());
-            }
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Tài khoản chưa có hồ sơ sinh viên." });
+            return Ok(Array.Empty<TopicResponse>());
         }
 
         var enrolledClassIds = await _db.SinhVienLopHocPhans

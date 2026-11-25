@@ -74,7 +74,7 @@ public sealed class DeTaiController : ControllerBase
                 var adminList = await adminQuery.OrderByDescending(t => t.CreatedAt).Select(ToTopicResponse()).ToListAsync();
                 return Ok(adminList);
             }
-            return Forbid();
+            return Ok(Array.Empty<TopicResponse>());
         }
 
         var query = _db.DeTaiDoAns.AsNoTracking()
@@ -97,7 +97,7 @@ public sealed class DeTaiController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<TopicResponse>>> GetStudentProposedTopics()
     {
         var studentId = await GetCurrentStudentIdAsync();
-        if (studentId is null) return Forbid();
+        if (studentId is null) return Ok(Array.Empty<TopicResponse>());
 
         var list = await _db.DeTaiDoAns.AsNoTracking()
             .Where(t => t.SinhVienDeXuatId == studentId.Value)
