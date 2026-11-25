@@ -45,7 +45,12 @@ class LecturerTopicProposalModel {
       scope: json['scope'] as String? ?? json['phamVi'] as String? ?? '',
       technology: json['technology'] as String? ?? json['congNgheDuKien'] as String? ?? '',
       source: json['source'] as String? ?? json['nguonDeTai'] as String? ?? 'Sinh viên đề xuất',
-      proposerName: json['proposerName'] as String? ?? json['sinhVienDeXuatTen'] as String? ?? json['sinhVienTen'] as String? ?? 'Sinh viên',
+      proposerName: json['proposerName'] as String? ??
+          json['tenSinhVienDeXuat'] as String? ??
+          json['sinhVienDeXuatTen'] as String? ??
+          json['sinhVienTen'] as String? ??
+          json['hoTen'] as String? ??
+          'Sinh viên',
       groupName: json['groupName'] as String? ?? json['tenNhom'] as String? ?? '',
       status: json['status'] as String? ?? json['trangThaiDuyet'] as String? ?? 'Chờ duyệt',
       createdAt: parseDate(json['createdAt'] ?? json['ngayTao']),

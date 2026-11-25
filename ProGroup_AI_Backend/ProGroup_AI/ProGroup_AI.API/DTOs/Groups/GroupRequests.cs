@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ProGroup_AI.API.DTOs.Groups;
 
@@ -29,6 +30,18 @@ public sealed class GroupResponse
     public int TruongNhomId { get; set; }
     public string TruongNhom { get; set; } = string.Empty;
     public List<GroupMemberResponse> ThanhViens { get; set; } = new();
+
+    [JsonPropertyName("id")]
+    public int Id => NhomId;
+
+    [JsonPropertyName("memberCount")]
+    public int MemberCount => ThanhViens?.Count ?? 0;
+
+    [JsonPropertyName("soThanhVien")]
+    public int SoThanhVien => ThanhViens?.Count ?? 0;
+
+    [JsonPropertyName("members")]
+    public List<GroupMemberResponse> Members => ThanhViens;
 }
 
 public sealed class GroupMemberResponse

@@ -71,7 +71,10 @@ class LecturerCourseModel {
     String topicRegistrationEnd = '20/09/2026';
     int minMembers = json['minMembers'] as int? ?? 3;
     int maxMembers = json['maxMembers'] as int? ?? 5;
-    String status = json['status'] as String? ?? 'Chưa mở';
+    String status = json['status'] as String? ??
+        json['trangThaiDotDangKy'] as String? ??
+        json['trangThai'] as String? ??
+        'Chưa mở';
 
     if (json['dotDangKys'] is List && (json['dotDangKys'] as List).isNotEmpty) {
       final dots = (json['dotDangKys'] as List).whereType<Map<String, dynamic>>().toList();

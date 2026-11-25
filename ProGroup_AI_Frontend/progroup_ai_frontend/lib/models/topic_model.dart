@@ -63,7 +63,10 @@ class TopicModel {
     final approvalStatus = json['approvalStatus'] as String? ??
         json['trangThaiDuyet'] as String?;
     final lecturerName = json['lecturerName'] as String? ??
-        json['giangVien'] as String?;
+        json['tenGiangVien'] as String? ??
+        json['giangVienTen'] as String? ??
+        json['giangVien'] as String? ??
+        json['lecturer'] as String?;
     final rejectionReason = json['rejectionReason'] as String? ??
         json['lyDoTuChoi'] as String? ??
         json['ghiChu'] as String? ??

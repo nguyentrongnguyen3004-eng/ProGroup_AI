@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ProGroup_AI.API.DTOs.Profile;
 
 public sealed class ProfileResponse
@@ -19,6 +21,30 @@ public sealed class ProfileResponse
 
     // Giảng viên info
     public LecturerProfileInfo? GiangVien { get; set; }
+
+    [JsonPropertyName("mssv")]
+    public string? MSSV => SinhVien?.MSSV;
+
+    [JsonPropertyName("ngaySinh")]
+    public DateTime? NgaySinh => SinhVien?.NgaySinh;
+
+    [JsonPropertyName("gioiTinh")]
+    public string? GioiTinh => SinhVien?.GioiTinh;
+
+    [JsonPropertyName("tenKhoa")]
+    public string? TenKhoa => SinhVien?.TenKhoa ?? GiangVien?.TenKhoa;
+
+    [JsonPropertyName("maKhoa")]
+    public string? MaKhoa => SinhVien?.MaKhoa ?? GiangVien?.MaKhoa;
+
+    [JsonPropertyName("maGiangVien")]
+    public string? MaGiangVien => GiangVien?.MaGiangVien;
+
+    [JsonPropertyName("hocVi")]
+    public string? HocVi => GiangVien?.HocVi;
+
+    [JsonPropertyName("chuyenMon")]
+    public string? ChuyenMon => GiangVien?.ChuyenMon;
 }
 
 public sealed class StudentProfileInfo

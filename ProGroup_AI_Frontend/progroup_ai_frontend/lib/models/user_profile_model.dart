@@ -30,9 +30,42 @@ class UserProfileModel {
   });
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
+    final sinhVien = json['sinhVien'] is Map<String, dynamic>
+        ? json['sinhVien'] as Map<String, dynamic>
+        : null;
+    final giangVien = json['giangVien'] is Map<String, dynamic>
+        ? json['giangVien'] as Map<String, dynamic>
+        : null;
+
+    final mssv = json['mssv'] as String? ??
+        json['MSSV'] as String? ??
+        sinhVien?['mssv'] as String? ??
+        sinhVien?['MSSV'] as String? ??
+        giangVien?['maGiangVien'] as String? ??
+        '';
+
+    final faculty = json['tenKhoa'] as String? ??
+        json['khoa'] as String? ??
+        json['faculty'] as String? ??
+        sinhVien?['tenKhoa'] as String? ??
+        giangVien?['tenKhoa'] as String? ??
+        'Khoa Công nghệ thông tin';
+
+    final gender = json['gioiTinh'] as String? ??
+        json['gender'] as String? ??
+        sinhVien?['gioiTinh'] as String? ??
+        '';
+
+    final dateOfBirth = json['ngaySinh']?.toString() ??
+        json['dateOfBirth'] as String? ??
+        sinhVien?['ngaySinh']?.toString() ??
+        '';
+
     return UserProfileModel(
       id: json['nguoiDungId'] as int? ??
           json['sinhVienId'] as int? ??
+          sinhVien?['sinhVienId'] as int? ??
+          giangVien?['giangVienId'] as int? ??
           json['id'] as int? ??
           1,
       username: json['tenDangNhap'] as String? ??
@@ -44,15 +77,10 @@ class UserProfileModel {
       roleName: json['tenVaiTro'] as String? ??
           json['roleName'] as String? ??
           'Sinh viên',
-      mssv: json['mssv'] as String? ?? json['MSSV'] as String? ?? '',
-      dateOfBirth: json['ngaySinh'] as String? ??
-          json['dateOfBirth'] as String? ??
-          '',
-      gender: json['gioiTinh'] as String? ?? json['gender'] as String? ?? '',
-      faculty: json['tenKhoa'] as String? ??
-          json['khoa'] as String? ??
-          json['faculty'] as String? ??
-          'Khoa Công nghệ thông tin',
+      mssv: mssv,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      faculty: faculty,
       className: json['lop'] as String? ??
           json['maLop'] as String? ??
           json['className'] as String? ??

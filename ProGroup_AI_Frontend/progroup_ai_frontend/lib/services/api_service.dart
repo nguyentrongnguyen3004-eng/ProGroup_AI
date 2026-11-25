@@ -19,18 +19,18 @@ class ApiService {
   ApiService._();
   static final ApiService instance = ApiService._();
 
-  static const String currentLanIpUrl = 'http://192.168.1.223:5094';
-  static const String currentLanIpUrlOld = 'http://192.168.1.109:5094';
+  static const String currentLanIpUrl = 'http://192.168.1.229:5094';
+  static const String currentLanIpUrlOld = 'http://192.168.1.223:5094';
   static const String usbUrl = 'http://127.0.0.1:5094';
   static const String currentCloudflareUrl =
       'https://platforms-interaction-alcohol-share.trycloudflare.com';
 
   static const List<String> baseUrls = [
+    'http://10.0.2.2:5094',
     usbUrl,
+    'http://localhost:5094',
     currentLanIpUrl,
     currentLanIpUrlOld,
-    'http://localhost:5094',
-    'http://10.0.2.2:5094',
   ];
 
   static String? _workingBaseUrl;
@@ -165,23 +165,23 @@ class ApiService {
           case 'POST':
             response = await http
                 .post(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 5));
+                .timeout(const Duration(seconds: 15));
             break;
           case 'PUT':
             response = await http
                 .put(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 5));
+                .timeout(const Duration(seconds: 15));
             break;
           case 'DELETE':
             response = await http
                 .delete(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 5));
+                .timeout(const Duration(seconds: 15));
             break;
           case 'GET':
           default:
             response = await http
                 .get(uri, headers: headers)
-                .timeout(const Duration(seconds: 5));
+                .timeout(const Duration(seconds: 15));
             break;
         }
 

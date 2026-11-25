@@ -63,7 +63,10 @@ class GroupModel {
       memberNames = [leader];
     }
 
-    final memberCount = json['memberCount'] as int? ?? memberNames.length;
+    final memberCount = json['memberCount'] as int? ??
+        json['soThanhVien'] as int? ??
+        json['soLuongThanhVien'] as int? ??
+        memberNames.length;
 
     return GroupModel(
       id: id,

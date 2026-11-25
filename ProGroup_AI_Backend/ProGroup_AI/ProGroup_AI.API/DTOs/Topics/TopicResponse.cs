@@ -26,6 +26,21 @@ public sealed class TopicResponse
     public string TrangThaiDuyet { get; set; } = string.Empty;
     public string? LyDoTuChoi { get; set; }
 
+    [JsonPropertyName("giangVien")]
+    public string? GiangVien => TenGiangVien;
+
+    [JsonPropertyName("lecturerName")]
+    public string? LecturerName => TenGiangVien;
+
+    [JsonPropertyName("proposerName")]
+    public string? ProposerName => TenSinhVienDeXuat;
+
+    [JsonPropertyName("sinhVienDeXuatTen")]
+    public string? SinhVienDeXuatTen => TenSinhVienDeXuat;
+
+    [JsonPropertyName("sinhVienTen")]
+    public string? SinhVienTen => TenSinhVienDeXuat;
+
     [JsonPropertyName("ghiChu")]
     public string? GhiChu => LyDoTuChoi;
 

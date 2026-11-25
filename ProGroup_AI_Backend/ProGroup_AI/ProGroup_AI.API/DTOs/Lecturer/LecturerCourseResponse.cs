@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ProGroup_AI.API.DTOs.Lecturer;
 
 public sealed class LecturerCourseResponse
@@ -16,6 +18,30 @@ public sealed class LecturerCourseResponse
     public int SoNhom { get; set; }
     public int SoDeTai { get; set; }
     public List<CourseDotDangKyInfo> DotDangKys { get; set; } = new();
+
+    [JsonPropertyName("id")]
+    public int Id => LopHocPhanId;
+
+    [JsonPropertyName("courseId")]
+    public int CourseId => HocPhanId;
+
+    [JsonPropertyName("code")]
+    public string Code => MaHocPhan;
+
+    [JsonPropertyName("name")]
+    public string Name => !string.IsNullOrEmpty(TenHocPhan) ? TenHocPhan : TenLopHocPhan;
+
+    [JsonPropertyName("classCode")]
+    public string ClassCode => MaLopHocPhan;
+
+    [JsonPropertyName("studentCount")]
+    public int StudentCount => SoSinhVien;
+
+    [JsonPropertyName("groupCount")]
+    public int GroupCount => SoNhom;
+
+    [JsonPropertyName("topicCount")]
+    public int TopicCount => SoDeTai;
 }
 
 public sealed class CourseDotDangKyInfo
