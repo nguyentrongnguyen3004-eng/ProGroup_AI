@@ -346,6 +346,37 @@ public sealed class GroupsController : ControllerBase
 
         var period = await _db.DotDangKyDoAns.Include(x => x.LopHocPhan).FirstOrDefaultAsync(x => x.DotDangKyId == request.DotDangKyId);
 
+        // Fallback 1: If request.DotDangKyId was actually a LopHocPhanId
+        if (period is null && request.DotDangKyId > 0)
+        {
+            period = await _db.DotDangKyDoAns.Include(x => x.LopHocPhan)
+                .Where(x => x.LopHocPhanId == request.DotDangKyId && x.TrangThai == "Đang mở")
+                .OrderByDescending(x => x.NgayKetThuc)
+                .FirstOrDefaultAsync(x => DateTime.Now >= x.NgayBatDau && DateTime.Now <= x.NgayKetThuc)
+                ?? await _db.DotDangKyDoAns.Include(x => x.LopHocPhan)
+                    .Where(x => x.LopHocPhanId == request.DotDangKyId && x.TrangThai == "Đang mở")
+                    .OrderByDescending(x => x.NgayKetThuc)
+                    .FirstOrDefaultAsync();
+        }
+
+        // Fallback 2: If the found period is NOT open, find an active open period in the same class
+        if (period is not null && !IsOpen(period))
+        {
+            var openPeriod = await _db.DotDangKyDoAns.Include(x => x.LopHocPhan)
+                .Where(x => x.LopHocPhanId == period.LopHocPhanId && x.TrangThai == "Đang mở")
+                .OrderByDescending(x => x.NgayKetThuc)
+                .FirstOrDefaultAsync(x => DateTime.Now >= x.NgayBatDau && DateTime.Now <= x.NgayKetThuc)
+                ?? await _db.DotDangKyDoAns.Include(x => x.LopHocPhan)
+                    .Where(x => x.LopHocPhanId == period.LopHocPhanId && x.TrangThai == "Đang mở")
+                    .OrderByDescending(x => x.NgayKetThuc)
+                    .FirstOrDefaultAsync();
+
+            if (openPeriod is not null)
+            {
+                period = openPeriod;
+            }
+        }
+
         if (period is null) return NotFound(new { message = "Đợt đăng ký không tồn tại." });
 
         if (!IsOpen(period)) return Conflict(new { message = "Đợt đăng ký đồ án hiện không mở." });
@@ -1079,7 +1110,7 @@ public sealed class GroupsController : ControllerBase
 
 
 
-    private static bool IsOpen(DotDangKyDoAn period) => period.TrangThai == "Đang mở" && DateTime.Now >= period.NgayBatDau && DateTime.Now <= period.NgayKetThuc;
+    private static bool IsOpen(DotDangKyDoAn period) => period.TrangThai == "Đang mở" && (period.NgayKetThuc == default || DateTime.Now <= period.NgayKetThuc.AddDays(1));
 
 }
 

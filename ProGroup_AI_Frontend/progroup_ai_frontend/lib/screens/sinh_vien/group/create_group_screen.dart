@@ -49,7 +49,32 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       try {
         final periods = await ApiService.instance.get('/api/dot-dang-ky?lopHocPhanId=${widget.course.id}');
         if (periods is List && periods.isNotEmpty) {
-          dotDangKyId = periods.first['dotDangKyId'] as int? ?? dotDangKyId;
+          final now = DateTime.now();
+          // Tìm đợt đang mở và chưa hết hạn (ưu tiên đợt còn hạn)
+          final activeOpenPeriod = periods.firstWhere(
+            (p) {
+              final status = p['trangThai']?.toString();
+              if (status != 'Đang mở') return false;
+              final endStr = p['ngayKetThuc']?.toString();
+              if (endStr != null) {
+                final end = DateTime.tryParse(endStr);
+                if (end != null && now.isAfter(end)) return false;
+              }
+              return true;
+            },
+            orElse: () => null,
+          );
+
+          final anyOpenPeriod = activeOpenPeriod ?? periods.firstWhere(
+            (p) => p['trangThai']?.toString() == 'Đang mở',
+            orElse: () => null,
+          );
+
+          if (anyOpenPeriod != null) {
+            dotDangKyId = anyOpenPeriod['dotDangKyId'] as int? ?? dotDangKyId;
+          } else {
+            dotDangKyId = periods.first['dotDangKyId'] as int? ?? dotDangKyId;
+          }
         }
       } catch (_) {}
 
