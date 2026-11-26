@@ -34,4 +34,6 @@ public class NhomDoAn
     public ICollection<ThanhVienNhom> ThanhVienNhoms { get; set; } = new List<ThanhVienNhom>();
 
     public ICollection<DangKyDeTai> DangKyDeTais { get; set; } = new List<DangKyDeTai>();
+
+    public ICollection<BaoCaoTienDo> BaoCaoTienDos { get; set; } = new List<BaoCaoTienDo>();
 }

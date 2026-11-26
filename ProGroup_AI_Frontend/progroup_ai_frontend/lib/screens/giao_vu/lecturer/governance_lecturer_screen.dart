@@ -25,30 +25,130 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
   @override
   void initState() {
     super.initState();
+    GovernanceApiService.instance.dataVersion.addListener(_onDataChanged);
     _loadLecturers();
   }
 
-  Future<void> _loadLecturers() async {
+  @override
+  void dispose() {
+    GovernanceApiService.instance.dataVersion.removeListener(_onDataChanged);
+    super.dispose();
+  }
+
+  void _onDataChanged() {
+    if (mounted) _loadLecturers(forceRefresh: true);
+  }
+
+  String _normalizeVi(String input) {
+    const withDiacritics = 'àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ';
+    const withoutDiacritics = 'aaaaaaaaaaaaaaaaadeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy';
+    final lower = input.toLowerCase().trim();
+    final buffer = StringBuffer();
+    for (var i = 0; i < lower.length; i++) {
+      final idx = withDiacritics.indexOf(lower[i]);
+      buffer.write(idx >= 0 ? withoutDiacritics[idx] : lower[i]);
+    }
+    return buffer.toString();
+  }
+
+  bool _hasMeaningfulResearchSpec(LecturerModel lecturer) {
+    final specNorm = _normalizeVi(lecturer.chuyenMon);
+    if (specNorm.isEmpty) return false;
+    return specNorm != '-' &&
+        specNorm != '—' &&
+        specNorm != 'n/a' &&
+        specNorm != 'na' &&
+        specNorm != 'chua cap nhat' &&
+        specNorm != 'khong' &&
+        specNorm != 'none';
+  }
+
+  bool _matchesResearchSpec(LecturerModel lecturer, String selectedSpec) {
+    if (selectedSpec == 'Tất cả') return true;
+    final hasSpec = _hasMeaningfulResearchSpec(lecturer);
+    if (selectedSpec == 'Có hướng NC') return hasSpec;
+    if (selectedSpec == 'Chưa có hướng NC') return !hasSpec;
+
+    if (!hasSpec) return false;
+    final specNorm = _normalizeVi(lecturer.chuyenMon);
+    final selectedNorm = _normalizeVi(selectedSpec);
+    if (specNorm.contains(selectedNorm)) return true;
+
+    // Ánh xạ nhóm hướng nghiên cứu hợp lý theo từ khóa chuyên môn
+    if (selectedNorm.contains('tri tue nhan tao')) {
+      return specNorm.contains('tri tue nhan tao') ||
+          specNorm.contains('deep learning') ||
+          specNorm.contains('machine learning') ||
+          specNorm.contains('hoc may') ||
+          specNorm.contains('hoc sau') ||
+          specNorm.contains('thi giac') ||
+          specNorm.contains('ngon ngu tu nhien') ||
+          specNorm.contains('nlp') ||
+          specNorm.contains('llm') ||
+          RegExp(r'\bai\b').hasMatch(specNorm);
+    }
+    if (selectedNorm.contains('phan mem') || selectedNorm.contains('di dong')) {
+      return specNorm.contains('phan mem') ||
+          specNorm.contains('di dong') ||
+          specNorm.contains('mobile') ||
+          specNorm.contains('web') ||
+          specNorm.contains('fullstack') ||
+          specNorm.contains('flutter') ||
+          specNorm.contains('react') ||
+          specNorm.contains('backend') ||
+          specNorm.contains('he thong thong tin') ||
+          specNorm.contains('agile');
+    }
+    if (selectedNorm.contains('an toan thong tin') || selectedNorm.contains('mang')) {
+      return specNorm.contains('an toan thong tin') ||
+          specNorm.contains('an ninh') ||
+          specNorm.contains('bao mat') ||
+          specNorm.contains('kiem thu') ||
+          specNorm.contains('iot') ||
+          specNorm.contains('nhung') ||
+          specNorm.contains('mang');
+    }
+    if (selectedNorm.contains('du lieu') || selectedNorm.contains('cloud')) {
+      return specNorm.contains('du lieu') ||
+          specNorm.contains('big data') ||
+          specNorm.contains('dam may') ||
+          specNorm.contains('cloud') ||
+          specNorm.contains('devops') ||
+          specNorm.contains('blockchain') ||
+          specNorm.contains('phan tich');
+    }
+
+    return false;
+  }
+
+  Future<void> _loadLecturers({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final rawList = await GovernanceApiService.instance.fetchLecturers();
+      final rawList = await GovernanceApiService.instance.fetchLecturers(
+        forceRefresh: forceRefresh,
+      );
       final parsed = rawList.map((item) {
+        final rawSpec = (item['chuyenMon'] ?? item['ChuyenMon'] ?? '').toString().trim();
+        final rawDegree = (item['hocVi'] ?? item['HocVi'] ?? '').toString().trim();
+        final rawPhone = (item['soDienThoai'] ?? item['SoDienThoai'] ?? item['phoneNumber'] ?? '').toString().trim();
+        final rawClasses = item['soLopPhuTrach'] ?? item['SoLopPhuTrach'] ?? item['soLopHocPhan'] ?? 0;
+
         return LecturerModel(
           id: item['id'] ?? item['giangVienId'] ?? item['GiangVienId'] ?? 0,
-          lecturerCode: (item['lecturerCode'] ?? item['maGiangVien'] ?? item['MaGiangVien'] ?? '').toString(),
-          fullName: (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? '').toString(),
-          email: (item['email'] ?? item['Email'] ?? '').toString(),
-          phoneNumber: (item['soDienThoai'] ?? item['phoneNumber'] ?? '0909123456').toString(),
-          faculty: (item['faculty'] ?? item['khoa'] ?? item['tenKhoa'] ?? 'Khoa Công nghệ thông tin').toString(),
-          department: (item['department'] ?? item['boMon'] ?? item['tenBoMon'] ?? 'Công nghệ phần mềm').toString(),
+          lecturerCode: (item['lecturerCode'] ?? item['maGiangVien'] ?? item['MaGiangVien'] ?? '').toString().trim(),
+          fullName: (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? '').toString().trim(),
+          email: (item['email'] ?? item['Email'] ?? '').toString().trim(),
+          phoneNumber: rawPhone,
+          faculty: (item['faculty'] ?? item['khoa'] ?? item['tenKhoa'] ?? 'Khoa Công nghệ thông tin').toString().trim(),
+          department: (item['department'] ?? item['boMon'] ?? item['tenBoMon'] ?? '').toString().trim(),
           avatar: (item['avatar'] ?? '').toString(),
-          hocVi: (item['hocVi'] ?? item['HocVi'] ?? 'ThS.').toString(),
-          chuyenMon: (item['chuyenMon'] ?? item['ChuyenMon'] ?? 'Trí tuệ nhân tạo').toString(),
-          soLopPhuTrach: item['soLopPhuTrach'] as int? ?? item['soLopHocPhan'] as int? ?? 2,
+          hocVi: rawDegree.isNotEmpty ? rawDegree : 'Giảng viên',
+          chuyenMon: rawSpec,
+          soLopPhuTrach: rawClasses is int ? rawClasses : int.tryParse('$rawClasses') ?? 0,
         );
       }).toList();
 
@@ -75,25 +175,21 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
         .toList()
       ..sort();
 
-    final query = _query.trim().toLowerCase();
+    final queryNorm = _normalizeVi(_query);
     final filtered = _lecturers.where((lecturer) {
-      final matchesQuery = query.isEmpty ||
-          lecturer.lecturerCode.toLowerCase().contains(query) ||
-          lecturer.fullName.toLowerCase().contains(query) ||
-          lecturer.email.toLowerCase().contains(query) ||
-          lecturer.faculty.toLowerCase().contains(query) ||
-          lecturer.department.toLowerCase().contains(query);
+      final matchesQuery = queryNorm.isEmpty ||
+          _normalizeVi(lecturer.lecturerCode).contains(queryNorm) ||
+          _normalizeVi(lecturer.fullName).contains(queryNorm) ||
+          _normalizeVi(lecturer.email).contains(queryNorm) ||
+          _normalizeVi(lecturer.faculty).contains(queryNorm) ||
+          _normalizeVi(lecturer.department).contains(queryNorm) ||
+          _normalizeVi(lecturer.chuyenMon).contains(queryNorm) ||
+          _normalizeVi(lecturer.hocVi).contains(queryNorm);
 
       final matchesFaculty = _facultyFilter == 'Tất cả' || lecturer.faculty == _facultyFilter;
-      final matchesSpec = _selectedSpec == 'Tất cả' ||
-          lecturer.chuyenMon.toLowerCase().contains(_selectedSpec.toLowerCase()) ||
-          query.contains('trí tuệ nhân tạo') && lecturer.chuyenMon.contains('Trí tuệ nhân tạo');
+      final matchesSpec = _matchesResearchSpec(lecturer, _selectedSpec);
 
-      final matchesQueryEnhanced = matchesQuery ||
-          lecturer.chuyenMon.toLowerCase().contains(query) ||
-          lecturer.hocVi.toLowerCase().contains(query);
-
-      return matchesQueryEnhanced && matchesFaculty && matchesSpec;
+      return matchesQuery && matchesFaculty && matchesSpec;
     }).toList();
 
     final canPop = ModalRoute.of(context)?.canPop == true;
@@ -109,7 +205,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   tooltip: 'Tải lại',
-                  onPressed: _loadLecturers,
+                  onPressed: () => _loadLecturers(forceRefresh: true),
                 ),
               ],
             )
@@ -124,13 +220,16 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const GovernanceAddFormScreen(
-                            kind: GovernanceAddKind.lecturer,
+                      onPressed: () async {
+                        final ok = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute<bool>(
+                            builder: (_) => const GovernanceAddFormScreen(
+                              kind: GovernanceAddKind.lecturer,
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                        if (ok == true) _loadLecturers(forceRefresh: true);
+                      },
                       icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
                       label: Text(
                         AppLocalizations.text('Thêm giảng viên', en: 'Add Lecturer'),
@@ -147,13 +246,16 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const GovernanceImportScreen(
-                            initialKind: GovernanceImportKind.lecturers,
+                      onPressed: () async {
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const GovernanceImportScreen(
+                              initialKind: GovernanceImportKind.lecturers,
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                        _loadLecturers(forceRefresh: true);
+                      },
                       icon: const Icon(Icons.upload_file_outlined, size: 18, color: Color(0xFF2563EB)),
                       label: Text(
                         AppLocalizations.text('Nhập dữ liệu', en: 'Import Data'),
@@ -175,8 +277,8 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 onChanged: (val) => setState(() => _query = val),
                 decoration: InputDecoration(
                   hintText: AppLocalizations.text(
-                    'Tìm theo mã GV, họ tên, bộ môn...',
-                    en: 'Search by ID, name, department...',
+                    'Tìm theo mã GV, họ tên, hướng nghiên cứu...',
+                    en: 'Search by ID, name, research topic...',
                   ),
                   prefixIcon: const Icon(Icons.search, color: Color(0xFF2563EB)),
                   filled: true,
@@ -197,7 +299,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 ),
               ),
             ),
-            // Lọc Chuyên môn nghiên cứu (TC_GVK_018: Trí tuệ nhân tạo)
+            // Lọc hướng nghiên cứu / chuyên môn (đã sửa logic so khớp chính xác)
             SizedBox(
               height: 40,
               child: ListView(
@@ -205,13 +307,16 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 scrollDirection: Axis.horizontal,
                 children: [
                   _specChip('Tất cả'),
+                  _specChip('Có hướng NC'),
                   _specChip('Trí tuệ nhân tạo'),
-                  _specChip('Công nghệ phần mềm & Di động'),
+                  _specChip('Phần mềm & Di động'),
                   _specChip('An toàn thông tin & Mạng'),
+                  _specChip('Dữ liệu & Cloud'),
+                  _specChip('Chưa có hướng NC'),
                 ],
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             if (faculties.isNotEmpty)
               SizedBox(
                 height: 40,
@@ -224,6 +329,28 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                   ],
                 ),
               ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Tìm thấy ${filtered.length} giảng viên',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6D28D9),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: _buildLecturerList(filtered),
             ),
@@ -258,10 +385,11 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
       child: ChoiceChip(
         label: Text(value),
         selected: isSelected,
-        selectedColor: const Color(0xFF2563EB).withOpacity(0.15),
+        selectedColor: const Color(0xFF2563EB).withValues(alpha: 0.15),
         labelStyle: TextStyle(
           color: isSelected ? const Color(0xFF2563EB) : Colors.black87,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
         ),
         onSelected: (_) => setState(() => _facultyFilter = value),
       ),
@@ -285,7 +413,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
               Text(_errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: _loadLecturers,
+                onPressed: () => _loadLecturers(forceRefresh: true),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Thử lại'),
                 style: ElevatedButton.styleFrom(
@@ -302,7 +430,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
 
     if (list.isEmpty) {
       return RefreshIndicator(
-        onRefresh: _loadLecturers,
+        onRefresh: () => _loadLecturers(forceRefresh: true),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(bottom: 80),
@@ -316,7 +444,10 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                     Icon(Icons.badge_outlined, size: 54, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
                     Text(
-                      AppLocalizations.text('Chưa có dữ liệu giảng viên', en: 'No lecturers found'),
+                      AppLocalizations.text(
+                        'Không có giảng viên phù hợp bộ lọc',
+                        en: 'No matching lecturers found',
+                      ),
                       style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
                     ),
                   ],
@@ -329,13 +460,15 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadLecturers,
+      onRefresh: () => _loadLecturers(forceRefresh: true),
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: list.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final lecturer = list[index];
+          final hasSpec = _hasMeaningfulResearchSpec(lecturer);
+
           return Card(
             elevation: 0,
             color: Colors.white,
@@ -349,7 +482,7 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF7C3AED).withOpacity(0.12),
+                  color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.badge_outlined, color: Color(0xFF7C3AED), size: 24),
@@ -404,12 +537,23 @@ class _GovernanceLecturerScreenState extends State<GovernanceLecturerScreen> {
                   const SizedBox(height: 3),
                   Row(
                     children: [
-                      const Icon(Icons.school_outlined, size: 13, color: Color(0xFF7C3AED)),
+                      Icon(
+                        Icons.school_outlined,
+                        size: 13,
+                        color: hasSpec ? const Color(0xFF7C3AED) : Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          'Chuyên môn: ${lecturer.chuyenMon}',
-                          style: const TextStyle(color: Color(0xFF7C3AED), fontSize: 12, fontWeight: FontWeight.w600),
+                          hasSpec
+                              ? 'Hướng NC: ${lecturer.chuyenMon}'
+                              : 'Hướng NC: Chưa cập nhật',
+                          style: TextStyle(
+                            color: hasSpec ? const Color(0xFF7C3AED) : Colors.grey.shade500,
+                            fontSize: 12,
+                            fontWeight: hasSpec ? FontWeight.w600 : FontWeight.normal,
+                            fontStyle: hasSpec ? FontStyle.normal : FontStyle.italic,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -492,7 +636,7 @@ class GovernanceLecturerDetailScreen extends StatelessWidget {
                       width: 68,
                       height: 68,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF7C3AED).withOpacity(0.12),
+                        color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Icon(Icons.badge_outlined, size: 36, color: Color(0xFF7C3AED)),
@@ -504,13 +648,24 @@ class GovernanceLecturerDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      lecturer.lecturerCode,
+                      '${lecturer.hocVi} · ${lecturer.lecturerCode}',
                       style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     ),
                     const Divider(height: 28),
-                    _detailRow('Email', lecturer.email),
+                    _detailRow('Mã giảng viên', lecturer.lecturerCode),
+                    _detailRow('Học vị', lecturer.hocVi),
+                    _detailRow(
+                      'Hướng nghiên cứu',
+                      lecturer.chuyenMon.isNotEmpty ? lecturer.chuyenMon : 'Chưa cập nhật',
+                    ),
+                    _detailRow('Số LHP phụ trách', '${lecturer.soLopPhuTrach} lớp'),
                     _detailRow('Khoa', lecturer.faculty),
-                    _detailRow('Bộ môn', lecturer.department),
+                    if (lecturer.department.isNotEmpty) _detailRow('Bộ môn', lecturer.department),
+                    _detailRow('Email', lecturer.email.isNotEmpty ? lecturer.email : '—'),
+                    _detailRow(
+                      'Số điện thoại',
+                      lecturer.phoneNumber.isNotEmpty ? lecturer.phoneNumber : 'Chưa cập nhật',
+                    ),
                   ],
                 ),
               ),

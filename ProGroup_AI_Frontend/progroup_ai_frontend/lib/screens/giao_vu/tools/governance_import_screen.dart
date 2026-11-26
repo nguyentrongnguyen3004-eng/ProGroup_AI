@@ -17,6 +17,7 @@ import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../models/training_import_record_model.dart';
 import '../../../services/api_service.dart';
+import '../../../services/governance_api_service.dart';
 
 enum GovernanceImportKind { students, lecturers, courses }
 
@@ -467,7 +468,19 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
     setState(() => _busy = true);
     try {
       final records = _format == 'csv' ? _readCsv(bytes) : _readExcel(bytes);
-      _validateRecords(records, _fileName ?? 'File đã chọn');
+      final existing = await Future.wait([
+        GovernanceApiService.instance.fetchStudents(forceRefresh: true),
+        GovernanceApiService.instance.fetchLecturers(forceRefresh: true),
+        GovernanceApiService.instance.fetchCourses(forceRefresh: true),
+      ]);
+      if (!mounted) return;
+      _validateRecords(
+        records,
+        _fileName ?? 'File đã chọn',
+        existingStudents: existing[0],
+        existingLecturers: existing[1],
+        existingCourses: existing[2],
+      );
     } catch (error) {
       if (mounted) {
         final message = error is FormatException
@@ -540,7 +553,13 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
         .toList();
   }
 
-  void _validateRecords(List<List<String>> records, String fileName) {
+  void _validateRecords(
+    List<List<String>> records,
+    String fileName, {
+    List<Map<String, dynamic>> existingStudents = const [],
+    List<Map<String, dynamic>> existingLecturers = const [],
+    List<Map<String, dynamic>> existingCourses = const [],
+  }) {
     final issues = <String>[];
     final validRows = <_ImportRow>[];
     if (records.isEmpty) throw const FormatException('File không có dữ liệu.');
@@ -567,7 +586,19 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
       return;
     }
 
-    final data = MockGovernanceData.instance;
+    final existingStudentCodes = existingStudents
+        .map((e) => (e['mssv'] ?? e['MSSV'] ?? '').toString().trim().toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    final existingLecturerCodes = existingLecturers
+        .map((e) => (e['maGiangVien'] ?? e['MaGiangVien'] ?? '').toString().trim().toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    final existingCourseCodes = existingCourses
+        .map((e) => (e['maLopHocPhan'] ?? e['MaLopHocPhan'] ?? '').toString().trim().toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+
     final seenCodes = <String>{};
     for (var index = 1; index < records.length; index++) {
       final line = index + 1;
@@ -594,40 +625,24 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
           case GovernanceImportKind.students:
             if (!_validEmail(cells[2])) rowIssues.add('Email không hợp lệ.');
             final code = cells[0].toLowerCase();
-            if (data.students.any(
-                  (item) => item.studentCode.toLowerCase() == code,
-                ) ||
-                !seenCodes.add(code)) {
+            if (existingStudentCodes.contains(code) || !seenCodes.add(code)) {
               rowIssues.add('MSSV đã tồn tại hoặc trùng trong file.');
-            }
-            if (!data.courses.any(
-              (course) =>
-                  course.classCode.toLowerCase() == cells[3].toLowerCase(),
-            )) {
-              rowIssues.add(
-                'Lớp "${cells[3]}" chưa có trong danh sách lớp học phần.',
-              );
             }
           case GovernanceImportKind.lecturers:
             if (!_validEmail(cells[2])) rowIssues.add('Email không hợp lệ.');
             final code = cells[0].toLowerCase();
-            if (data.lecturers.any(
-                  (item) => item.lecturerCode.toLowerCase() == code,
-                ) ||
-                !seenCodes.add(code)) {
+            if (existingLecturerCodes.contains(code) || !seenCodes.add(code)) {
               rowIssues.add('Mã giảng viên đã tồn tại hoặc trùng trong file.');
             }
           case GovernanceImportKind.courses:
             final code = cells[0].toLowerCase();
-            if (data.courses.any(
-                  (item) => item.classCode.toLowerCase() == code,
-                ) ||
-                !seenCodes.add(code)) {
+            if (existingCourseCodes.contains(code) || !seenCodes.add(code)) {
               rowIssues.add(
                 'Mã lớp học phần đã tồn tại hoặc trùng trong file.',
               );
             }
-            if (data.lecturerByCode(cells[3]) == null) {
+            if (existingLecturerCodes.isNotEmpty &&
+                !existingLecturerCodes.contains(cells[3].toLowerCase())) {
               rowIssues.add('Không tìm thấy mã giảng viên "${cells[3]}".');
             }
         }
@@ -681,22 +696,14 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
     );
     if (confirmed != true || !mounted) return;
 
+    setState(() => _busy = true);
+    int serverSuccess = 0;
+    int serverFailed = 0;
     final data = MockGovernanceData.instance;
-    switch (_kind) {
-      case GovernanceImportKind.students:
-        final nextId = data.nextStudentId;
-        data.addStudents([
-          for (var index = 0; index < importedCount; index++)
-            GovernanceStudentModel(
-              id: nextId + index,
-              studentCode: _validRows[index].cells[0],
-              fullName: _validRows[index].cells[1],
-              email: _validRows[index].cells[2],
-              classCode: _validRows[index].cells[3],
-              status: _validRows[index].cells[4],
-            ),
-        ]);
-        try {
+
+    try {
+      switch (_kind) {
+        case GovernanceImportKind.students:
           final usersToImport = [
             for (final row in _validRows)
               {
@@ -708,31 +715,26 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
                 'matKhau': '123456aA@',
               }
           ];
-          await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
-        } catch (_) {}
-      case GovernanceImportKind.lecturers:
-        final nextId = data.nextLecturerId;
-        final faculty = data.lecturers.isEmpty
-            ? data.profile.faculty
-            : data.lecturers.first.faculty;
-        final rows = [
-          for (var index = 0; index < importedCount; index++)
-            LecturerModel(
-              id: nextId + index,
-              lecturerCode: _validRows[index].cells[0],
-              fullName: _validRows[index].cells[1],
-              email: _validRows[index].cells[2],
-              faculty: faculty,
-              department: _validRows[index].cells[3],
-              avatar: '',
-            ),
-        ];
-        final statuses = {
-          for (var index = 0; index < importedCount; index++)
-            _validRows[index].cells[0]: _validRows[index].cells[4],
-        };
-        data.addLecturers(rows, statuses: statuses);
-        try {
+          final res = await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+          if (res is Map) {
+            serverSuccess = (res['successCount'] as int?) ?? importedCount;
+            serverFailed = (res['failedCount'] as int?) ?? 0;
+          } else {
+            serverSuccess = importedCount;
+          }
+          final nextId = data.nextStudentId;
+          data.addStudents([
+            for (var index = 0; index < importedCount; index++)
+              GovernanceStudentModel(
+                id: nextId + index,
+                studentCode: _validRows[index].cells[0],
+                fullName: _validRows[index].cells[1],
+                email: _validRows[index].cells[2],
+                classCode: _validRows[index].cells[3],
+                status: _validRows[index].cells[4],
+              ),
+          ]);
+        case GovernanceImportKind.lecturers:
           final usersToImport = [
             for (final row in _validRows)
               {
@@ -740,67 +742,111 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
                 'hoTen': row.cells[1],
                 'email': row.cells[2],
                 'maGiangVien': row.cells[0],
+                'chuyenMon': row.cells[3],
                 'vaiTro': 'GIANGVIEN',
                 'matKhau': '123456aA@',
               }
           ];
-          await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
-        } catch (_) {}
-      case GovernanceImportKind.courses:
-        final nextId = data.nextCourseId;
-        data.addCourses([
-          for (var index = 0; index < importedCount; index++)
-            CourseModel(
-              id: nextId + index,
-              code: _validRows[index].cells[0].split('-').first,
-              name: _validRows[index].cells[1],
-              classCode: _validRows[index].cells[0],
-              semester: _validRows[index].cells[2],
-              lecturer: data
-                  .lecturerByCode(_validRows[index].cells[3])!
-                  .fullName,
-              status: _validRows[index].cells[4],
-            ),
-        ]);
-        for (final row in _validRows) {
-          try {
-            await ApiService.instance.post('/api/lop-hoc-phan', {
-              'maLopHocPhan': row.cells[0],
-              'maHocPhan': row.cells[0].split('-').first,
-              'tenLopHocPhan': row.cells[1],
-              'namHoc': '2026-2027',
-              'soLuongToiDa': 50,
-            });
-          } catch (_) {}
-        }
-    }
-    data.recordImport(
-      TrainingImportRecordModel(
-        importedAt: DateTime.now(),
-        dataType: _kind.label,
-        fileName: _fileName ?? '',
-        totalRecords: importedCount + failedCount,
-        successfulRecords: importedCount,
-        failedRecords: failedCount,
-        status: AppLocalizations.text(
-          failedCount == 0 ? 'Hoàn thành' : 'Hoàn thành một phần',
-          en: failedCount == 0 ? 'Completed' : 'Partially completed',
+          final res = await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+          if (res is Map) {
+            serverSuccess = (res['successCount'] as int?) ?? importedCount;
+            serverFailed = (res['failedCount'] as int?) ?? 0;
+          } else {
+            serverSuccess = importedCount;
+          }
+          final nextId = data.nextLecturerId;
+          final faculty = data.lecturers.isEmpty
+              ? data.profile.faculty
+              : data.lecturers.first.faculty;
+          final rows = [
+            for (var index = 0; index < importedCount; index++)
+              LecturerModel(
+                id: nextId + index,
+                lecturerCode: _validRows[index].cells[0],
+                fullName: _validRows[index].cells[1],
+                email: _validRows[index].cells[2],
+                faculty: faculty,
+                department: _validRows[index].cells[3],
+                avatar: '',
+              ),
+          ];
+          final statuses = {
+            for (var index = 0; index < importedCount; index++)
+              _validRows[index].cells[0]: _validRows[index].cells[4],
+          };
+          data.addLecturers(rows, statuses: statuses);
+        case GovernanceImportKind.courses:
+          final coursesAdded = <CourseModel>[];
+          var nextId = data.nextCourseId;
+          for (final row in _validRows) {
+            try {
+              await ApiService.instance.post('/api/lop-hoc-phan', {
+                'maLopHocPhan': row.cells[0],
+                'maHocPhan': row.cells[0].split('-').first,
+                'tenLopHocPhan': row.cells[1],
+                'namHoc': '2026-2027',
+                'soLuongToiDa': 50,
+              });
+              serverSuccess++;
+              coursesAdded.add(
+                CourseModel(
+                  id: nextId++,
+                  code: row.cells[0].split('-').first,
+                  name: row.cells[1],
+                  classCode: row.cells[0],
+                  semester: row.cells[2],
+                  lecturer: data.lecturerByCode(row.cells[3])?.fullName ?? row.cells[3],
+                  status: row.cells[4],
+                ),
+              );
+            } catch (_) {
+              serverFailed++;
+            }
+          }
+          if (coursesAdded.isNotEmpty) {
+            data.addCourses(coursesAdded);
+          }
+      }
+
+      if (!mounted) return;
+      final totalFailed = failedCount + serverFailed;
+      data.recordImport(
+        TrainingImportRecordModel(
+          importedAt: DateTime.now(),
+          dataType: _kind.label,
+          fileName: _fileName ?? '',
+          totalRecords: importedCount + failedCount,
+          successfulRecords: serverSuccess,
+          failedRecords: totalFailed,
+          status: AppLocalizations.text(
+            totalFailed == 0 ? 'Hoàn thành' : 'Hoàn thành một phần',
+            en: totalFailed == 0 ? 'Completed' : 'Partially completed',
+          ),
         ),
-      ),
-    );
-    MockGovernanceNotifications.instance.addNotification(
-      type: 'Import dữ liệu',
-      icon: Icons.file_download_done_outlined,
-      title: 'Import dữ liệu thành công',
-      content:
-          'Đã import $importedCount ${_kind.label.toLowerCase()} vào dữ liệu Giáo vụ khoa.',
-    );
-    setState(_clearPreview);
-    _showMessage(
-      failedCount == 0
-          ? 'Đã import $importedCount ${_kind.label.toLowerCase()}.'
-          : 'Đã import $importedCount ${_kind.label.toLowerCase()}, bỏ qua $failedCount dòng lỗi.',
-    );
+      );
+      MockGovernanceNotifications.instance.addNotification(
+        type: 'Import dữ liệu',
+        icon: Icons.file_download_done_outlined,
+        title: 'Import dữ liệu thành công',
+        content:
+            'Đã import $serverSuccess ${_kind.label.toLowerCase()} vào hệ thống.',
+      );
+      GovernanceApiService.instance.notifyDataChanged();
+      setState(_clearPreview);
+      _showMessage(
+        totalFailed == 0
+            ? 'Đã import thành công $serverSuccess ${_kind.label.toLowerCase()}.'
+            : 'Đã import $serverSuccess ${_kind.label.toLowerCase()}, $totalFailed dòng lỗi/trùng.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage(
+        'Import thất bại: ${e.toString().replaceAll("Exception: ", "")}',
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   int get _failedRowCount => _issues

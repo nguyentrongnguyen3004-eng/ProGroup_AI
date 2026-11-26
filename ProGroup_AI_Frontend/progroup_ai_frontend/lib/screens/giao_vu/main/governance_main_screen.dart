@@ -26,12 +26,19 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
   @override
   void initState() {
     super.initState();
+    GovernanceApiService.instance.dataVersion.addListener(_loadUnread);
     _loadUnread();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         AppUpdateService.instance.autoCheckAndPrompt(context);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    GovernanceApiService.instance.dataVersion.removeListener(_loadUnread);
+    super.dispose();
   }
 
   Future<void> _loadUnread() async {

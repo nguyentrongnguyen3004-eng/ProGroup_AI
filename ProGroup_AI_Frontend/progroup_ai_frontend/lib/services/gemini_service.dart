@@ -342,6 +342,7 @@ QUY ĐỊNH BẮT BUỘC VỀ ĐỊNH DẠNG ĐẦU RA:
     required int totalLecturers,
     required int totalGroups,
     required int totalStudents,
+    bool rethrowOnError = false,
   }) async {
     final apiKey = await getApiKey();
     final prompt = '''
@@ -362,6 +363,7 @@ YÊU CẦU PHÂN TÍCH TỪ GEMINI AI:
     try {
       return await _callWithCandidateModels(apiKey: apiKey, prompt: prompt);
     } catch (_) {
+      if (rethrowOnError) rethrow;
       return 'Hệ thống ghi nhận $totalCourses lớp học phần, $totalLecturers giảng viên và $totalStudents sinh viên ($totalGroups nhóm). Khối lượng đào tạo hiện tại đang ở mức ổn định. Khuyến nghị duy trì tiến độ báo cáo định kỳ.';
     }
   }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
-import '../../../services/admin_api_service.dart';
+import '../../../services/governance_api_service.dart';
 
 enum GovernanceAddKind { student, lecturer }
 
@@ -27,9 +27,11 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
   final _codeController = TextEditingController();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _classController = TextEditingController();
-  final _facultyController = TextEditingController();
-  final _departmentController = TextEditingController();
+  final _facultyController = TextEditingController(text: 'CNTT');
+  final _specializationController = TextEditingController();
+  String _degree = 'ThS.';
   late String _status;
   bool _isSaving = false;
 
@@ -49,6 +51,15 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
         : ['Đang công tác', 'Nghỉ phép', 'Đã nghỉ việc'];
   }
 
+  static const List<String> _degreeOptions = [
+    'Cử nhân',
+    'Kỹ sư',
+    'ThS.',
+    'TS.',
+    'PGS.TS.',
+    'GS.TS.',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +68,7 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
       _codeController.text = existing?.studentCode ?? '';
       _nameController.text = existing?.fullName ?? '';
       _emailController.text = existing?.email ?? '';
+      _phoneController.text = existing?.phone ?? '';
       _classController.text = existing?.classCode ?? '';
       _status = existing?.status ?? 'Đang học';
     } else {
@@ -64,8 +76,13 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
       _codeController.text = existing?.lecturerCode ?? '';
       _nameController.text = existing?.fullName ?? '';
       _emailController.text = existing?.email ?? '';
-      _facultyController.text = existing?.faculty ?? '';
-      _departmentController.text = existing?.department ?? '';
+      _phoneController.text = existing?.phoneNumber ?? '';
+      _facultyController.text =
+          (existing?.faculty.isNotEmpty == true) ? existing!.faculty : 'CNTT';
+      _specializationController.text = existing?.chuyenMon ?? '';
+      if (existing != null && _degreeOptions.contains(existing.hocVi)) {
+        _degree = existing.hocVi;
+      }
       _status = 'Đang công tác';
     }
   }
@@ -75,9 +92,10 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
     _codeController.dispose();
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _classController.dispose();
     _facultyController.dispose();
-    _departmentController.dispose();
+    _specializationController.dispose();
     super.dispose();
   }
 
@@ -85,21 +103,70 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_isSaving) return;
 
-    setState(() => _isSaving = true);
     final code = _codeController.text.trim();
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final faculty = _facultyController.text.trim();
+    final classCode = _classController.text.trim();
+    final spec = _specializationController.text.trim();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          _isStudent
+              ? _text('Xác nhận thêm sinh viên', 'Confirm add student')
+              : _text('Xác nhận thêm giảng viên', 'Confirm add lecturer'),
+        ),
+        content: Text(
+          '${_isStudent ? "MSSV" : "Mã GV"}: $code\n'
+          'Họ tên: $name\n'
+          'Email: $email'
+          '${phone.isNotEmpty ? '\nSĐT: $phone' : ''}'
+          '${!_isStudent && spec.isNotEmpty ? '\nHướng NC: $spec' : ''}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_text('Hủy', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_text('Xác nhận', 'Confirm')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isSaving = true);
 
     try {
-      await AdminApiService.instance.createUser({
-        'tenDangNhap': code,
-        'matKhau': '123456',
-        'hoTen': name,
-        'email': email,
-        'soDienThoai': '',
-        'maVaiTro': _isStudent ? 'SINHVIEN' : 'GIANGVIEN',
-        'trangThai': true,
-      });
+      final active = _isStudent ? (_status == 'Đang học') : (_status == 'Đang công tác');
+      if (_isStudent) {
+        await GovernanceApiService.instance.createStudent({
+          'mssv': code,
+          'hoTen': name,
+          'email': email,
+          'soDienThoai': phone,
+          'khoa': faculty,
+          'maLopHocPhan': classCode,
+          'trangThai': active,
+        });
+      } else {
+        await GovernanceApiService.instance.createLecturer({
+          'maGiangVien': code,
+          'hoTen': name,
+          'email': email,
+          'soDienThoai': phone,
+          'khoa': faculty,
+          'hocVi': _degree,
+          'chuyenMon': spec,
+          'trangThai': active,
+        });
+      }
 
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
@@ -174,22 +241,48 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
                       keyboardType: TextInputType.emailAddress,
                       validator: _validateEmail,
                     ),
+                    _textField(
+                      controller: _phoneController,
+                      label: _text('Số điện thoại', 'Phone number'),
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      required: false,
+                      validator: _validatePhone,
+                    ),
+                    _textField(
+                      controller: _facultyController,
+                      label: _text('Khoa', 'Faculty'),
+                      icon: Icons.account_balance_outlined,
+                    ),
                     if (_isStudent)
                       _textField(
                         controller: _classController,
-                        label: _text('Lớp', 'Class'),
+                        label: _text('Mã lớp học phần (nếu có)', 'Course Class Code (optional)'),
                         icon: Icons.school_outlined,
+                        required: false,
                       )
                     else ...[
-                      _textField(
-                        controller: _facultyController,
-                        label: _text('Khoa', 'Faculty'),
-                        icon: Icons.account_balance_outlined,
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _degree,
+                          decoration: InputDecoration(
+                            labelText: _text('Học vị', 'Degree'),
+                            prefixIcon: const Icon(Icons.workspace_premium_outlined),
+                          ),
+                          items: _degreeOptions
+                              .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) setState(() => _degree = v);
+                          },
+                        ),
                       ),
                       _textField(
-                        controller: _departmentController,
-                        label: _text('Bộ môn', 'Department'),
-                        icon: Icons.apartment_outlined,
+                        controller: _specializationController,
+                        label: _text('Hướng nghiên cứu / Chuyên môn', 'Research Direction'),
+                        icon: Icons.science_outlined,
+                        required: false,
                       ),
                     ],
                     DropdownButtonFormField<String>(
@@ -232,8 +325,14 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: _save,
-                    icon: const Icon(Icons.save_outlined),
+                    onPressed: _isSaving ? null : _save,
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
                     label: Text(
                       _isEdit
                           ? _text('Cập nhật', 'Update')
@@ -254,6 +353,7 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
     required String label,
     required IconData icon,
     TextInputType? keyboardType,
+    bool required = true,
     String? Function(String?)? validator,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 14),
@@ -261,14 +361,16 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
-        labelText: '$label *',
+        labelText: required ? '$label *' : label,
         prefixIcon: Icon(icon),
       ),
       validator:
           validator ??
-          (value) => value == null || value.trim().isEmpty
-              ? _text('Vui lòng nhập $label.', 'Enter $label.')
-              : null,
+          (required
+              ? (value) => value == null || value.trim().isEmpty
+                    ? _text('Vui lòng nhập $label.', 'Enter $label.')
+                    : null
+              : null),
     ),
   );
 
@@ -277,6 +379,15 @@ class _GovernanceAddFormScreenState extends State<GovernanceAddFormScreen> {
     if (email.isEmpty) return _text('Vui lòng nhập Email.', 'Enter an email.');
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
       return _text('Email không đúng định dạng.', 'Email format is invalid.');
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    final phone = value?.trim() ?? '';
+    if (phone.isEmpty) return null;
+    if (!RegExp(r'^[0-9]{10,11}$').hasMatch(phone)) {
+      return _text('Số điện thoại phải gồm 10-11 chữ số.', 'Phone must be 10-11 digits.');
     }
     return null;
   }

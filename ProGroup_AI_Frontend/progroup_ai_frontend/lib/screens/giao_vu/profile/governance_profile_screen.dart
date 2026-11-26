@@ -24,10 +24,10 @@ class GovernanceProfileScreen extends StatefulWidget {
 class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
   late UserModel _user;
   String _customAvatar = '';
-  String _phone = '0909123456';
+  String _phone = '';
   final String _department = 'Khoa Công nghệ thông tin';
   final String _office = 'Văn phòng Khoa - Nhà B1';
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   void _showMessage(String msg) {
     if (!mounted) return;
@@ -316,7 +316,7 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
             icon: Icons.phone_rounded,
             iconColor: const Color(0xFF10B981),
             title: AppLocalizations.text('Số điện thoại', en: 'Phone Number'),
-            subtitle: _phone.isNotEmpty ? _phone : '0909123456',
+            subtitle: _phone.isNotEmpty ? _phone : AppLocalizations.text('Chưa cập nhật', en: 'Not updated'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _changePhone(_phone),
           ),
@@ -552,12 +552,16 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
     );
 
     if (newPhone != null && newPhone.isNotEmpty && mounted) {
-      setState(() => _phone = newPhone);
+      final previousPhone = _phone;
       try {
         await ApiService.instance.put('/api/profile', {'soDienThoai': newPhone});
-      } catch (_) {}
-      if (mounted) {
+        if (!mounted) return;
+        setState(() => _phone = newPhone);
         _showMessage(AppLocalizations.text('Cập nhật số điện thoại thành công.', en: 'Phone number updated successfully.'));
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _phone = previousPhone);
+        _showMessage('Lỗi cập nhật số điện thoại: ${e.toString().replaceAll("Exception: ", "")}');
       }
     }
   }
@@ -628,62 +632,57 @@ class _GovernanceProfileScreenState extends State<GovernanceProfileScreen> {
                     ),
                   ),
                 ),
-                RadioListTile<ThemeMode>(
-                  value: ThemeMode.light,
+                RadioGroup<ThemeMode>(
                   groupValue: current,
-                  title: Text(
-                    AppLocalizations.text(
-                      'Sáng',
-                      en: 'Light',
-                    ),
-                  ),
-                  secondary: const _SquircleIcon(
-                    icon: Icons.light_mode_rounded,
-                    color: Color(0xFFF59E0B),
-                  ),
                   onChanged: (value) {
                     if (value == null) return;
                     AppSettings.instance.setThemeMode(value);
                     Navigator.pop(sheetContext);
                   },
-                ),
-                RadioListTile<ThemeMode>(
-                  value: ThemeMode.dark,
-                  groupValue: current,
-                  title: Text(
-                    AppLocalizations.text(
-                      'Tối',
-                      en: 'Dark',
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      RadioListTile<ThemeMode>(
+                        value: ThemeMode.light,
+                        title: Text(
+                          AppLocalizations.text(
+                            'Sáng',
+                            en: 'Light',
+                          ),
+                        ),
+                        secondary: const _SquircleIcon(
+                          icon: Icons.light_mode_rounded,
+                          color: Color(0xFFF59E0B),
+                        ),
+                      ),
+                      RadioListTile<ThemeMode>(
+                        value: ThemeMode.dark,
+                        title: Text(
+                          AppLocalizations.text(
+                            'Tối',
+                            en: 'Dark',
+                          ),
+                        ),
+                        secondary: const _SquircleIcon(
+                          icon: Icons.dark_mode_rounded,
+                          color: Color(0xFF6366F1),
+                        ),
+                      ),
+                      RadioListTile<ThemeMode>(
+                        value: ThemeMode.system,
+                        title: Text(
+                          AppLocalizations.text(
+                            'Theo hệ thống',
+                            en: 'System',
+                          ),
+                        ),
+                        secondary: const _SquircleIcon(
+                          icon: Icons.settings_brightness_rounded,
+                          color: Color(0xFF8B5CF6),
+                        ),
+                      ),
+                    ],
                   ),
-                  secondary: const _SquircleIcon(
-                    icon: Icons.dark_mode_rounded,
-                    color: Color(0xFF6366F1),
-                  ),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    AppSettings.instance.setThemeMode(value);
-                    Navigator.pop(sheetContext);
-                  },
-                ),
-                RadioListTile<ThemeMode>(
-                  value: ThemeMode.system,
-                  groupValue: current,
-                  title: Text(
-                    AppLocalizations.text(
-                      'Theo hệ thống',
-                      en: 'System',
-                    ),
-                  ),
-                  secondary: const _SquircleIcon(
-                    icon: Icons.settings_brightness_rounded,
-                    color: Color(0xFF8B5CF6),
-                  ),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    AppSettings.instance.setThemeMode(value);
-                    Navigator.pop(sheetContext);
-                  },
                 ),
               ],
             ),
