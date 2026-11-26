@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
 import 'package:progroup_ai_frontend/models/course_model.dart';
 import 'package:progroup_ai_frontend/models/topic_model.dart';
 import 'package:progroup_ai_frontend/services/student_api_service.dart';
 import 'package:progroup_ai_frontend/widgets/topic_card.dart';
 import 'propose_topic_screen.dart';
 import 'ai_topic_screen.dart';
+import 'topic_detail_screen.dart';
 
 class TopicScreen extends StatefulWidget {
   final CourseModel? course;
@@ -223,10 +223,14 @@ class _TopicScreenState extends State<TopicScreen> {
                                 return TopicCard(
                                   topic: topic,
                                   onTap: () {
-                                    Navigator.pushNamed(
+                                    Navigator.push(
                                       context,
-                                      AppRoutes.topicDetail,
-                                      arguments: topic,
+                                      MaterialPageRoute(
+                                        builder: (_) => TopicDetailScreen(
+                                          topic: topic,
+                                          course: widget.course ?? currentCourse,
+                                        ),
+                                      ),
                                     );
                                   },
                                 );

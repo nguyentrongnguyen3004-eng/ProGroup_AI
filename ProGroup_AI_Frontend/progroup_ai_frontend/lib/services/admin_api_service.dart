@@ -53,15 +53,54 @@ class AdminApiService {
   }
 
   Future<Map<String, dynamic>> fetchOverview() async {
+    Map<String, dynamic>? raw;
     try {
       final res = await ApiService.instance.get('/api/admin/overview');
-      if (res is Map) return Map<String, dynamic>.from(res);
+      if (res is Map) raw = Map<String, dynamic>.from(res);
     } catch (_) {}
-    try {
-      final res = await ApiService.instance.get('/api/admin/stats');
-      if (res is Map) return Map<String, dynamic>.from(res);
-    } catch (_) {}
-    return {};
+
+    if (raw == null) {
+      try {
+        final res = await ApiService.instance.get('/api/admin/stats');
+        if (res is Map) raw = Map<String, dynamic>.from(res);
+      } catch (_) {}
+    }
+
+    raw ??= {};
+
+    // Chuẩn hóa tất cả các biến thể key (tiếng Việt, tiếng Anh, PascalCase, camelCase)
+    final students = raw['tongSinhVien'] ?? raw['TongSinhVien'] ?? raw['totalStudents'] ?? raw['sinhViens'] ?? 0;
+    final lecturers = raw['tongGiangVien'] ?? raw['TongGiangVien'] ?? raw['totalLecturers'] ?? raw['giangViens'] ?? 0;
+    final courses = raw['tongLopHocPhan'] ?? raw['TongLopHocPhan'] ?? raw['totalCourses'] ?? raw['totalClasses'] ?? raw['lopHocPhans'] ?? 0;
+    final groups = raw['tongNhom'] ?? raw['TongNhom'] ?? raw['totalGroups'] ?? raw['nhoms'] ?? 0;
+    final users = raw['tongNguoiDung'] ?? raw['TongNguoiDung'] ?? raw['totalUsers'] ?? raw['users'] ?? 0;
+    final topics = raw['tongDeTai'] ?? raw['TongDeTai'] ?? raw['totalTopics'] ?? 0;
+
+    raw['tongSinhVien'] = students;
+    raw['totalStudents'] = students;
+    raw['sinhViens'] = students;
+
+    raw['tongGiangVien'] = lecturers;
+    raw['totalLecturers'] = lecturers;
+    raw['giangViens'] = lecturers;
+
+    raw['tongLopHocPhan'] = courses;
+    raw['totalCourses'] = courses;
+    raw['totalClasses'] = courses;
+    raw['lopHocPhans'] = courses;
+
+    raw['tongNhom'] = groups;
+    raw['totalGroups'] = groups;
+    raw['nhoms'] = groups;
+
+    raw['tongNguoiDung'] = users;
+    raw['totalUsers'] = users;
+    raw['users'] = users;
+
+    raw['tongDeTai'] = topics;
+    raw['totalTopics'] = topics;
+
+    return raw;
   }
 
   Future<void> toggleUserStatus(int userId, {bool? currentStatus}) async {

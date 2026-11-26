@@ -88,9 +88,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           break;
         }
       }
-      if (_course == null && myCourses.isNotEmpty) {
-        _course = myCourses.first;
-      }
     } catch (_) {}
     if (mounted) setState(() => _isLoading = false);
   }

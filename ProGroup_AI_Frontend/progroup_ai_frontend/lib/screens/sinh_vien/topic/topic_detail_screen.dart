@@ -39,12 +39,15 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       final myGroups = await StudentApiService.instance.fetchMyGroups();
       GroupModel? foundGroup;
       for (final g in myGroups) {
-        if (g.courseId == widget.course.id || g.courseId == widget.topic.courseId) {
+        if (g.courseId == widget.course.id ||
+            g.courseId == widget.topic.courseId ||
+            (widget.topic.lopHocPhanId != null && g.courseId == widget.topic.lopHocPhanId)) {
           foundGroup = g;
           break;
         }
       }
-      _myGroup = foundGroup ?? (myGroups.isNotEmpty ? myGroups.first : null);
+      // Chỉ gán nhóm nếu nhóm đó thực sự thuộc học phần của đề tài
+      _myGroup = foundGroup;
 
       if (_myGroup != null) {
         final regData = await StudentApiService.instance.fetchGroupTopicRegistration(_myGroup!.id);
@@ -415,10 +418,10 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
         colors: colors,
         icon: Icons.group_off_rounded,
         iconColor: const Color(0xFFF59E0B),
-        title: AppLocalizations.text('Chưa có nhóm', en: 'No group joined'),
+        title: AppLocalizations.text('Không thể đăng ký đề tài này', en: 'Cannot register this topic'),
         message: AppLocalizations.text(
-          'Bạn cần tạo hoặc tham gia một nhóm đồ án trước khi đăng ký đề tài.',
-          en: 'You need to join or create a group before registering for a topic.',
+          'Đề tài này thuộc học phần khác hoặc nhóm hiện tại của bạn không nằm trong học phần này. Vui lòng chọn đề tài đúng học phần của nhóm bạn để đăng ký.',
+          en: 'This topic belongs to another course or your current group is not in this course.',
         ),
       );
     }

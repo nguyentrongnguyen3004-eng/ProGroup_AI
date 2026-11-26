@@ -156,10 +156,21 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
       );
     }
 
-    final int totalUsers = _users.isNotEmpty ? _users.length : (_overview['users'] as int? ?? 150);
-    final int totalStudents = _overview['sinhViens'] as int? ?? (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('SINHVIEN')).length);
-    final int totalLecturers = _overview['giangViens'] as int? ?? (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('GIANGVIEN')).length);
-    final int totalCourses = _overview['lopHocPhans'] as int? ?? 14;
+    final int totalUsers = _users.isNotEmpty
+        ? _users.length
+        : (_overview['tongNguoiDung'] as int? ?? _overview['totalUsers'] as int? ?? _overview['users'] as int? ?? 150);
+    final int totalStudents = _overview['tongSinhVien'] as int? ??
+        _overview['totalStudents'] as int? ??
+        _overview['sinhViens'] as int? ??
+        (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('SINHVIEN')).length);
+    final int totalLecturers = _overview['tongGiangVien'] as int? ??
+        _overview['totalLecturers'] as int? ??
+        _overview['giangViens'] as int? ??
+        (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('GIANGVIEN')).length);
+    final int totalCourses = _overview['tongLopHocPhan'] as int? ??
+        _overview['totalCourses'] as int? ??
+        _overview['lopHocPhans'] as int? ??
+        14;
 
     return Scaffold(
       body: SafeArea(

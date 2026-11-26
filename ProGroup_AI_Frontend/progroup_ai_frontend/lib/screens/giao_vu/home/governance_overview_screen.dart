@@ -175,8 +175,12 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
     }
 
     final int totalCourses = _courses.length;
-    final int totalStudents = _students.isNotEmpty ? _students.length : (_overview['sinhViens'] as int? ?? 120);
-    final int totalLecturers = _lecturers.isNotEmpty ? _lecturers.length : (_overview['giangViens'] as int? ?? 18);
+    final int totalStudents = _students.isNotEmpty
+        ? _students.length
+        : (_overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120);
+    final int totalLecturers = _lecturers.isNotEmpty
+        ? _lecturers.length
+        : (_overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18);
     final int totalGroups = _groups.length;
 
     return Scaffold(

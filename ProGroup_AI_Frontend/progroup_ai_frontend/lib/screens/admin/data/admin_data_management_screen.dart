@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../services/admin_api_service.dart';
+import '../../../services/governance_api_service.dart';
 import '../../admin/admin_helpers.dart';
 import 'admin_data_detail_screen.dart';
 
@@ -39,6 +40,36 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
 
     try {
       final data = await AdminApiService.instance.fetchOverview();
+      var sCount = data['tongSinhVien'] ?? data['totalStudents'] ?? data['sinhViens'] ?? 0;
+      var lCount = data['tongGiangVien'] ?? data['totalLecturers'] ?? data['giangViens'] ?? 0;
+      var cCount = data['tongLopHocPhan'] ?? data['totalCourses'] ?? data['totalClasses'] ?? 0;
+      var gCount = data['tongNhom'] ?? data['totalGroups'] ?? data['nhoms'] ?? 0;
+      var uCount = data['tongNguoiDung'] ?? data['totalUsers'] ?? data['users'] ?? 0;
+
+      // Nếu số liệu vẫn là 0, tự động gọi đếm từ danh sách chi tiết của hệ thống
+      if (sCount == 0 && lCount == 0 && cCount == 0) {
+        try {
+          final results = await Future.wait([
+            GovernanceApiService.instance.fetchStudents().catchError((_) => <Map<String, dynamic>>[]),
+            GovernanceApiService.instance.fetchLecturers().catchError((_) => <Map<String, dynamic>>[]),
+            GovernanceApiService.instance.fetchCourses().catchError((_) => <Map<String, dynamic>>[]),
+            GovernanceApiService.instance.fetchGroups().catchError((_) => <Map<String, dynamic>>[]),
+            AdminApiService.instance.fetchUsers().catchError((_) => <Map<String, dynamic>>[]),
+          ]);
+          if (results[0].isNotEmpty) sCount = results[0].length;
+          if (results[1].isNotEmpty) lCount = results[1].length;
+          if (results[2].isNotEmpty) cCount = results[2].length;
+          if (results[3].isNotEmpty) gCount = results[3].length;
+          if (results[4].isNotEmpty) uCount = results[4].length;
+        } catch (_) {}
+      }
+
+      data['totalStudents'] = sCount;
+      data['totalLecturers'] = lCount;
+      data['totalCourses'] = cCount;
+      data['totalGroups'] = gCount;
+      data['totalUsers'] = uCount;
+
       if (!mounted) return;
       setState(() {
         _overview = data;
@@ -62,7 +93,7 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
       (
         AdminDataType.students,
         adminText('Sinh viên', 'Students'),
-        _overview['totalStudents'] ?? 0,
+        _overview['totalStudents'] ?? _overview['tongSinhVien'] ?? 0,
         Icons.school_rounded,
         const Color(0xFF10B981),
         'Hồ sơ, tài khoản và điểm danh',
@@ -70,7 +101,7 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
       (
         AdminDataType.lecturers,
         adminText('Giảng viên', 'Lecturers'),
-        _overview['totalLecturers'] ?? 0,
+        _overview['totalLecturers'] ?? _overview['tongGiangVien'] ?? 0,
         Icons.badge_rounded,
         const Color(0xFF6366F1),
         'Học vị, chuyên môn và phân công',
@@ -78,7 +109,7 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
       (
         AdminDataType.courseClasses,
         adminText('Lớp học phần', 'Course classes'),
-        _overview['totalCourses'] ?? 0,
+        _overview['totalCourses'] ?? _overview['tongLopHocPhan'] ?? 0,
         Icons.class_rounded,
         const Color(0xFF2563EB),
         'Danh sách lớp học phần theo học kỳ',
@@ -86,7 +117,7 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
       (
         AdminDataType.groups,
         adminText('Nhóm đồ án', 'Groups'),
-        _overview['totalGroups'] ?? 0,
+        _overview['totalGroups'] ?? _overview['tongNhom'] ?? 0,
         Icons.groups_rounded,
         const Color(0xFFF59E0B),
         'Các nhóm đồ án chuyên ngành & liên môn',
@@ -94,7 +125,7 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
       (
         AdminDataType.accounts,
         adminText('Tài khoản hệ thống', 'System Accounts'),
-        _overview['totalUsers'] ?? 0,
+        _overview['totalUsers'] ?? _overview['tongNguoiDung'] ?? 0,
         Icons.admin_panel_settings_rounded,
         const Color(0xFF8B5CF6),
         'Quản lý phân quyền và bảo mật đăng nhập',
