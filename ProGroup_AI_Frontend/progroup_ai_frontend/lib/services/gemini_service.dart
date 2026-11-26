@@ -12,8 +12,8 @@ class GeminiService {
   /// Danh sách các mô hình Gemini ưu tiên hàng đầu về tốc độ & độ ổn định
   static const List<String> _candidateModels = [
     'gemini-flash-lite-latest',
-    'gemini-3.5-flash-lite',
-    'gemini-3.6-flash',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
   ];
 
   const GeminiService();
@@ -220,7 +220,7 @@ Chúc nhóm bạn triển khai đồ án thành công và đạt kết quả cao
           'x-goog-api-key': cleanKey,
         },
         body: requestBody,
-      ).timeout(const Duration(seconds: 6));
+      ).timeout(const Duration(seconds: 15));
 
       final responseBody = utf8.decode(response.bodyBytes);
       debugPrint('[GeminiService] Model $model -> HTTP ${response.statusCode}, bodyLength=${responseBody.length}');

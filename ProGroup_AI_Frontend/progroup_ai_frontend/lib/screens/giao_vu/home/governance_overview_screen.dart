@@ -675,6 +675,12 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: 'Cấu hình Gemini API Key',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.vpn_key_outlined, size: 18, color: Color(0xFF7C3AED)),
+                onPressed: _showGeminiKeyDialog,
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -734,6 +740,65 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
   // ======================================================
   // AI GEMINI WORKLOAD ANALYSIS (TC_GVK_019 & TC_GVK_020)
   // ======================================================
+  Future<void> _showGeminiKeyDialog() async {
+    const gemini = GeminiService();
+    final currentKey = await gemini.getApiKey();
+    if (!mounted) return;
+    final controller = TextEditingController(text: currentKey.startsWith('AIza') ? currentKey : '');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.vpn_key_outlined, color: Color(0xFF7C3AED)),
+            SizedBox(width: 8),
+            Expanded(child: Text('Cấu hình Gemini API Key', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Dán API Key hợp lệ từ Google AI Studio (bắt đầu bằng AIza...) để kích hoạt phân tích AI.',
+              style: TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: 'Gemini API Key',
+                hintText: 'AIza...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
+            onPressed: () async {
+              final key = controller.text.trim();
+              if (key.isEmpty) return;
+              await gemini.saveApiKey(key);
+              if (ctx.mounted) Navigator.pop(ctx, true);
+            },
+            child: const Text('Lưu & Phân tích lại'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (saved == true && mounted) {
+      await _runAiWorkloadAnalysis();
+    }
+  }
+
   Future<void> _runAiWorkloadAnalysis() async {
     if (_isAnalyzingAi) return;
     final totalStudents = _govOverview['totalStudents'] as int? ??
@@ -826,6 +891,12 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                tooltip: 'Cấu hình Gemini API Key',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.vpn_key_outlined, size: 18, color: Color(0xFF7C3AED)),
+                onPressed: _showGeminiKeyDialog,
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1015,6 +1086,12 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: 'Cấu hình Gemini API Key',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.vpn_key_outlined, size: 18, color: Color(0xFF7C3AED)),
+                onPressed: _showGeminiKeyDialog,
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -1193,6 +1270,12 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                tooltip: 'Cấu hình Gemini API Key',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.vpn_key_outlined, size: 18, color: Color(0xFF7C3AED)),
+                onPressed: _showGeminiKeyDialog,
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
