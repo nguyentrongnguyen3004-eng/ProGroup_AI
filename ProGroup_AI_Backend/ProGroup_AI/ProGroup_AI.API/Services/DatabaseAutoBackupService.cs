@@ -24,10 +24,10 @@ public class DatabaseAutoBackupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Chờ 1 phút sau khi server khởi động xong
+        // Chờ 15 phút sau khi server khởi động xong để tránh tranh chấp I/O và bộ nhớ lúc khởi động
         try
         {
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(15), stoppingToken);
         }
         catch (OperationCanceledException)
         {

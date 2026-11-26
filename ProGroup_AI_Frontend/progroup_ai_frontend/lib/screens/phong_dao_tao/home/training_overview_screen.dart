@@ -32,11 +32,8 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
 
   Map<String, dynamic> _overview = {};
   List<Map<String, dynamic>> _courses = [];
-  List<Map<String, dynamic>> _students = [];
-  List<Map<String, dynamic>> _lecturers = [];
-  List<Map<String, dynamic>> _groups = [];
-  List<Map<String, dynamic>> _notifications = [];
   String _activeSemester = 'Học kỳ 1 (2026-2027)';
+  List<Map<String, dynamic>> _notifications = [];
   bool _isAiSimulateError = false;
 
   @override
@@ -46,7 +43,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -55,12 +52,9 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
 
     try {
       final results = await Future.wait([
-        AdminApiService.instance.fetchOverview(),
-        GovernanceApiService.instance.fetchCourses(),
-        GovernanceApiService.instance.fetchStudents(),
-        GovernanceApiService.instance.fetchLecturers(),
-        GovernanceApiService.instance.fetchGroups(),
-        AdminApiService.instance.fetchNotifications(),
+        AdminApiService.instance.fetchOverview(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchCourses(forceRefresh: forceRefresh),
+        AdminApiService.instance.fetchNotifications(forceRefresh: forceRefresh),
       ]);
 
       // Đồng bộ ảnh đại diện từ hồ sơ cá nhân phòng đào tạo
@@ -74,22 +68,9 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
       setState(() {
         _overview = results[0] as Map<String, dynamic>;
         _courses = results[1] as List<Map<String, dynamic>>;
-        _students = results[2] as List<Map<String, dynamic>>;
-        _lecturers = results[3] as List<Map<String, dynamic>>;
-        _groups = results[4] as List<Map<String, dynamic>>;
-        _notifications = results[5] as List<Map<String, dynamic>>;
+        _notifications = results[2] as List<Map<String, dynamic>>;
         if (_overview['hocKyHienTai'] != null) {
           _activeSemester = _overview['hocKyHienTai'].toString();
-        }
-        if (_notifications.isEmpty || !_notifications.any((n) => (n['tieuDe'] ?? '').toString().contains('LHP'))) {
-          _notifications.insert(0, {
-            'id': 998,
-            'tieuDe': 'Kích hoạt đợt đăng ký đồ án',
-            'noiDung': 'Đợt đăng ký đồ án cho LHP Lập trình di động vừa được kích hoạt.',
-            'createdAt': DateTime.now().toIso8601String(),
-            'isRead': false,
-            'daDoc': false,
-          });
         }
         _isLoading = false;
       });
@@ -176,18 +157,14 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     }
 
     final int totalCourses = _courses.length;
-    final int totalStudents = _students.isNotEmpty
-        ? _students.length
-        : (_overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120);
-    final int totalLecturers = _lecturers.isNotEmpty
-        ? _lecturers.length
-        : (_overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18);
+    final int totalStudents = _overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120;
+    final int totalLecturers = _overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18;
 
     return Scaffold(
       body: SafeArea(
         bottom: true,
         child: RefreshIndicator(
-          onRefresh: _loadData,
+          onRefresh: () => _loadData(forceRefresh: true),
           color: const Color(0xFF2563EB),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 80),
@@ -433,7 +410,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                   ),
                   _StatCard(
                     title: AppLocalizations.text('Đề tài được duyệt', en: 'Approved Topics'),
-                    value: '${_overview['tongDeTaiDaDuyet'] ?? (_groups.isNotEmpty ? _groups.length : 40)}',
+                    value: '${_overview['tongDeTaiDaDuyet'] ?? _overview['tongNhom'] ?? 40}',
                     icon: Icons.task_alt_rounded,
                     color: const Color(0xFFF59E0B), // Amber
                   ),
@@ -746,6 +723,17 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
   // DEPARTMENT COMPARISON CARD (TC_PDT_002)
   // ======================================================
   Widget _buildFacultyComparisonCard(ColorScheme colors) {
+    final rawDepts = _overview['thongKeTheoKhoa'] as List<dynamic>? ?? [];
+    final depts = rawDepts.whereType<Map>().map((d) => Map<String, dynamic>.from(d)).toList();
+    final totalTopics = depts.fold<int>(0, (sum, d) => sum + ((d['soDeTai'] as num?)?.toInt() ?? 0));
+    final palette = [
+      const Color(0xFF2563EB),
+      const Color(0xFF10B981),
+      const Color(0xFFF59E0B),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFEC4899),
+    ];
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -783,7 +771,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'Tỷ lệ phân bổ số lượng đề tài liên khoa',
+                      'Tỷ lệ phân bổ số lượng đề tài liên khoa (CSDL thật)',
                       style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
                     ),
                   ],
@@ -792,37 +780,38 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Stacked ratio bar (CNTT: 60%, Điện tử: 25%, Kinh tế: 15%)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 60,
-                  child: Container(height: 12, color: const Color(0xFF2563EB)),
-                ),
-                Expanded(
-                  flex: 25,
-                  child: Container(height: 12, color: const Color(0xFF10B981)),
-                ),
-                Expanded(
-                  flex: 15,
-                  child: Container(height: 12, color: const Color(0xFFF59E0B)),
-                ),
-              ],
+          if (depts.isEmpty || totalTopics == 0)
+            Text(
+              'Chưa có dữ liệu đề tài theo khoa.',
+              style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+            )
+          else ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: depts.asMap().entries.map((entry) {
+                  final count = (entry.value['soDeTai'] as num?)?.toInt() ?? 0;
+                  if (count <= 0) return const SizedBox.shrink();
+                  return Expanded(
+                    flex: count,
+                    child: Container(height: 12, color: palette[entry.key % palette.length]),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildFacItem('Khoa CNTT: 60%', const Color(0xFF2563EB)),
-              _buildFacItem('Điện tử: 25%', const Color(0xFF10B981)),
-              _buildFacItem('Kinh tế: 15%', const Color(0xFFF59E0B)),
-            ],
-          ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: depts.asMap().entries.map((entry) {
+                final d = entry.value;
+                final count = (d['soDeTai'] as num?)?.toInt() ?? 0;
+                final pct = totalTopics > 0 ? ((count / totalTopics) * 100).round() : 0;
+                final code = (d['maKhoa'] ?? d['tenKhoa'] ?? 'Khoa').toString();
+                return _buildFacItem('$code: $pct% ($count)', palette[entry.key % palette.length]);
+              }).toList(),
+            ),
+          ],
         ],
       ),
     );
@@ -843,6 +832,10 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
   // COMPLETION RATE CARD (TC_PDT_010)
   // ======================================================
   Widget _buildCompletionRateCard(ColorScheme colors) {
+    final rate = (_overview['tyLeHoanThanh'] as num?)?.toDouble() ?? 0.0;
+    final totalGroups = (_overview['tongNhom'] as num?)?.toInt() ?? 0;
+    final approvedRegs = ((rate / 100.0) * totalGroups).round();
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -873,7 +866,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-                child: const Text('85.5%', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13)),
+                child: Text('${rate.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13)),
               ),
             ],
           ),
@@ -881,7 +874,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: 0.855,
+              value: (rate / 100.0).clamp(0.0, 1.0),
               minHeight: 10,
               backgroundColor: Colors.grey.shade200,
               color: const Color(0xFF10B981),
@@ -889,7 +882,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '106 / 124 sinh viên đạt yêu cầu tiến độ đồ án theo đúng thời hạn quy định.',
+            '$approvedRegs / $totalGroups nhóm đồ án đã hoàn tất đăng ký đề tài chính thức.',
             style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
           ),
         ],
@@ -1103,12 +1096,20 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
   // GRADE DISTRIBUTION CARD (TC_PDT_016)
   // ======================================================
   Widget _buildGradeDistributionCard(ColorScheme colors) {
+    final phoDiem = (_overview['phoDiem'] as Map?) ?? {};
+    final xuatSac = (phoDiem['xuatSac'] as num?)?.toInt() ?? 0;
+    final gioi = (phoDiem['gioi'] as num?)?.toInt() ?? 0;
+    final kha = (phoDiem['kha'] as num?)?.toInt() ?? 0;
+    final trungBinh = (phoDiem['trungBinh'] as num?)?.toInt() ?? 0;
+    final rot = (phoDiem['rot'] as num?)?.toInt() ?? 0;
+    final maxCount = [xuatSac, gioi, kha, trungBinh, rot, 1].reduce((a, b) => a > b ? a : b);
+
     final grades = [
-      {'label': 'Xuất sắc (9-10)', 'count': 15, 'color': const Color(0xFF10B981)},
-      {'label': 'Giỏi (8-8.9)', 'count': 28, 'color': const Color(0xFF2563EB)},
-      {'label': 'Khá (7-7.9)', 'count': 18, 'color': const Color(0xFF6366F1)},
-      {'label': 'Trung bình (5-6.9)', 'count': 5, 'color': const Color(0xFFF59E0B)},
-      {'label': 'Rớt (<5)', 'count': 2, 'color': const Color(0xFFEF4444)},
+      {'label': 'Xuất sắc (9-10)', 'count': xuatSac, 'color': const Color(0xFF10B981)},
+      {'label': 'Giỏi (8-8.9)', 'count': gioi, 'color': const Color(0xFF2563EB)},
+      {'label': 'Khá (7-7.9)', 'count': kha, 'color': const Color(0xFF6366F1)},
+      {'label': 'Trung bình (5-6.9)', 'count': trungBinh, 'color': const Color(0xFFF59E0B)},
+      {'label': 'Rớt (<5)', 'count': rot, 'color': const Color(0xFFEF4444)},
     ];
 
     return Container(
@@ -1133,7 +1134,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
             final count = g['count'] as int;
             final label = g['label'] as String;
             final color = g['color'] as Color;
-            final ratio = count / 30.0;
+            final ratio = count / maxCount;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -1147,7 +1148,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text('$count SV', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: color)),
+                  Text('$count bài', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: color)),
                 ],
               ),
             );

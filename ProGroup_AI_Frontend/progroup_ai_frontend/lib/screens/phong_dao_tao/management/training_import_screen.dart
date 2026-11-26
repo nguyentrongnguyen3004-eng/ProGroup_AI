@@ -16,6 +16,7 @@ import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../models/training_import_record_model.dart';
 import '../../../models/training_subject_model.dart';
+import '../../../services/api_service.dart';
 import 'training_data_management_screen.dart';
 
 class TrainingImportScreen extends StatefulWidget {
@@ -968,7 +969,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
     switch (_kind) {
       case TrainingDataKind.students:
         final firstId = data.nextStudentId;
-        data.addStudents([
+        final studentList = [
           for (var index = 0; index < count; index++)
             GovernanceStudentModel(
               id: firstId + index,
@@ -978,7 +979,22 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
               classCode: _validRows[index].cells[3],
               status: _validRows[index].cells[4],
             ),
-        ]);
+        ];
+        data.addStudents(studentList);
+        try {
+          final usersToImport = [
+            for (final row in _validRows)
+              {
+                'tenDangNhap': row.cells[0],
+                'hoTen': row.cells[1],
+                'email': row.cells[2],
+                'mssv': row.cells[0],
+                'vaiTro': 'SINHVIEN',
+                'matKhau': '123456aA@',
+              }
+          ];
+          await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+        } catch (_) {}
       case TrainingDataKind.lecturers:
         final firstId = data.nextLecturerId;
         final lecturers = [
@@ -997,9 +1013,23 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
           lecturers,
           statuses: {for (final row in _validRows) row.cells[0]: row.cells[5]},
         );
+        try {
+          final usersToImport = [
+            for (final row in _validRows)
+              {
+                'tenDangNhap': row.cells[0],
+                'hoTen': row.cells[1],
+                'email': row.cells[2],
+                'maGiangVien': row.cells[0],
+                'vaiTro': 'GIANGVIEN',
+                'matKhau': '123456aA@',
+              }
+          ];
+          await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+        } catch (_) {}
       case TrainingDataKind.courseClasses:
         final firstId = data.nextCourseClassId;
-        data.addCourseClasses([
+        final courseClassList = [
           for (var index = 0; index < count; index++)
             CourseModel(
               id: firstId + index,
@@ -1010,7 +1040,19 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
               lecturer: _lecturerName(data, _validRows[index].cells[3]),
               status: _validRows[index].cells[5],
             ),
-        ]);
+        ];
+        data.addCourseClasses(courseClassList);
+        for (final row in _validRows) {
+          try {
+            await ApiService.instance.post('/api/lop-hoc-phan', {
+              'maLopHocPhan': row.cells[0],
+              'maHocPhan': row.cells[1],
+              'tenLopHocPhan': row.cells[2],
+              'namHoc': '2026-2027',
+              'soLuongToiDa': 50,
+            });
+          } catch (_) {}
+        }
       case TrainingDataKind.subjects:
         data.addSubjects([
           for (final row in _validRows)
@@ -1024,6 +1066,7 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
         ]);
     }
 
+    if (!mounted) return;
     final kindLabel = _kind.label(context);
     data.recordImport(
       TrainingImportRecordModel(

@@ -25,6 +25,35 @@ class AdminAccountModel {
   final String avatar;
   final DateTime? createdAt;
 
+  factory AdminAccountModel.fromJson(Map<String, dynamic> json) {
+    final rawStatus = json['status'] ?? json['trangThai'];
+    String statusStr = 'Đang hoạt động';
+    if (rawStatus is bool) {
+      statusStr = rawStatus ? 'Đang hoạt động' : 'Đã khóa';
+    } else if (rawStatus != null) {
+      final s = rawStatus.toString().toLowerCase();
+      if (s.contains('khoa') || s.contains('locked') || s.contains('false') || s == '0') {
+        statusStr = 'Đã khóa';
+      }
+    }
+
+    return AdminAccountModel(
+      id: json['id'] as int? ?? json['nguoiDungId'] as int? ?? 0,
+      userCode: json['userCode'] as String? ?? json['maNguoiDung'] as String? ?? json['mssv'] as String? ?? json['maGiangVien'] as String? ?? '',
+      username: json['username'] as String? ?? json['tenDangNhap'] as String? ?? '',
+      fullName: json['fullName'] as String? ?? json['hoTen'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      role: json['role'] as String? ?? json['tenVaiTro'] as String? ?? json['maVaiTro'] as String? ?? 'SINHVIEN',
+      status: statusStr,
+      password: json['password'] as String? ?? '',
+      phone: json['phone'] as String? ?? json['soDienThoai'] as String? ?? '',
+      avatar: json['avatar'] as String? ?? json['avatarUrl'] as String? ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : (json['ngayTao'] != null ? DateTime.tryParse(json['ngayTao'].toString()) : null),
+    );
+  }
+
   bool get isActive => status == 'Đang hoạt động';
 
   AdminAccountModel copyWith({

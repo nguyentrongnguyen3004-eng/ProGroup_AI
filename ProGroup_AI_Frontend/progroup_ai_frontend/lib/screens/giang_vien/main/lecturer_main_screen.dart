@@ -21,6 +21,7 @@ class LecturerMainScreen extends StatefulWidget {
 
 class _LecturerMainScreenState extends State<LecturerMainScreen> {
   int _currentIndex = 0;
+  final Set<int> _initializedTabs = {0};
   int _unreadCount = 0;
 
   @override
@@ -47,14 +48,13 @@ class _LecturerMainScreenState extends State<LecturerMainScreen> {
 
   void _selectTab(int index) {
     if (index < 0 || index >= 5 || index == _currentIndex) return;
-    setState(() => _currentIndex = index);
-    if (index == 1) LecturerApiService.instance.fetchCourses();
-    if (index == 2) LecturerApiService.instance.fetchGroups();
+    setState(() {
+      _initializedTabs.add(index);
+      _currentIndex = index;
+    });
     if (index == 3) {
-      LecturerApiService.instance.fetchNotifications();
       _fetchUnreadCount();
     }
-    if (index == 4) LecturerApiService.instance.fetchProfile();
   }
 
   void _openTopics() {
@@ -89,10 +89,18 @@ class _LecturerMainScreenState extends State<LecturerMainScreen> {
                 onOpenRegistrations: _openRegistrations,
                 onOpenProfile: () => _selectTab(4),
               ),
-              LecturerCourseScreen(key: ValueKey('lec_course_$lang')),
-              LecturerGroupScreen(key: ValueKey('lec_group_$lang')),
-              LecturerNotificationScreen(key: ValueKey('lec_notif_$lang')),
-              LecturerProfileScreen(key: ValueKey('lec_prof_$lang')),
+              _initializedTabs.contains(1)
+                  ? LecturerCourseScreen(key: ValueKey('lec_course_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(2)
+                  ? LecturerGroupScreen(key: ValueKey('lec_group_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(3)
+                  ? LecturerNotificationScreen(key: ValueKey('lec_notif_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(4)
+                  ? LecturerProfileScreen(key: ValueKey('lec_prof_$lang'))
+                  : const SizedBox.shrink(),
             ],
           ),
           bottomNavigationBar: LecturerBottomNav(

@@ -498,9 +498,9 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
                                     if (groups.isNotEmpty)
                                       ...groups.map((g) {
                                         final gName = g['tenNhom'] ?? 'Nhóm đồ án';
-                                        final members = g['soLuongThanhVien'] ?? 4;
+                                        final members = g['soThanhVien'] ?? g['soLuongThanhVien'] ?? 0;
                                         final topic = g['tenDeTai'] ?? 'Chưa đăng ký đề tài';
-                                        final status = g['trangThai'] ?? 'Đã duyệt';
+                                        final status = g['trangThaiDeTai'] ?? g['trangThai'] ?? 'Chưa có đề tài';
                                         final hasTopic = topic != 'Chưa đăng ký đề tài' && topic.toString().isNotEmpty;
 
                                         return Card(
@@ -568,12 +568,16 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
                                           ),
                                         );
                                       })
-                                    else ...[
-                                      // Mock demo groups for complete coverage
-                                      _demoGroupCard('Nhóm 01 (4 SV)', 'Xây dựng ứng dụng đặt xe ProRider bằng Flutter & Firebase', 'Đã duyệt đề tài', true),
-                                      _demoGroupCard('Nhóm 02 (3 SV)', 'Hệ thống nhận diện biển số xe sử dụng YOLOv8 & Fast API', 'Đã duyệt đề tài', true),
-                                      _demoGroupCard('Nhóm 03 (4 SV)', 'Chưa đăng ký đề tài', 'Chưa có đề tài', false),
-                                    ],
+                                      else
+                                        const Padding(
+                                          padding: EdgeInsets.symmetric(vertical: 32),
+                                          child: Center(
+                                            child: Text(
+                                              'Chưa có nhóm đồ án nào trong lớp học phần này.',
+                                              style: TextStyle(color: Colors.grey),
+                                            ),
+                                          ),
+                                        ),
                                   ],
                                 ),
                               ],
@@ -586,71 +590,6 @@ class _GovernanceCourseScreenState extends State<GovernanceCourseScreen> {
           },
         );
       },
-    );
-  }
-
-  Widget _demoGroupCard(String groupName, String topic, String status, bool hasTopic) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 10),
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: hasTopic ? const Color(0xFF10B981).withValues(alpha: 0.4) : Colors.amber.shade300,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  groupName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: Color(0xFF1E3A5F)),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: hasTopic ? const Color(0xFF10B981).withValues(alpha: 0.12) : Colors.amber.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: hasTopic ? const Color(0xFF059669) : Colors.amber.shade800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.topic_outlined, size: 16, color: Color(0xFF2563EB)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Đề tài: $topic',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: hasTopic ? Colors.black87 : Colors.grey.shade600,
-                      fontStyle: hasTopic ? FontStyle.normal : FontStyle.italic,
-                      fontWeight: hasTopic ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

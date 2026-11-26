@@ -8,6 +8,7 @@ import '../../../core/settings/app_settings.dart';
 import '../../../models/user_model.dart';
 import '../../../models/user_profile_model.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/api_service.dart';
 import '../../../services/student_api_service.dart';
 import '../../../services/avatar_service.dart';
 import '../../../services/app_update_service.dart';
@@ -404,6 +405,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(height: 1, indent: 64),
           _ListRow(
+            icon: Icons.phone_rounded,
+            iconColor: const Color(0xFF10B981),
+            title: AppLocalizations.text('Số điện thoại', en: 'Phone Number'),
+            subtitle: _profile?.phoneNumber.isNotEmpty == true ? _profile!.phoneNumber : 'Chưa cập nhật',
+            trailing: const Icon(Icons.edit_rounded, size: 18),
+            onTap: _changePhone,
+          ),
+          const Divider(height: 1, indent: 64),
+          _ListRow(
             icon: Icons.calendar_today_rounded,
             iconColor: const Color(0xFFF59E0B),
             title: AppLocalizations.text('Ngày sinh', en: 'Date of Birth'),
@@ -634,6 +644,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final newEmail = await ChangeEmailDialog.show(
       context,
       currentEmail: email,
+      onConfirm: (newEmail, otp) async {
+        await StudentApiService.instance.changeEmail(newEmail, otp);
+      },
     );
     if (newEmail != null && mounted) {
       setState(() {
@@ -645,8 +658,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _changePhone() async {
+    final currentPhone = _profile?.phoneNumber ?? '';
+    final controller = TextEditingController(text: currentPhone);
+    final formKey = GlobalKey<FormState>();
+
+    final newPhone = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(AppLocalizations.text('Cập nhật số điện thoại', en: 'Update Phone Number')),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.text('Số điện thoại', en: 'Phone Number'),
+              hintText: '0901234567',
+              prefixIcon: const Icon(Icons.phone_rounded),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return AppLocalizations.text('Vui lòng nhập số điện thoại', en: 'Please enter phone number');
+              }
+              if (!RegExp(r'^[0-9]{9,11}$').hasMatch(val.trim())) {
+                return AppLocalizations.text('Số điện thoại phải từ 9-11 chữ số và không chứa ký tự chữ', en: 'Phone must be 9-11 digits');
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.text('Hủy', en: 'Cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: Text(AppLocalizations.text('Lưu', en: 'Save')),
+          ),
+        ],
+      ),
+    );
+
+    if (newPhone != null && mounted) {
+      try {
+        await ApiService.instance.put('/api/profile', {'soDienThoai': newPhone});
+        if (!mounted) return;
+        setState(() {
+          if (_profile != null) {
+            _profile = _profile!.copyWith(phoneNumber: newPhone);
+          }
+        });
+        _showMessage(
+          AppLocalizations.text('Cập nhật số điện thoại thành công.', en: 'Phone number updated successfully.'),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        _showMessage('Lỗi cập nhật: $e');
+      }
+    }
+  }
+
   Future<void> _changePassword() async {
-    final success = await ChangePasswordDialog.show(context);
+    final success = await ChangePasswordDialog.show(
+      context,
+      onConfirm: (current, newPass) async {
+        await ApiService.instance.put('/api/auth/change-password', {
+          'currentPassword': current,
+          'oldPassword': current,
+          'newPassword': newPass,
+        });
+      },
+    );
     if (success == true && mounted) {
       _showMessage(
         AppLocalizations.text('Đổi mật khẩu thành công.', en: 'Password changed successfully.'),
@@ -818,6 +912,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 backgroundColor: Colors.red.shade600,
               ),
               onPressed: () {
+                AuthService.logout();
                 Navigator.pop(dialogContext);
                 Navigator.pushNamedAndRemoveUntil(
                   context,

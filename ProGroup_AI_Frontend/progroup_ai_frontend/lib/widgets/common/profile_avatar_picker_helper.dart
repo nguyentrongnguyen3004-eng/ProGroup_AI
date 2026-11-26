@@ -163,6 +163,32 @@ class ProfileAvatarPickerHelper {
       if (bytes.isEmpty || !context.mounted) return;
 
       final extension = image.name.split('.').last.toLowerCase();
+      // TC_STU_040 & TC_NFR_012: Ràng buộc định dạng hợp lệ
+      if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension)) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Chỉ chấp nhận định dạng ảnh JPG, PNG, WEBP.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // TC_STU_040: Ràng buộc kích thước file không quá 10MB
+      if (bytes.lengthInBytes > 10 * 1024 * 1024) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ảnh đại diện không được vượt quá 10MB.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       final mime = switch (extension) {
         'png' => 'image/png',
         'webp' => 'image/webp',

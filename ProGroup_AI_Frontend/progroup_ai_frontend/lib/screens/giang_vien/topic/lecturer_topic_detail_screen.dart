@@ -63,6 +63,7 @@ class _LecturerTopicDetailScreenState extends State<LecturerTopicDetailScreen> {
         mucTieu: _currentTopic.objective,
         phamVi: _currentTopic.scope,
         congNghe: _currentTopic.technology,
+        status: status,
       );
       if (mounted) {
         setState(() {
@@ -83,7 +84,7 @@ class _LecturerTopicDetailScreenState extends State<LecturerTopicDetailScreen> {
   }
 
   List<String> _availableStatuses(TopicModel topic) {
-    final statuses = ['Đang hoạt động', 'Chờ duyệt', 'Tạm khóa'];
+    final statuses = ['Đang hoạt động', 'Chưa sử dụng', 'Chờ duyệt', 'Tạm khóa'];
     if (!statuses.contains(topic.status)) statuses.add(topic.status);
     return statuses;
   }

@@ -48,12 +48,21 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> login() async {
     if (loading) return;
 
-    if (usernameController.text.trim().isEmpty ||
-        passwordController.text.isEmpty) {
+    if (usernameController.text.trim().isEmpty) {
       showMessage(
         AppLocalizations.text(
-          'Vui lòng nhập đầy đủ thông tin.',
-          en: 'Please enter all required information.',
+          'Vui lòng nhập tên đăng nhập',
+          en: 'Please enter your username',
+        ),
+      );
+      return;
+    }
+
+    if (passwordController.text.isEmpty) {
+      showMessage(
+        AppLocalizations.text(
+          'Vui lòng nhập mật khẩu',
+          en: 'Please enter your password',
         ),
       );
       return;

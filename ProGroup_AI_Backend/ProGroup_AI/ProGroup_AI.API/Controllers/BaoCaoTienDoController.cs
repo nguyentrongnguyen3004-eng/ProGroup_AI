@@ -25,13 +25,9 @@ public class BaoCaoTienDoController : ControllerBase
     [HttpGet("nhom/{nhomId:int}")]
     public async Task<IActionResult> GetByGroup(int nhomId)
     {
-        var list = await _db.BaoCaoTienDos
+        var list = (await _db.BaoCaoTienDos
             .AsNoTracking()
-            .Include(b => b.GiangVien).ThenInclude(g => g!.NguoiDung)
-            .Include(b => b.DeTai)
             .Where(b => b.NhomId == nhomId)
-            .OrderByDescending(b => b.TuanBaoCao)
-            .ThenByDescending(b => b.NgayNop)
             .Select(b => new
             {
                 b.BaoCaoId,
@@ -52,7 +48,10 @@ public class BaoCaoTienDoController : ControllerBase
                 TenGiangVien = b.GiangVien != null && b.GiangVien.NguoiDung != null ? b.GiangVien.NguoiDung.HoTen : string.Empty,
                 b.NgayNhanXet
             })
-            .ToListAsync();
+            .ToListAsync())
+            .OrderByDescending(b => b.TuanBaoCao)
+            .ThenByDescending(b => b.NgayNop)
+            .ToList();
 
         return Ok(list);
     }
@@ -251,18 +250,32 @@ public class BaoCaoTienDoController : ControllerBase
     }
 
     /// <summary>
-    /// Giảng viên lấy toàn bộ báo cáo cần xem xét của các nhóm
+    /// Giảng viên lấy danh sách báo cáo thuộc các học phần hoặc đề tài mình phụ trách
     /// </summary>
     [HttpGet("giang-vien")]
     [Authorize(Roles = "GIANGVIEN,ADMIN")]
     public async Task<IActionResult> GetReportsForLecturer()
     {
-        var list = await _db.BaoCaoTienDos
-            .AsNoTracking()
-            .Include(b => b.Nhom)
-            .Include(b => b.DeTai)
-            .Include(b => b.GiangVien).ThenInclude(g => g!.NguoiDung)
-            .OrderByDescending(b => b.NgayNop)
+        var query = _db.BaoCaoTienDos.AsNoTracking().AsQueryable();
+        if (!User.IsInRole("ADMIN"))
+        {
+            var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(idClaim, out var userId)) return Unauthorized();
+            var lecturer = await _db.GiangViens.AsNoTracking().FirstOrDefaultAsync(g => g.NguoiDungId == userId);
+            if (lecturer == null) return Forbid();
+
+            var gvId = lecturer.GiangVienId;
+            var assignedCourseIds = await _db.PhanCongGiangViens.AsNoTracking()
+                .Where(p => p.GiangVienId == gvId && p.TrangThai)
+                .Select(p => p.LopHocPhanId)
+                .ToListAsync();
+
+            query = query.Where(b =>
+                (b.DeTai != null && b.DeTai.GiangVienId == gvId) ||
+                (b.Nhom != null && b.Nhom.DotDangKy != null && assignedCourseIds.Contains(b.Nhom.DotDangKy.LopHocPhanId)));
+        }
+
+        var list = (await query
             .Select(b => new
             {
                 b.BaoCaoId,
@@ -284,9 +297,71 @@ public class BaoCaoTienDoController : ControllerBase
                 TenGiangVien = b.GiangVien != null && b.GiangVien.NguoiDung != null ? b.GiangVien.NguoiDung.HoTen : string.Empty,
                 b.NgayNhanXet
             })
-            .ToListAsync();
+            .ToListAsync())
+            .OrderByDescending(b => b.NgayNop)
+            .ToList();
 
         return Ok(list);
+    }
+
+    /// <summary>
+    /// Bảng điểm tổng hợp tiến độ các nhóm theo Lớp học phần (TC_LEC_030)
+    /// </summary>
+    [HttpGet("lop-hoc-phan/{lopHocPhanId:int}/bang-diem")]
+    [Authorize(Roles = "GIANGVIEN,ADMIN,GIAOVUKHOA,PHONGDAOTAO")]
+    public async Task<IActionResult> GetCourseGradebook(int lopHocPhanId)
+    {
+        var course = await _db.LopHocPhans.AsNoTracking()
+            .Where(c => c.LopHocPhanId == lopHocPhanId)
+            .Select(c => new { c.LopHocPhanId, c.MaLopHocPhan, c.TenLopHocPhan })
+            .FirstOrDefaultAsync();
+        if (course is null) return NotFound(new { message = "Không tìm thấy lớp học phần." });
+
+        var groups = await _db.NhomDoAns.AsNoTracking()
+            .Where(g => g.TrangThai != "Đã hủy" && g.DotDangKy != null && g.DotDangKy.LopHocPhanId == lopHocPhanId)
+            .OrderBy(g => g.NhomId)
+            .Select(g => new
+            {
+                g.NhomId,
+                g.TenNhom,
+                DeTai = g.DangKyDeTais.Where(r => r.TrangThai == "Đã duyệt" && r.DeTai != null).Select(r => r.DeTai!.TenDeTai).FirstOrDefault()
+            })
+            .ToListAsync();
+
+        var groupIds = groups.Select(g => g.NhomId).ToList();
+        var reports = await _db.BaoCaoTienDos.AsNoTracking()
+            .Where(b => groupIds.Contains(b.NhomId))
+            .OrderBy(b => b.TuanBaoCao)
+            .Select(b => new
+            {
+                b.BaoCaoId,
+                b.NhomId,
+                b.TuanBaoCao,
+                b.TieuDe,
+                b.Diem,
+                b.TrangThai,
+                b.NgayNop
+            })
+            .ToListAsync();
+
+        var reportsByGroup = reports.GroupBy(r => r.NhomId).ToDictionary(grp => grp.Key, grp => grp.ToList());
+
+        var rows = groups.Select(g =>
+        {
+            var gReports = reportsByGroup.TryGetValue(g.NhomId, out var list) ? list : [];
+            var graded = gReports.Where(b => b.Diem.HasValue).Select(b => (double)b.Diem!.Value).ToList();
+            return new
+            {
+                nhomId = g.NhomId,
+                tenNhom = g.TenNhom,
+                tenDeTai = g.DeTai ?? "Chưa có đề tài",
+                soBaoCao = gReports.Count,
+                diemTrungBinh = graded.Count > 0 ? Math.Round(graded.Average(), 2) : (double?)null,
+                chiTietTuan = gReports
+            };
+        }).ToList();
+
+        return Ok(new { lopHocPhan = course, nhoms = rows });
     }
 }
 

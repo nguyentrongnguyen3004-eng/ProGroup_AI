@@ -19,6 +19,7 @@ class StudentMainScreen extends StatefulWidget {
 
 class _StudentMainScreenState extends State<StudentMainScreen> {
   int _currentIndex = 0;
+  final Set<int> _initializedTabs = {0};
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
   void _onBottomNavTap(int index) {
     if (index < 0 || index >= 5 || index == _currentIndex) return;
     setState(() {
+      _initializedTabs.add(index);
       _currentIndex = index;
     });
   }
@@ -55,10 +57,18 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
                 onOpenGroups: () => _onBottomNavTap(2),
                 onOpenProfile: () => _onBottomNavTap(4),
               ),
-              CourseScreen(key: ValueKey('course_$lang')),
-              GroupScreen(key: ValueKey('group_$lang')),
-              NotificationScreen(key: ValueKey('notif_$lang')),
-              ProfileScreen(key: ValueKey('prof_$lang')),
+              _initializedTabs.contains(1)
+                  ? CourseScreen(key: ValueKey('course_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(2)
+                  ? GroupScreen(key: ValueKey('group_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(3)
+                  ? NotificationScreen(key: ValueKey('notif_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(4)
+                  ? ProfileScreen(key: ValueKey('prof_$lang'))
+                  : const SizedBox.shrink(),
             ],
           ),
           bottomNavigationBar: AppBottomNav(

@@ -173,90 +173,13 @@ Chúc nhóm bạn triển khai đồ án thành công và đạt kết quả cao
       topicCount: topicCount,
     );
 
-    try {
-      final rawText = await _callWithCandidateModels(
-        apiKey: apiKey,
-        prompt: prompt,
-      );
-      final list = _parseSuggestionsJson(rawText);
-      if (list.isNotEmpty) return list;
-      throw const GeminiException('Dữ liệu trả về rỗng.');
-    } catch (e) {
-      debugPrint('[GeminiService] AI error: $e. Falling back to contextual topic generation.');
-      return _generateContextualFallbackSuggestions(
-        courseName: courseName,
-        classCode: classCode,
-        field: field,
-        technology: technology,
-        keywords: keywords,
-        description: description,
-        topicCount: topicCount,
-      );
-    }
-  }
-
-  /// Fallback tạo danh sách đề tài thông minh theo ngữ cảnh khi mạng hoặc API gặp sự cố
-  List<LecturerTopicSuggestionModel> _generateContextualFallbackSuggestions({
-    required String courseName,
-    required String classCode,
-    required String field,
-    required String technology,
-    required String keywords,
-    required String description,
-    int topicCount = 3,
-  }) {
-    final sub = keywords.trim().isNotEmpty
-        ? keywords.trim()
-        : (field.trim().isNotEmpty ? field.trim() : 'Quản lý đào tạo và Đồ án sinh viên');
-    final tech = technology.trim().isNotEmpty
-        ? technology.trim()
-        : 'Flutter, ASP.NET Core (.NET 10), SQL Server, Google Gemini AI';
-    final desc = description.trim().isNotEmpty
-        ? description.trim()
-        : 'Phát triển giải pháp phần mềm hoàn chỉnh, giải quyết bài toán thực tế.';
-
-    final pool = [
-      LecturerTopicSuggestionModel(
-        title: 'Hệ thống $sub thông minh tích hợp AI',
-        description: '$desc Ứng dụng cung cấp các tính năng tự động hóa và hỗ trợ người dùng ra quyết định.',
-        objective: 'Nghiên cứu ứng dụng công nghệ hiện đại giải quyết bài toán $sub trong môi trường thực tế.',
-        scope: 'Người dùng cuối và quản trị viên trong phạm vi học phần $courseName ($classCode).',
-        technology: tech,
-      ),
-      LecturerTopicSuggestionModel(
-        title: 'Nền tảng di động quản lý & phân tích dữ liệu $sub',
-        description: 'Thu thập dữ liệu, phân loại thông minh và hiển thị bảng điều khiển trực quan thời gian thực.',
-        objective: 'Tối ưu hóa quy trình nghiệp vụ, tăng tính minh bạch và độ chính xác của số liệu.',
-        scope: 'Các đơn vị quản lý, giảng viên và người dùng trực thuộc học phần.',
-        technology: tech,
-      ),
-      LecturerTopicSuggestionModel(
-        title: 'Ứng dụng hỗ trợ cộng tác và giám sát tiến độ $sub',
-        description: 'Cung cấp không gian làm việc số, nhắc nhở thông minh và tương tác thời gian thực giữa các thành viên.',
-        objective: 'Cải thiện hiệu suất làm việc nhóm và theo dõi tiến độ các giai đoạn dự án.',
-        scope: 'Các nhóm sinh viên và giảng viên hướng dẫn trong môn $courseName.',
-        technology: tech,
-      ),
-      LecturerTopicSuggestionModel(
-        title: 'Cổng thông tin tự động hóa quy trình nghiệp vụ $sub',
-        description: 'Số hóa quy trình xử lý công việc và báo cáo phân tích tổng hợp bằng trí tuệ nhân tạo.',
-        objective: 'Giảm tải thời gian xử lý thủ công, xây dựng kiến trúc RESTful API mở rộng.',
-        scope: 'Hệ thống thông tin đa nền tảng cho tổ chức và người dùng.',
-        technology: tech,
-      ),
-      LecturerTopicSuggestionModel(
-        title: 'Hệ sinh thái dịch vụ thông minh hỗ trợ $sub',
-        description: 'Tích hợp các dịch vụ thông báo thời gian thực, trợ lý ảo và phân quyền bảo mật nâng cao.',
-        objective: 'Xây dựng giải pháp phần mềm đạt chuẩn bảo mật và trải nghiệm người dùng tối ưu.',
-        scope: 'Phục vụ cộng đồng người dùng và quản trị viên.',
-        technology: tech,
-      ),
-    ];
-
-    if (topicCount <= pool.length) {
-      return pool.sublist(0, topicCount);
-    }
-    return pool;
+    final rawText = await _callWithCandidateModels(
+      apiKey: apiKey,
+      prompt: prompt,
+    );
+    final list = _parseSuggestionsJson(rawText);
+    if (list.isNotEmpty) return list;
+    throw const GeminiException('Không thể phân tích phản hồi từ Gemini AI.');
   }
 
   Future<String> _rawCallGemini({

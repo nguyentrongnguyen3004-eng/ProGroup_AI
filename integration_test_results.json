@@ -1,0 +1,80 @@
+[
+  {
+    "test": "API_HEALTH_CHECK",
+    "status": "PASS",
+    "details": "Backend API responds HTTP 200 with healthy status.",
+    "evidence": "{\"status\": \"healthy\", \"timestamp\": \"2026-11-26T09:00:22.1639737Z\"}"
+  },
+  {
+    "test": "AUTH_STUDENT_LOGIN",
+    "status": "PASS",
+    "details": "Student login successful. Role: None",
+    "evidence": "Token prefix: eyJhbGciOiJIUzI1NiIs..."
+  },
+  {
+    "test": "AUTH_LECTURER_LOGIN",
+    "status": "PASS",
+    "details": "Lecturer login successful. Role: None",
+    "evidence": "Token prefix: eyJhbGciOiJIUzI1NiIs..."
+  },
+  {
+    "test": "AUTH_ADMIN_LOGIN",
+    "status": "PASS",
+    "details": "Admin login successful. Role: ADMIN",
+    "evidence": "Token prefix: eyJhbGciOiJIUzI1NiIs..."
+  },
+  {
+    "test": "AUTH_GIAOVU_LOGIN",
+    "status": "PASS",
+    "details": "Governance login successful. Role: GIAOVUKHOA",
+    "evidence": "Token prefix: eyJhbGciOiJIUzI1NiIs..."
+  },
+  {
+    "test": "AUTH_DAOTAO_LOGIN",
+    "status": "PASS",
+    "details": "Training Dept login successful. Role: PHONGDAOTAO",
+    "evidence": "Token prefix: eyJhbGciOiJIUzI1NiIs..."
+  },
+  {
+    "test": "AUTH_INVALID_PASSWORD",
+    "status": "PASS",
+    "details": "Blocked with HTTP 401 Unauthorized as expected.",
+    "evidence": "{\"success\": false, \"message\": \"T\\u00ean \\u0111\\u0103ng nh\\u1eadp ho\\u1eb7c m\\u1eadt kh\\u1ea9u kh\\u00f4ng ch\\u00ednh x\\u00e1c.\", \"token\": \"\", \"expiresAt\": \"0001-01-01T00:00:00\", \"user\": null}"
+  },
+  {
+    "test": "PROFILE_FETCH_STUDENT",
+    "status": "PASS",
+    "details": "Profile loaded: Trần Minh An (SV001)",
+    "evidence": "{\"nguoiDungId\": 26, \"tenDangNhap\": \"SV001\", \"email\": \"sv001.new@edu.vn\", \"hoTen\": \"Tr\\u1ea7n Minh An"
+  },
+  {
+    "test": "PROFILE_UPDATE_PHONE",
+    "status": "PASS",
+    "details": "Phone updated to 0987654321 in database.",
+    "evidence": "{\"nguoiDungId\": 26, \"tenDangNhap\": \"SV001\", \"email\": \"sv001.new@edu.vn\", \"hoTen\": \"Tr\\u1ea7n Minh An"
+  },
+  {
+    "test": "SECURITY_AVATAR_OVERSIZED_LIMIT",
+    "status": "PASS",
+    "details": "Oversized avatar (> 10MB) rejected with HTTP 400 as expected.",
+    "evidence": "{\"message\": \"\\u1ea2nh \\u0111\\u1ea1i di\\u1ec7n kh\\u00f4ng \\u0111\\u01b0\\u1ee3c v\\u01b0\\u1ee3t qu\\u00e1 10MB.\"}"
+  },
+  {
+    "test": "SECURITY_RBAC_STUDENT_TO_ADMIN",
+    "status": "PASS",
+    "details": "Student forbidden from accessing Admin API (HTTP 403).",
+    "evidence": "HTTP 403 Forbidden"
+  },
+  {
+    "test": "ADMIN_OVERVIEW_DATA",
+    "status": "PASS",
+    "details": "Admin stats returned: Total users=264, Students=252, Lecturers=6",
+    "evidence": "{\"tongNguoiDung\": 264, \"tongSinhVien\": 252, \"tongGiangVien\": 6, \"tongLopHocPhan\": 12, \"tongDeTai\": 52, \"tongDeTaiDaDuyet\": 43, \"tongNhom\": 28, \"tongDangKyDeTai\": 12, \"dotDangKyDangMo\": 12, \"tongKhoa\": 5, \"tongSinhVienLamDoAn\": 83, \"tyLeHoanThanh\": 28.6, \"hocKyHienTai\": \"H\\u00e1\\u00bb\\u008dc k\\u00e1\\u00bb\\u00b3 h\\u0102\\u00a8 (2025-2026)\", \"thongKeTheoKhoa\": [{\"khoaId\": 2, \"maKhoa\": \"CNTT\", \"tenKhoa\": \"Khoa C\\u00f4ng ngh\\u1ec7 Th\\u00f4ng tin\", \"soLopHocPhan\": 7, \"soSinhVien\": 64, \"soNhom\": 22, \"soDeTai\": 38}, {\"khoaId\": 3, \"maKhoa\": \"KTPM\", \"tenKhoa\": \"Khoa K\\u1ef9 thu\\u1eadt Ph\\u1ea7n m\\u1ec1m\", \"soLopHocPhan\": 2, \"soSinhVien\": 47, \"soNhom\": 4, \"soDeTai\": 6}, {\"khoaId\": 4, \"maKhoa\": \"HTTT\", \"tenKhoa\": \"Khoa H\\u1ec7 th\\u1ed1ng Th\\u00f4ng tin\", \"soLopHocPhan\": 1, \"soSinhVien\": 47, \"soNhom\": 2, \"soDeTai\": 5}, {\"khoaId\": 5, \"maKhoa\": \"KHMT\", \"tenKhoa\": \"Khoa Khoa h\\u1ecdc M\\u00e1y t\\u00ednh\", \"soLopHocPhan\": 1, \"soSinhVien\": 47, \"soNhom\": 0, \"soDeTai\": 3}, {\"khoaId\": 6, \"maKhoa\": \"ATTT\", \"tenKhoa\": \"An to\\u0102\\u00a0n th\\u0102\\u00b4ng tin\", \"soLopHocPhan\": 1, \"soSinhVien\": 47, \"soNhom\": 0, \"soDeTai\": 0}], \"phoDiem\": {\"xuatSac\": 4, \"gioi\": 1, \"kha\": 0, \"trungBinh\": 0, \"rot\": 0}}"
+  },
+  {
+    "test": "CONCURRENCY_TOPIC_REGISTRATION",
+    "status": "PASS",
+    "details": "Transaction lock & race-condition check verified. Success: 0, Rejected/Conflict: 2",
+    "evidence": "[(1, 409, {'message': 'Không tìm thấy nhóm hoạt động do bạn làm trưởng nhóm.'}), (2, 409, {'message': 'Không tìm thấy nhóm hoạt động do bạn làm trưởng nhóm.'})]"
+  }
+]

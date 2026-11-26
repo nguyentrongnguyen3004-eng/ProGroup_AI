@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
@@ -9,6 +10,24 @@ class AvatarService {
   static final AvatarService instance = AvatarService._();
 
   static const String _prefPrefix = 'user_avatar_';
+  static final Map<String, Uint8List> _decodedBase64Cache = {};
+
+  static Uint8List? _getDecodedBytes(String dataUri) {
+    final cached = _decodedBase64Cache[dataUri];
+    if (cached != null) return cached;
+    final separator = dataUri.indexOf(',');
+    if (separator == -1) return null;
+    try {
+      final bytes = base64Decode(dataUri.substring(separator + 1));
+      if (_decodedBase64Cache.length > 30) {
+        _decodedBase64Cache.clear();
+      }
+      _decodedBase64Cache[dataUri] = bytes;
+      return bytes;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// ValueNotifier để toàn bộ widget lắng nghe sự thay đổi avatar theo thời gian thực
   final ValueNotifier<String> avatarNotifier = ValueNotifier<String>('');
@@ -197,31 +216,31 @@ class AvatarService {
     Color textColor = Colors.white,
   }) {
     final clean = avatar.trim();
+    final decodeDim = (size * 2).round();
     if (clean.startsWith('data:image/')) {
-      final separator = clean.indexOf(',');
-      if (separator != -1) {
-        try {
-          final bytes = base64Decode(clean.substring(separator + 1));
-          return ClipOval(
-            child: Image.memory(
-              bytes,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Center(
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: fontSize,
-                    letterSpacing: 0.5,
-                  ),
+      final bytes = _getDecodedBytes(clean);
+      if (bytes != null) {
+        return ClipOval(
+          child: Image.memory(
+            bytes,
+            width: size,
+            height: size,
+            cacheWidth: decodeDim,
+            cacheHeight: decodeDim,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Center(
+              child: Text(
+                initials,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: fontSize,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
-          );
-        } catch (_) {}
+          ),
+        );
       }
     }
 
@@ -232,6 +251,8 @@ class AvatarService {
           resolved,
           width: size,
           height: size,
+          cacheWidth: decodeDim,
+          cacheHeight: decodeDim,
           fit: BoxFit.cover,
           errorBuilder: (_, _, _) => Center(
             child: Text(
@@ -291,18 +312,29 @@ class UserAvatarView extends StatelessWidget {
     final childWidget = ValueListenableBuilder<String>(
       valueListenable: AvatarService.instance.avatarNotifier,
       builder: (context, dynamicAvatar, _) {
+        final isCurrentUser = username == null ||
+            username!.trim().isEmpty ||
+            username!.trim().toLowerCase() == AuthService.currentUser.username.toLowerCase();
+
         // Thứ tự ưu tiên hiển thị avatar:
-        // 1. dynamicAvatar từ AvatarService (khi vừa upload/đổi avatar mới)
+        // 1. dynamicAvatar từ AvatarService (khi vừa upload/đổi avatar mới của currentUser)
         // 2. avatarUrl được truyền vào trực tiếp
-        // 3. AuthService.currentUser.avatarUrl
+        // 3. AuthService.currentUser.avatarUrl (chỉ khi là currentUser)
         String currentAvatar = '';
-        if (dynamicAvatar.trim().isNotEmpty) {
-          currentAvatar = dynamicAvatar.trim();
-        } else if (avatarUrl != null && avatarUrl!.trim().isNotEmpty) {
-          currentAvatar = avatarUrl!.trim();
-        } else if (AuthService.currentUser.avatarUrl != null &&
-            AuthService.currentUser.avatarUrl!.trim().isNotEmpty) {
-          currentAvatar = AuthService.currentUser.avatarUrl!.trim();
+        if (isCurrentUser) {
+          if (dynamicAvatar.trim().isNotEmpty) {
+            currentAvatar = dynamicAvatar.trim();
+          } else if (avatarUrl != null && avatarUrl!.trim().isNotEmpty) {
+            currentAvatar = avatarUrl!.trim();
+          } else if (AuthService.currentUser.avatarUrl != null &&
+              AuthService.currentUser.avatarUrl!.trim().isNotEmpty) {
+            currentAvatar = AuthService.currentUser.avatarUrl!.trim();
+          }
+        } else {
+          // Tránh rò rỉ avatar của currentUser sang người dùng khác (TC_PDT_019)
+          if (avatarUrl != null && avatarUrl!.trim().isNotEmpty) {
+            currentAvatar = avatarUrl!.trim();
+          }
         }
 
         return Container(

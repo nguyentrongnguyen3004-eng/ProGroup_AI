@@ -144,16 +144,32 @@ public sealed class DangKyDeTaiController : ControllerBase
             return Conflict(new { message = "Đề tài này đã có nhóm khác đăng ký." });
         }
 
-        var registration = new DangKyDeTai
+        var existingReg = await _db.DangKyDeTais
+            .FirstOrDefaultAsync(r => r.NhomId == group.NhomId && r.DeTaiId == topic.DeTaiId);
+
+        DangKyDeTai registration;
+        if (existingReg != null)
         {
-            NhomId = group.NhomId,
-            DeTaiId = topic.DeTaiId,
-            TrangThai = "Chờ duyệt",
-            NgayDangKy = DateTime.Now
-        };
+            existingReg.TrangThai = "Chờ duyệt";
+            existingReg.NgayDangKy = DateTime.Now;
+            existingReg.NgayDuyet = null;
+            existingReg.GiangVienDuyetId = null;
+            existingReg.GhiChu = null;
+            registration = existingReg;
+        }
+        else
+        {
+            registration = new DangKyDeTai
+            {
+                NhomId = group.NhomId,
+                DeTaiId = topic.DeTaiId,
+                TrangThai = "Chờ duyệt",
+                NgayDangKy = DateTime.Now
+            };
+            _db.DangKyDeTais.Add(registration);
+        }
 
         topic.TrangThai = "Đã đăng ký";
-        _db.DangKyDeTais.Add(registration);
 
         // Gửi thông báo cho Giảng viên phụ trách đề tài
         if (topic.GiangVienId.HasValue)
@@ -175,8 +191,16 @@ public sealed class DangKyDeTaiController : ControllerBase
             }
         }
 
-        await _db.SaveChangesAsync();
-        await transaction.CommitAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return Conflict(new { message = "Đề tài này đã có nhóm khác đăng ký hoặc nhóm đã có đề tài khác." });
+        }
 
         var created = await _db.DangKyDeTais.AsNoTracking()
             .Where(r => r.DangKyDeTaiId == registration.DangKyDeTaiId)

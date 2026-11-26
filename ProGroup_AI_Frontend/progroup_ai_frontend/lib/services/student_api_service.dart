@@ -5,119 +5,174 @@ import '../models/group_model.dart';
 import '../models/topic_model.dart';
 import '../models/user_profile_model.dart';
 import 'api_service.dart';
+import 'data_cache_service.dart';
 
 class StudentApiService {
   StudentApiService._();
   static final StudentApiService instance = StudentApiService._();
 
   /// Tải danh sách lớp học phần của sinh viên
-  Future<List<CourseModel>> fetchMyCourses() async {
-    dynamic res;
-    try {
-      res = await ApiService.instance.get('/api/student/courses');
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) {
-        res = await ApiService.instance.get('/api/lop-hoc-phan');
-      } else {
-        rethrow;
-      }
-    }
-
-    final List<dynamic> list;
-    if (res is List) {
-      list = res;
-    } else if (res is Map && res['value'] is List) {
-      list = res['value'] as List;
-    } else if (res is Map && res['data'] is List) {
-      list = res['data'] as List;
-    } else {
-      list = [];
-    }
-
-    return list
-        .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Tải danh sách nhóm của sinh viên
-  Future<List<GroupModel>> fetchMyGroups() async {
-    dynamic res;
-    try {
-      res = await ApiService.instance.get('/api/student/groups');
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) {
+  Future<List<CourseModel>> fetchMyCourses({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<List<CourseModel>>(
+      'student_courses',
+      () async {
+        dynamic res;
         try {
-          res = await ApiService.instance.get('/api/groups/mine');
-        } on ApiException catch (inner) {
-          if (inner.statusCode == 404) {
-            res = await ApiService.instance.get('/api/groups');
+          res = await ApiService.instance.get('/api/student/courses');
+        } on ApiException catch (e) {
+          if (e.statusCode == 404) {
+            res = await ApiService.instance.get('/api/lop-hoc-phan');
           } else {
             rethrow;
           }
         }
-      } else {
-        rethrow;
-      }
-    }
 
-    final List<dynamic> list;
-    if (res is List) {
-      list = res;
-    } else if (res is Map && res['value'] is List) {
-      list = res['value'] as List;
-    } else if (res is Map && res['data'] is List) {
-      list = res['data'] as List;
-    } else {
-      list = [];
-    }
+        final list = _extractList(res);
+        return list
+            .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      },
+      forceRefresh: forceRefresh,
+    );
+  }
 
-    return list
-        .map((e) => GroupModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+  /// Tải danh sách nhóm của sinh viên
+  Future<List<GroupModel>> fetchMyGroups({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<List<GroupModel>>(
+      'student_groups',
+      () async {
+        dynamic res;
+        try {
+          res = await ApiService.instance.get('/api/student/groups');
+        } on ApiException catch (e) {
+          if (e.statusCode == 404) {
+            try {
+              res = await ApiService.instance.get('/api/groups/mine');
+            } on ApiException catch (inner) {
+              if (inner.statusCode == 404) {
+                res = await ApiService.instance.get('/api/groups');
+              } else {
+                rethrow;
+              }
+            }
+          } else {
+            rethrow;
+          }
+        }
+
+        final list = _extractList(res);
+        return list
+            .map((e) => GroupModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      },
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  /// Tải danh sách đề tài khả dụng cho sinh viên (/api/student/topics) - nhẹ hơn so với tải toàn bộ /api/de-tai
+  Future<List<TopicModel>> fetchAvailableTopics({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<List<TopicModel>>(
+      'student_available_topics',
+      () async {
+        final res = await ApiService.instance.get('/api/student/topics');
+        final list = _extractList(res);
+        return list
+            .map((e) => TopicModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      },
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  /// Tải chi tiết 1 đề tài theo ID
+  Future<TopicModel?> fetchTopicById(int deTaiId, {bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<TopicModel?>(
+      'topic_detail_$deTaiId',
+      () async {
+        try {
+          final res = await ApiService.instance.get('/api/de-tai/$deTaiId');
+          if (res is Map<String, dynamic>) {
+            return TopicModel.fromJson(res);
+          }
+        } catch (_) {}
+        return null;
+      },
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// Tải danh sách đề tài đồ án
-  Future<List<TopicModel>> fetchTopics({int? dotDangKyId, int? lopHocPhanId}) async {
-    final params = <String>[];
-    if (dotDangKyId != null) params.add('dotDangKyId=$dotDangKyId');
-    if (lopHocPhanId != null) params.add('lopHocPhanId=$lopHocPhanId');
-    final query = params.isNotEmpty ? '?${params.join('&')}' : '';
-    final path = '/api/de-tai$query';
-    final res = await ApiService.instance.get(path);
+  Future<List<TopicModel>> fetchTopics({
+    int? dotDangKyId,
+    int? lopHocPhanId,
+    bool forceRefresh = false,
+  }) async {
+    final key = 'topics_${dotDangKyId ?? 'all'}_${lopHocPhanId ?? 'all'}';
+    return DataCacheService.instance.getOrFetch<List<TopicModel>>(
+      key,
+      () async {
+        final params = <String>[];
+        if (dotDangKyId != null) params.add('dotDangKyId=$dotDangKyId');
+        if (lopHocPhanId != null) params.add('lopHocPhanId=$lopHocPhanId');
+        final query = params.isNotEmpty ? '?${params.join('&')}' : '';
+        final path = '/api/de-tai$query';
+        final res = await ApiService.instance.get(path);
 
-    final List<dynamic> list;
-    if (res is List) {
-      list = res;
-    } else if (res is Map && res['value'] is List) {
-      list = res['value'] as List;
-    } else if (res is Map && res['data'] is List) {
-      list = res['data'] as List;
-    } else {
-      list = [];
-    }
-
-    return list
-        .map((e) => TopicModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+        final list = _extractList(res);
+        return list
+            .map((e) => TopicModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      },
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// Tải thông tin hồ sơ sinh viên
-  Future<UserProfileModel> fetchProfile() async {
-    dynamic res;
-    try {
-      res = await ApiService.instance.get('/api/profile');
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) {
-        res = await ApiService.instance.get('/api/auth/me');
-      } else {
-        rethrow;
-      }
-    }
+  Future<UserProfileModel> fetchProfile({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<UserProfileModel>(
+      'user_profile',
+      () async {
+        dynamic res;
+        try {
+          res = await ApiService.instance.get('/api/profile');
+        } on ApiException catch (e) {
+          if (e.statusCode == 404) {
+            res = await ApiService.instance.get('/api/auth/me');
+          } else {
+            rethrow;
+          }
+        }
 
-    if (res is Map<String, dynamic>) {
-      return UserProfileModel.fromJson(res);
-    }
-    throw ApiException('Dữ liệu hồ sơ người dùng không hợp lệ.');
+        if (res is Map<String, dynamic>) {
+          return UserProfileModel.fromJson(res);
+        }
+        throw ApiException('Dữ liệu hồ sơ người dùng không hợp lệ.');
+      },
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  List<dynamic> _extractList(dynamic res) {
+    if (res is List) return res;
+    if (res is Map && res['value'] is List) return res['value'] as List;
+    if (res is Map && res['data'] is List) return res['data'] as List;
+    return const [];
+  }
+
+  /// Đổi địa chỉ email sinh viên
+  Future<void> changeEmail(String newEmail, [String? otp]) async {
+    await ApiService.instance.put('/api/auth/change-email', {
+      'email': newEmail,
+      if (otp != null && otp.isNotEmpty) 'otp': otp,
+    });
+  }
+
+  /// Đổi mật khẩu sinh viên
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    await ApiService.instance.put('/api/auth/change-password', {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+    });
   }
 
   /// Đăng ký đề tài cho nhóm
@@ -140,53 +195,61 @@ class StudentApiService {
   }
 
   /// Tải danh sách thông báo
-  Future<List<dynamic>> fetchNotifications() async {
-    final res = await ApiService.instance.get('/api/notifications');
-    if (res is List) {
-      return res;
-    } else if (res is Map && res['value'] is List) {
-      return res['value'] as List;
-    } else if (res is Map && res['data'] is List) {
-      return res['data'] as List;
-    }
-    return [];
+  Future<List<dynamic>> fetchNotifications({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<List<dynamic>>(
+      'notifications_list',
+      () async {
+        final res = await ApiService.instance.get('/api/notifications');
+        return _extractList(res);
+      },
+      ttl: const Duration(seconds: 15),
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// Tải số lượng thông báo chưa đọc
-  Future<int> fetchUnreadCount() async {
-    try {
-      final res =
-          await ApiService.instance.get('/api/notifications/unread-count');
-      if (res is Map && res.containsKey('count')) {
-        return res['count'] as int? ?? 0;
-      }
-      if (res is Map && res.containsKey('unreadCount')) {
-        return res['unreadCount'] as int? ?? 0;
-      }
-      if (res is int) return res;
-    } catch (_) {
-      // Bỏ qua lỗi và chuyển sang đếm thủ công từ danh sách thông báo
-    }
-
-    try {
-      final notifs = await fetchNotifications();
-      return notifs.where((n) {
-        if (n is Map) {
-          final isRead = n['isRead'] as bool? ??
-              !(n['unread'] as bool? ?? false);
-          return !isRead;
+  Future<int> fetchUnreadCount({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<int>(
+      'notifications_unread_count',
+      () async {
+        try {
+          final res =
+              await ApiService.instance.get('/api/notifications/unread-count');
+          if (res is Map && res.containsKey('count')) {
+            return res['count'] as int? ?? 0;
+          }
+          if (res is Map && res.containsKey('unreadCount')) {
+            return res['unreadCount'] as int? ?? 0;
+          }
+          if (res is int) return res;
+        } catch (_) {
+          // Bỏ qua lỗi và chuyển sang đếm thủ công từ danh sách thông báo
         }
-        return false;
-      }).length;
-    } catch (_) {
-      return 0;
-    }
+
+        try {
+          final notifs = await fetchNotifications(forceRefresh: forceRefresh);
+          return notifs.where((n) {
+            if (n is Map) {
+              final isRead = n['isRead'] as bool? ??
+                  !(n['unread'] as bool? ?? false);
+              return !isRead;
+            }
+            return false;
+          }).length;
+        } catch (_) {
+          return 0;
+        }
+      },
+      ttl: const Duration(seconds: 15),
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// Đánh dấu 1 thông báo đã đọc trên máy chủ
   Future<void> markAsRead(int id) async {
     try {
       await ApiService.instance.put('/api/notifications/$id/read', {});
+      DataCacheService.instance.invalidatePrefix('notifications');
     } catch (_) {}
   }
 
@@ -194,6 +257,7 @@ class StudentApiService {
   Future<void> markAllAsRead() async {
     try {
       await ApiService.instance.put('/api/notifications/read-all', {});
+      DataCacheService.instance.invalidatePrefix('notifications');
     } catch (_) {}
   }
 

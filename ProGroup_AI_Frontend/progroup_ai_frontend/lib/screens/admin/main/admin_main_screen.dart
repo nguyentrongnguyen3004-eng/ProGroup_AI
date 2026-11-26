@@ -25,6 +25,7 @@ class AdminMainScreen extends StatefulWidget {
 
 class _AdminMainScreenState extends State<AdminMainScreen> {
   int _selectedIndex = 0;
+  final Set<int> _initializedTabs = {0};
   int _unreadCount = 0;
 
   @override
@@ -50,7 +51,10 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
 
   void _openSection(int index) {
     if (index < 0 || index >= 5 || index == _selectedIndex) return;
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _initializedTabs.add(index);
+      _selectedIndex = index;
+    });
     if (index == 3) _loadUnread();
   }
 
@@ -115,16 +119,24 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                 onOpenNotifications: () => _openSection(3),
                 onOpenProfile: () => _openSection(4),
               ),
-              AdminUserScreen(
-                key: ValueKey('admin_user_$lang'),
-                currentAdminId: widget.user.id,
-              ),
-              AdminDataManagementScreen(key: ValueKey('admin_data_$lang')),
-              AdminNotificationScreen(key: ValueKey('admin_notif_$lang')),
-              AdminProfileScreen(
-                key: ValueKey('admin_prof_$lang'),
-                user: widget.user,
-              ),
+              _initializedTabs.contains(1)
+                  ? AdminUserScreen(
+                      key: ValueKey('admin_user_$lang'),
+                      currentAdminId: widget.user.id,
+                    )
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(2)
+                  ? AdminDataManagementScreen(key: ValueKey('admin_data_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(3)
+                  ? AdminNotificationScreen(key: ValueKey('admin_notif_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(4)
+                  ? AdminProfileScreen(
+                      key: ValueKey('admin_prof_$lang'),
+                      user: widget.user,
+                    )
+                  : const SizedBox.shrink(),
             ],
           ),
           bottomNavigationBar: UnifiedRoleBottomNav(

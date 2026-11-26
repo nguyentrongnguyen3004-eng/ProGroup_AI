@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/admin_activity_model.dart';
+import '../../../services/admin_api_service.dart';
 import '../../admin/admin_helpers.dart';
 
 class AdminActivityLogScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class AdminActivityLogScreen extends StatefulWidget {
 class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
   final _query = TextEditingController();
   final String _action = 'Tất cả';
+  bool _isLoading = false;
 
   final List<AdminActivityModel> _activities = [
     AdminActivityModel(
@@ -26,6 +28,37 @@ class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
       status: 'Thành công',
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivities();
+  }
+
+  Future<void> _loadActivities() async {
+    setState(() => _isLoading = true);
+    try {
+      final list = await AdminApiService.instance.fetchActivityLogs();
+      if (list.isNotEmpty && mounted) {
+        setState(() {
+          _activities.clear();
+          for (final item in list) {
+            _activities.add(AdminActivityModel(
+              id: item['id'] as int? ?? 0,
+              time: DateTime.tryParse(item['time']?.toString() ?? '') ?? DateTime.now(),
+              actor: item['actor'] as String? ?? 'Hệ thống',
+              action: item['action'] as String? ?? 'Hoạt động',
+              target: item['target'] as String? ?? '',
+              description: item['description'] as String? ?? '',
+              role: item['role'] as String? ?? 'Quản trị viên',
+              status: item['status'] as String? ?? 'Thành công',
+            ));
+          }
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   void dispose() {
@@ -85,9 +118,12 @@ class _AdminActivityLogScreenState extends State<AdminActivityLogScreen> {
                 ),
               ),
             ),
+            if (_isLoading) const LinearProgressIndicator(),
             Expanded(
-              child: entries.isEmpty
-                  ? Center(
+              child: _isLoading && entries.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : entries.isEmpty
+                      ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

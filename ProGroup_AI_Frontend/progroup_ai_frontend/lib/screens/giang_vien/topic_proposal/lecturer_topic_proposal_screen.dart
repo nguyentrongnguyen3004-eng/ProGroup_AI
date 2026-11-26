@@ -70,9 +70,13 @@ class _LecturerTopicProposalScreenState
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    final filteredProposals = _proposals
-        .where((item) => _status == 'Tất cả' || item.status == _status)
-        .toList();
+    final filteredProposals = _proposals.where((item) {
+      if (_status == 'Tất cả') return true;
+      if (_status == 'Đã từ chối') {
+        return item.status == 'Từ chối' || item.status == 'Đã từ chối';
+      }
+      return item.status == _status;
+    }).toList();
 
     final pendingCount = _proposals
         .where((item) => item.status == 'Chờ duyệt')

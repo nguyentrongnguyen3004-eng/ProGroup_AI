@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../services/api_service.dart';
 
 /// Modal bottom sheet đẹp mắt, hiện đại phục vụ việc đổi địa chỉ email cho tất cả các role.
 class ChangeEmailDialog extends StatefulWidget {
   final String currentEmail;
-  final Future<void> Function(String newEmail)? onConfirm;
+  final dynamic onConfirm;
 
   const ChangeEmailDialog({
     super.key,
@@ -17,7 +18,7 @@ class ChangeEmailDialog extends StatefulWidget {
   static Future<String?> show(
     BuildContext context, {
     required String currentEmail,
-    Future<void> Function(String newEmail)? onConfirm,
+    dynamic onConfirm,
   }) {
     return showModalBottomSheet<String>(
       context: context,
@@ -69,7 +70,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
     });
   }
 
-  void _submitEmail() {
+  Future<void> _submitEmail() async {
     final newEmail = _emailController.text.trim();
     final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -104,10 +105,51 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
     }
 
     setState(() {
+      _isLoading = true;
       _errorMessage = null;
-      _step = 1;
     });
-    _startResendCountdown();
+
+    try {
+      await ApiService.instance.post('/api/auth/change-email/send-otp', {'email': newEmail});
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _step = 1;
+        });
+        _startResendCountdown();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e is ApiException ? e.message : e.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _resendOtp() async {
+    if (_resendTimer > 0) return;
+    final newEmail = _emailController.text.trim();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ApiService.instance.post('/api/auth/change-email/send-otp', {'email': newEmail});
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _startResendCountdown();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e is ApiException ? e.message : e.toString();
+        });
+      }
+    }
   }
 
   Future<void> _verifyOtp() async {
@@ -122,17 +164,6 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
       return;
     }
 
-    // Demo OTP chấp nhận 123456 hoặc bất kỳ 6 số hợp lệ
-    if (otp != '123456') {
-      setState(() {
-        _errorMessage = AppLocalizations.text(
-          'Mã OTP không chính xác. Thử lại với mã thử nghiệm: 123456',
-          en: 'Incorrect OTP. Try again with demo code: 123456',
-        );
-      });
-      return;
-    }
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -141,7 +172,9 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
     try {
       final newEmail = _emailController.text.trim();
       if (widget.onConfirm != null) {
-        await widget.onConfirm!(newEmail);
+        await widget.onConfirm!(newEmail, otp);
+      } else {
+        await ApiService.instance.put('/api/auth/change-email', {'email': newEmail, 'otp': otp});
       }
       if (mounted) {
         Navigator.of(context).pop(newEmail);
@@ -150,7 +183,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = e.toString();
+          _errorMessage = e is ApiException ? e.message : e.toString();
         });
       }
     }
@@ -471,35 +504,6 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
           },
         ),
 
-        // Hint Demo OTP
-        Center(
-          child: Container(
-            margin: const EdgeInsets.only(top: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: colors.secondaryContainer.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.touch_app_outlined, size: 15, color: colors.onSecondaryContainer),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    AppLocalizations.text('Mã thử nghiệm: 123456', en: 'Demo OTP: 123456'),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSecondaryContainer,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
         if (_errorMessage != null) ...[
           const SizedBox(height: 14),
           Container(
@@ -534,7 +538,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
                   style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
                 )
               : TextButton.icon(
-                  onPressed: _startResendCountdown,
+                  onPressed: _isLoading ? null : _resendOtp,
                   icon: const Icon(Icons.refresh, size: 18),
                   label: Text(
                     AppLocalizations.text('Gửi lại mã OTP', en: 'Resend OTP Code'),

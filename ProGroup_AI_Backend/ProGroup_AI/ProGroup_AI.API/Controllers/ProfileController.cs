@@ -224,10 +224,18 @@ public sealed class ProfileController : ControllerBase
             }
         }
 
-        if (bytes.Length > 5 * 1024 * 1024)
+        if (bytes.Length > 10 * 1024 * 1024)
         {
-            return BadRequest(new { message = "Kích thước ảnh tối đa là 5MB." });
+            return BadRequest(new { message = "Ảnh đại diện không được vượt quá 10MB." });
         }
+
+        // TC_NFR_012: Kiểm tra magic bytes thực tế để chặn file thực thi giả dạng ảnh (.exe.jpg, .sh.jpg)
+        var detectedFormat = DetectImageFormat(bytes);
+        if (detectedFormat is null)
+        {
+            return BadRequest(new { message = "Nội dung tệp không phải hình ảnh hợp lệ (chỉ hỗ trợ JPG, PNG, WEBP, GIF)." });
+        }
+        extension = detectedFormat.Value.Extension;
 
         var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         var avatarsDir = Path.Combine(wwwroot, "uploads", "avatars");
@@ -237,13 +245,7 @@ public sealed class ProfileController : ControllerBase
         }
 
         var fileName = $"user_{userId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{extension}";
-        string contentType = extension switch
-        {
-            ".png" => "image/png",
-            ".webp" => "image/webp",
-            ".gif" => "image/gif",
-            _ => "image/jpeg"
-        };
+        string contentType = detectedFormat.Value.ContentType;
 
         string savedAvatarUrl;
         if (_r2Service.IsConfigured)
@@ -289,5 +291,28 @@ public sealed class ProfileController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { avatarUrl = savedAvatarUrl, message = "Cập nhật ảnh đại diện thành công." });
+    }
+
+    private static (string Extension, string ContentType)? DetectImageFormat(byte[] bytes)
+    {
+        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
+            return (".jpg", "image/jpeg");
+
+        if (bytes.Length >= 8 &&
+            bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 &&
+            bytes[4] == 0x0D && bytes[5] == 0x0A && bytes[6] == 0x1A && bytes[7] == 0x0A)
+            return (".png", "image/png");
+
+        if (bytes.Length >= 6 &&
+            bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38 &&
+            (bytes[4] == 0x37 || bytes[4] == 0x39) && bytes[5] == 0x61)
+            return (".gif", "image/gif");
+
+        if (bytes.Length >= 12 &&
+            bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+            bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50)
+            return (".webp", "image/webp");
+
+        return null;
     }
 }

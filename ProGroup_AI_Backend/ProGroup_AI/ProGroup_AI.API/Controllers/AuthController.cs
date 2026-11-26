@@ -85,6 +85,7 @@ public class AuthController : ControllerBase
             TenDangNhap = user.TenDangNhap,
             HoTen = user.HoTen,
             Email = user.Email,
+            SoDienThoai = user.SoDienThoai,
             MaVaiTro = user.VaiTro?.MaVaiTro ?? string.Empty,
             TenVaiTro = user.VaiTro?.TenVaiTro ?? string.Empty,
             SinhVienId = user.SinhVien?.SinhVienId,
@@ -96,7 +97,59 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("change-email/send-otp")]
+    public async Task<IActionResult> SendChangeEmailOtp([FromBody] ChangeEmailRequest request)
+    {
+        var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idValue, out var userId)) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest(new { success = false, message = "Địa chỉ email mới không được để trống." });
+
+        var cleanEmail = request.Email.Trim();
+        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId);
+        if (user is null) return NotFound(new { success = false, message = "Không tìm thấy tài khoản." });
+
+        if (cleanEmail.Equals(user.Email, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { success = false, message = "Email mới phải khác với email hiện tại." });
+
+        var emailExists = await _context.NguoiDungs.AnyAsync(x => x.Email == cleanEmail && x.NguoiDungId != userId);
+        if (emailExists)
+            return Conflict(new { success = false, message = "Email này đã được sử dụng bởi tài khoản khác." });
+
+        var otpCode = Random.Shared.Next(100000, 999999).ToString();
+        var otpHash = BCrypt.Net.BCrypt.HashPassword(otpCode);
+
+        var oldOtps = await _context.PasswordResetOtps
+            .Where(x => x.NguoiDungId == user.NguoiDungId && !x.IsUsed)
+            .ToListAsync();
+        foreach (var old in oldOtps)
+        {
+            old.IsUsed = true;
+        }
+
+        var otpRecord = new PasswordResetOtp
+        {
+            NguoiDungId = user.NguoiDungId,
+            OtpCodeHash = otpHash,
+            ExpiredAt = DateTime.Now.AddMinutes(5),
+            CreatedAt = DateTime.Now,
+            IsUsed = false,
+            SoLanThu = 0
+        };
+        _context.PasswordResetOtps.Add(otpRecord);
+        await _context.SaveChangesAsync();
+
+        var sent = await _emailService.SendOtpEmailAsync(cleanEmail, otpCode, user.HoTen, "đổi địa chỉ email");
+        if (!sent)
+            return StatusCode(StatusCodes.Status502BadGateway, new { success = false, message = "Không thể gửi mã OTP qua email lúc này. Vui lòng thử lại sau." });
+
+        return Ok(new { success = true, message = "Mã xác thực OTP đã được gửi tới email mới của bạn." });
+    }
+
+    [Authorize]
     [HttpPut("change-email")]
+    [HttpPost("change-email")]
     public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
     {
         var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -104,6 +157,9 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(request.Email))
             return BadRequest(new { message = "Email không được để trống." });
+
+        if (string.IsNullOrWhiteSpace(request.Otp))
+            return BadRequest(new { message = "Vui lòng nhập mã xác thực OTP được gửi tới email mới." });
 
         var cleanEmail = request.Email.Trim();
         var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId);
@@ -113,25 +169,55 @@ public class AuthController : ControllerBase
         if (emailExists)
             return Conflict(new { message = "Email này đã được sử dụng bởi tài khoản khác." });
 
+        var validOtp = await _context.PasswordResetOtps
+            .Where(x => x.NguoiDungId == user.NguoiDungId && !x.IsUsed && x.ExpiredAt > DateTime.Now)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (validOtp is null)
+            return BadRequest(new { message = "Mã OTP đã hết hạn hoặc không tồn tại. Vui lòng yêu cầu mã mới." });
+
+        if (validOtp.SoLanThu >= 5)
+        {
+            validOtp.IsUsed = true;
+            await _context.SaveChangesAsync();
+            return BadRequest(new { message = "Bạn đã nhập sai OTP quá 5 lần. Vui lòng yêu cầu mã mới." });
+        }
+
+        var isCorrect = BCrypt.Net.BCrypt.Verify(request.Otp.Trim(), validOtp.OtpCodeHash);
+        if (!isCorrect)
+        {
+            validOtp.SoLanThu += 1;
+            await _context.SaveChangesAsync();
+            return BadRequest(new { message = $"Mã OTP không chính xác. Bạn còn {5 - validOtp.SoLanThu} lần thử." });
+        }
+
+        validOtp.IsUsed = true;
+
         user.Email = cleanEmail;
         await _context.SaveChangesAsync();
-        return Ok(new { success = true, email = user.Email });
+        return Ok(new { success = true, email = user.Email, message = "Đổi email thành công." });
     }
 
     [Authorize]
     [HttpPut("change-password")]
+    [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(idValue, out var userId)) return Unauthorized();
 
-        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+        var currentPass = request.GetEffectiveCurrentPassword();
+        if (string.IsNullOrWhiteSpace(currentPass) || string.IsNullOrWhiteSpace(request.NewPassword))
             return BadRequest(new { message = "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới." });
+
+        if (request.NewPassword.Trim().Length < 6)
+            return BadRequest(new { message = "Mật khẩu mới phải có ít nhất 6 ký tự." });
 
         var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId);
         if (user is null) return NotFound(new { message = "Không tìm thấy tài khoản." });
 
-        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.MatKhauHash))
+        if (!BCrypt.Net.BCrypt.Verify(currentPass, user.MatKhauHash))
             return BadRequest(new { message = "Mật khẩu hiện tại không chính xác." });
 
         user.MatKhauHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);

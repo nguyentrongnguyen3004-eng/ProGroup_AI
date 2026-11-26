@@ -484,7 +484,7 @@ class _LecturerReviewReportsScreenState extends State<LecturerReviewReportsScree
                                                 borderRadius: BorderRadius.circular(8),
                                                 border: Border.all(color: Colors.amber.shade200),
                                               ),
-                                              child: Text('Nhận xét: ', style: const TextStyle(fontSize: 12.5, color: Colors.black87)),
+                                              child: Text('Nhận xét: $feedback', style: const TextStyle(fontSize: 12.5, color: Colors.black87)),
                                             ),
                                           ],
                                           const SizedBox(height: 12),

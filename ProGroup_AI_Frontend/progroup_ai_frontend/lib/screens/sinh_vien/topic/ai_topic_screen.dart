@@ -791,7 +791,7 @@ Mô tả: ${suggestion.description}
 
                         runSpacing: 6,
 
-                        children: [3, 5, 10].map((count) {
+                        children: [1, 2, 3, 5, 10].map((count) {
 
                           final isSelected = _topicCount == count;
 

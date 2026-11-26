@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
@@ -10,6 +9,7 @@ import '../models/lecturer_model.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
 import 'avatar_service.dart';
+import 'data_cache_service.dart';
 import 'lecturer_api_service.dart';
 
 class AuthService {
@@ -17,6 +17,7 @@ class AuthService {
   static String? savedUsername;
   static String? savedPassword;
   static UserModel? _currentUser;
+  static Future<bool>? _reAuthFuture;
   static UserModel get currentUser => _currentUser ?? MockUser.student;
   static set currentUser(UserModel? user) => _currentUser = user;
 
@@ -25,29 +26,71 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       currentToken ??= prefs.getString('auth_token');
       savedUsername ??= prefs.getString('auth_username');
-      savedPassword ??= prefs.getString('auth_password');
+      if (prefs.containsKey('auth_password')) {
+        await prefs.remove('auth_password');
+      }
     } catch (_) {}
+  }
+
+  /// Khôi phục phiên đăng nhập từ JWT Token đã lưu trong SharedPreferences (TC_AUTH_014)
+  static Future<UserModel?> restoreSession() async {
+    if (currentToken == null || currentToken!.trim().isEmpty) {
+      await loadSavedToken();
+    }
+    if (currentToken == null || currentToken!.trim().isEmpty) return null;
+    if (_currentUser != null) return _currentUser;
+    try {
+      final res = await ApiService.instance
+          .get('/api/auth/me')
+          .timeout(const Duration(seconds: 3));
+      if (res is Map<String, dynamic>) {
+        final maVaiTro = (res['maVaiTro'] as String? ?? '').toUpperCase();
+        final mappedRole = switch (maVaiTro) {
+          'GIANGVIEN' => 'LECTURER',
+          'SINHVIEN' => 'SINHVIEN',
+          'GIAOVUKHOA' => 'GIAOVU',
+          'PHONGDAOTAO' => 'PHONG_DAO_TAO',
+          'ADMIN' => 'ADMIN',
+          _ => maVaiTro,
+        };
+        final user = UserModel(
+          id: res['nguoiDungId'] as int? ?? 1,
+          username: res['tenDangNhap'] as String? ?? (savedUsername ?? ''),
+          fullName: res['hoTen'] as String? ?? '',
+          email: res['email'] as String? ?? '',
+          role: mappedRole,
+          roleName: res['tenVaiTro'] as String? ?? mappedRole,
+          mssv: res['mssv'] as String?,
+          avatarUrl: res['avatarUrl'] as String?,
+        );
+        currentUser = user;
+        DataCacheService.instance.setUserScope('${user.username}_${user.role}');
+        await AvatarService.instance.switchUser(user.username, user.avatarUrl);
+        return user;
+      }
+    } catch (_) {
+      // Token hết hạn hoặc không hợp lệ -> hủy phiên để bắt đăng nhập lại
+      logout();
+    }
+    return null;
   }
 
   /// Tự động lấy token mới từ Backend nếu đang thiếu token hoặc token hết hạn/lỗi
   static Future<bool> ensureValidToken() async {
     if (currentToken != null && currentToken!.isNotEmpty) return true;
-    final u = savedUsername ?? _currentUser?.username;
-    final p = savedPassword ?? '123456';
-    if (u != null && u.trim().isNotEmpty) {
-      try {
-        final service = AuthService();
-        final res = await service._loginViaApi(u.trim(), p);
-        return res != null && currentToken != null;
-      } catch (_) {
-        return false;
-      }
-    }
-    return false;
+    return reAuthenticate();
   }
 
-  /// Xác thực lại người dùng để cấp lại token khi gặp 401 hoặc 403
-  static Future<bool> reAuthenticate() async {
+  /// Xác thực lại người dùng để cấp lại token khi gặp 401 hoặc 403 (có khóa chống gọi trùng lặp)
+  static Future<bool> reAuthenticate() {
+    if (_reAuthFuture != null) return _reAuthFuture!;
+    _reAuthFuture = _reAuthenticateImpl().whenComplete(() {
+      _reAuthFuture = null;
+    });
+    return _reAuthFuture!;
+  }
+
+  static Future<bool> _reAuthenticateImpl() async {
     currentToken = null;
     final u = savedUsername ?? _currentUser?.username;
     final p = savedPassword ?? '123456';
@@ -67,12 +110,16 @@ class AuthService {
     final cleanUsername = username.trim();
     final cleanPassword = password.trim();
 
+    DataCacheService.instance.invalidateAll();
+    DataCacheService.instance.setUserScope(cleanUsername);
+    LecturerApiService.instance.clearCache();
+
     savedUsername = cleanUsername;
     savedPassword = cleanPassword;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_username', cleanUsername);
-      await prefs.setString('auth_password', cleanPassword);
+      await prefs.remove('auth_password');
     } catch (_) {}
 
     // 1. Ưu tiên gọi API Backend thực tế
@@ -102,9 +149,7 @@ class AuthService {
       throw ApiException('Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động.', 401);
     }
     if (cleanUsername.toLowerCase().contains('khoa') ||
-        cleanUsername.toLowerCase().contains('locked') ||
-        cleanUsername == 'test_user_1792849805122' ||
-        cleanUsername == 'test_user_1792849965466') {
+        cleanUsername.toLowerCase().contains('locked')) {
       throw ApiException('Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động.', 401);
     }
 
@@ -194,7 +239,7 @@ class AuthService {
     for (final base in urls) {
       try {
         final uri = Uri.parse('$base/api/auth/login');
-        final response = await http.post(
+        final response = await ApiService.client.post(
           uri,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
@@ -238,7 +283,6 @@ class AuthService {
                 department: 'Bộ môn Công nghệ phần mềm',
                 avatar: '',
               ));
-              LecturerApiService.instance.syncAllData();
             }
 
             final loggedInUser = UserModel(
@@ -252,6 +296,7 @@ class AuthService {
               avatarUrl: userJson['avatarUrl'] as String?,
             );
             currentUser = loggedInUser;
+            DataCacheService.instance.setUserScope('${loggedInUser.username}_${loggedInUser.role}');
             await AvatarService.instance.switchUser(loggedInUser.username, loggedInUser.avatarUrl);
             return loggedInUser;
           }
@@ -286,6 +331,9 @@ class AuthService {
     savedUsername = null;
     savedPassword = null;
     _currentUser = null;
+    DataCacheService.instance.invalidateAll();
+    DataCacheService.instance.setUserScope('guest');
+    LecturerApiService.instance.clearCache();
     AvatarService.instance.reset();
     SharedPreferences.getInstance()
         .then((prefs) async {

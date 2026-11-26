@@ -6,6 +6,7 @@ import '../models/lecturer_model.dart';
 import '../models/lecturer_topic_proposal_model.dart';
 import '../models/topic_model.dart';
 import 'api_service.dart';
+import 'data_cache_service.dart';
 
 class LecturerApiService {
   LecturerApiService._();
@@ -17,6 +18,13 @@ class LecturerApiService {
   List<TopicModel> _cachedTopics = [];
   List<Map<String, dynamic>> _cachedNotifications = [];
 
+  void clearCache() {
+    _cachedCourses = [];
+    _cachedGroups = [];
+    _cachedTopics = [];
+    _cachedNotifications = [];
+  }
+
   List<LecturerCourseModel> get cachedCourses => List.unmodifiable(_cachedCourses);
   List<GroupModel> get cachedGroups => List.unmodifiable(_cachedGroups);
   List<TopicModel> get cachedTopics => List.unmodifiable(_cachedTopics);
@@ -24,129 +32,155 @@ class LecturerApiService {
 
   /// 1. Lấy danh sách lớp học phần của giảng viên
   /// GET /api/lecturer/courses (hoặc fallback /api/lop-hoc-phan/me, /api/lop-hoc-phan)
-  Future<List<LecturerCourseModel>> fetchCourses() async {
-    dynamic res;
-    try {
-      res = await ApiService.instance.get('/api/lecturer/courses');
-    } catch (_) {
-      try {
-        res = await ApiService.instance.get('/api/lop-hoc-phan/me');
-      } catch (_) {
-        res = await ApiService.instance.get('/api/lop-hoc-phan');
-      }
-    }
-
-    if (res is List) {
-      final List<LecturerCourseModel> list = [];
-      for (final item in res) {
-        if (item is Map<String, dynamic>) {
-          list.add(LecturerCourseModel.fromJson(item));
+  Future<List<LecturerCourseModel>> fetchCourses({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<List<LecturerCourseModel>>(
+      'lecturer_courses',
+      () async {
+        dynamic res;
+        try {
+          res = await ApiService.instance.get('/api/lecturer/courses');
+        } catch (_) {
+          try {
+            res = await ApiService.instance.get('/api/lop-hoc-phan/me');
+          } catch (_) {
+            res = await ApiService.instance.get('/api/lop-hoc-phan');
+          }
         }
-      }
-      _cachedCourses = list;
-      return list;
-    }
-    return _cachedCourses;
+
+        if (res is List) {
+          final List<LecturerCourseModel> list = [];
+          for (final item in res) {
+            if (item is Map<String, dynamic>) {
+              list.add(LecturerCourseModel.fromJson(item));
+            }
+          }
+          _cachedCourses = list;
+          return list;
+        }
+        return _cachedCourses;
+      },
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  /// Cập nhật cấu hình lớp học phần (số lượng SV/nhóm, thời gian đăng ký...)
+  /// PUT /api/lop-hoc-phan/{id}/cau-hinh
+  Future<void> updateCourseSettings(int courseId, Map<String, dynamic> settings) async {
+    await ApiService.instance.put('/api/lop-hoc-phan/$courseId/cau-hinh', settings);
+    try {
+      await fetchCourses();
+    } catch (_) {}
   }
 
   /// 2. Lấy danh sách nhóm đồ án
   /// GET /api/groups hoặc GET /api/lecturer/courses/{id}/groups
-  Future<List<GroupModel>> fetchGroups([int? lopHocPhanId]) async {
-    dynamic res;
-    if (lopHocPhanId != null) {
-      try {
-        res = await ApiService.instance.get('/api/lecturer/courses/$lopHocPhanId/groups');
-      } catch (_) {
-        try {
-          res = await ApiService.instance.get('/api/groups/course/$lopHocPhanId');
-        } catch (_) {
+  Future<List<GroupModel>> fetchGroups([int? lopHocPhanId, bool forceRefresh = false]) async {
+    return DataCacheService.instance.getOrFetch<List<GroupModel>>(
+      'lecturer_groups_${lopHocPhanId ?? 'all'}',
+      () async {
+        dynamic res;
+        if (lopHocPhanId != null) {
           try {
-            res = await ApiService.instance.get('/api/groups?lopHocPhanId=$lopHocPhanId');
-          } catch (_) {}
-        }
-      }
-    } else {
-      try {
-        res = await ApiService.instance.get('/api/groups');
-      } catch (_) {
-        // Nếu không có API lấy toàn bộ nhóm, duyệt qua các lớp đã cache
-        final allGroups = <GroupModel>[];
-        for (final c in _cachedCourses) {
+            res = await ApiService.instance.get('/api/lecturer/courses/$lopHocPhanId/groups');
+          } catch (_) {
+            try {
+              res = await ApiService.instance.get('/api/groups/course/$lopHocPhanId');
+            } catch (_) {
+              try {
+                res = await ApiService.instance.get('/api/groups?lopHocPhanId=$lopHocPhanId');
+              } catch (_) {}
+            }
+          }
+        } else {
           try {
-            final grps = await fetchGroups(c.id);
-            allGroups.addAll(grps);
-          } catch (_) {}
+            res = await ApiService.instance.get('/api/groups');
+          } catch (_) {
+            final allGroups = <GroupModel>[];
+            for (final c in _cachedCourses) {
+              try {
+                final grps = await fetchGroups(c.id);
+                allGroups.addAll(grps);
+              } catch (_) {}
+            }
+            if (allGroups.isNotEmpty) {
+              _cachedGroups = allGroups;
+              return allGroups;
+            }
+          }
         }
-        if (allGroups.isNotEmpty) {
-          _cachedGroups = allGroups;
-          return allGroups;
-        }
-      }
-    }
 
-    if (res is List) {
-      final List<GroupModel> list = [];
-      for (final item in res) {
-        if (item is Map<String, dynamic>) {
-          list.add(GroupModel.fromJson(item));
+        if (res is List) {
+          final List<GroupModel> list = [];
+          for (final item in res) {
+            if (item is Map<String, dynamic>) {
+              list.add(GroupModel.fromJson(item));
+            }
+          }
+          if (lopHocPhanId == null) {
+            _cachedGroups = list;
+          }
+          return list;
         }
-      }
-      if (lopHocPhanId == null) {
-        _cachedGroups = list;
-      }
-      return list;
-    }
-    return lopHocPhanId != null
-        ? _cachedGroups.where((g) => g.courseId == lopHocPhanId).toList()
-        : _cachedGroups;
+        return lopHocPhanId != null
+            ? _cachedGroups.where((g) => g.courseId == lopHocPhanId).toList()
+            : _cachedGroups;
+      },
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// 3. Lấy danh sách đề tài của giảng viên
   /// GET /api/de-tai/cua-toi hoặc GET /api/de-tai/lecturer-topics hoặc GET /api/de-tai
-  Future<List<TopicModel>> fetchTopics([int? courseId]) async {
-    dynamic res;
-    try {
-      res = await ApiService.instance.get('/api/de-tai/cua-toi');
-    } catch (_) {
-      try {
-        final query = courseId != null ? '?dotDangKyId=$courseId' : '';
-        res = await ApiService.instance.get('/api/de-tai/lecturer-topics$query');
-      } catch (_) {
+  Future<List<TopicModel>> fetchTopics([int? courseId, bool forceRefresh = false]) async {
+    return DataCacheService.instance.getOrFetch<List<TopicModel>>(
+      'lecturer_topics_${courseId ?? 'all'}',
+      () async {
+        dynamic res;
         try {
-          final query = courseId != null ? '?lopHocPhanId=$courseId' : '';
-          res = await ApiService.instance.get('/api/de-tai$query');
-        } catch (_) {}
-      }
-    }
-
-    if (res is List) {
-      final List<TopicModel> list = [];
-      for (final item in res) {
-        if (item is Map<String, dynamic>) {
-          list.add(TopicModel.fromJson(item));
+          res = await ApiService.instance.get('/api/de-tai/cua-toi');
+        } catch (_) {
+          try {
+            final query = courseId != null ? '?dotDangKyId=$courseId' : '';
+            res = await ApiService.instance.get('/api/de-tai/lecturer-topics$query');
+          } catch (_) {
+            try {
+              final query = courseId != null ? '?lopHocPhanId=$courseId' : '';
+              res = await ApiService.instance.get('/api/de-tai$query');
+            } catch (_) {}
+          }
         }
-      }
-      _cachedTopics = list;
-      if (courseId != null) {
-        return list
-            .where((t) =>
-                t.courseId == courseId ||
-                t.lopHocPhanId == courseId ||
-                t.dotDangKyId == courseId)
-            .toList();
-      }
-      return list;
-    }
 
-    if (courseId != null) {
-      return _cachedTopics
-          .where((t) =>
-              t.courseId == courseId ||
-              t.lopHocPhanId == courseId ||
-              t.dotDangKyId == courseId)
-          .toList();
-    }
-    return _cachedTopics;
+        if (res is List) {
+          final List<TopicModel> list = [];
+          for (final item in res) {
+            if (item is Map<String, dynamic>) {
+              list.add(TopicModel.fromJson(item));
+            }
+          }
+          _cachedTopics = list;
+          if (courseId != null) {
+            return list
+                .where((t) =>
+                    t.courseId == courseId ||
+                    t.lopHocPhanId == courseId ||
+                    t.dotDangKyId == courseId)
+                .toList();
+          }
+          return list;
+        }
+
+        if (courseId != null) {
+          return _cachedTopics
+              .where((t) =>
+                  t.courseId == courseId ||
+                  t.lopHocPhanId == courseId ||
+                  t.dotDangKyId == courseId)
+              .toList();
+        }
+        return _cachedTopics;
+      },
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// 4. Thống kê số liệu
@@ -201,34 +235,41 @@ class LecturerApiService {
 
   /// 5. Lấy danh sách thông báo
   /// GET /api/notifications
-  Future<List<Map<String, dynamic>>> fetchNotifications() async {
-    final res = await ApiService.instance.get('/api/notifications');
-    if (res is List) {
-      final List<Map<String, dynamic>> parsed = [];
-      for (final item in res) {
-        if (item is Map<String, dynamic>) {
-          final type = item['type'] as String? ?? 'Hệ thống';
-          final icon = switch (type) {
-            'Đề tài' => Icons.lightbulb_outline_rounded,
-            'Đăng ký' => Icons.assignment_outlined,
-            'Nhóm' => Icons.groups_outlined,
-            _ => Icons.notifications_none_rounded,
-          };
-          parsed.add({
-            'id': item['id'] as int? ?? item['thongBaoId'] as int? ?? 0,
-            'type': type,
-            'icon': icon,
-            'title': item['title'] as String? ?? item['tieuDe'] as String? ?? 'Thông báo',
-            'content': item['content'] as String? ?? item['noiDung'] as String? ?? '',
-            'time': item['time'] as String? ?? item['createdAt'] as String? ?? 'Gần đây',
-            'isRead': item['isRead'] as bool? ?? item['daDoc'] as bool? ?? false,
-          });
+  Future<List<Map<String, dynamic>>> fetchNotifications({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<List<Map<String, dynamic>>>(
+      'lecturer_notifications',
+      () async {
+        final res = await ApiService.instance.get('/api/notifications');
+        if (res is List) {
+          final List<Map<String, dynamic>> parsed = [];
+          for (final item in res) {
+            if (item is Map<String, dynamic>) {
+              final type = item['type'] as String? ?? 'Hệ thống';
+              final icon = switch (type) {
+                'Đề tài' => Icons.lightbulb_outline_rounded,
+                'Đăng ký' => Icons.assignment_outlined,
+                'Nhóm' => Icons.groups_outlined,
+                _ => Icons.notifications_none_rounded,
+              };
+              parsed.add({
+                'id': item['id'] as int? ?? item['thongBaoId'] as int? ?? 0,
+                'type': type,
+                'icon': icon,
+                'title': item['title'] as String? ?? item['tieuDe'] as String? ?? 'Thông báo',
+                'content': item['content'] as String? ?? item['noiDung'] as String? ?? '',
+                'time': item['time'] as String? ?? item['createdAt'] as String? ?? 'Gần đây',
+                'isRead': item['isRead'] as bool? ?? item['daDoc'] as bool? ?? false,
+              });
+            }
+          }
+          _cachedNotifications = parsed;
+          return parsed;
         }
-      }
-      _cachedNotifications = parsed;
-      return parsed;
-    }
-    return _cachedNotifications;
+        return _cachedNotifications;
+      },
+      ttl: const Duration(seconds: 15),
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// Đánh dấu thông báo đã đọc
@@ -253,48 +294,55 @@ class LecturerApiService {
 
   /// 6. Lấy danh sách đăng ký đề tài
   /// GET /api/dang-ky-de-tai hoặc GET /api/de-tai/registrations
-  Future<List<Map<String, dynamic>>> fetchTopicRegistrations([int? courseId]) async {
-    dynamic res;
-    try {
-      res = await ApiService.instance.get('/api/dang-ky-de-tai');
-    } catch (_) {
-      try {
-        res = await ApiService.instance.get('/api/de-tai/registrations');
-      } catch (_) {}
-    }
-
-    if (res is List) {
-      final List<Map<String, dynamic>> list = [];
-      for (final item in res) {
-        if (item is Map<String, dynamic>) {
-          final regLopId = item['lopHocPhanId'] as int? ?? item['courseId'] as int?;
-          final regDotId = item['dotDangKyId'] as int?;
-          if (courseId != null && regLopId != null && regLopId != courseId && regDotId != courseId) {
-            continue;
-          }
-          list.add({
-            'id': item['id'] as int? ?? item['dangKyDeTaiId'] as int? ?? 0,
-            'dangKyDeTaiId': item['dangKyDeTaiId'] as int? ?? item['id'] as int? ?? 0,
-            'groupId': item['groupId'] as int? ?? item['nhomId'] as int? ?? 0,
-            'nhomId': item['nhomId'] as int? ?? item['groupId'] as int? ?? 0,
-            'courseId': regLopId ?? 0,
-            'lopHocPhanId': regLopId ?? 0,
-            'dotDangKyId': regDotId ?? 0,
-            'groupName': item['groupName'] as String? ?? item['tenNhom'] as String? ?? item['nhomTen'] as String? ?? 'Nhóm',
-            'leaderName': item['leaderName'] as String? ?? item['tenTruongNhom'] as String? ?? item['truongNhomTen'] as String? ?? 'Trưởng nhóm',
-            'courseName': item['courseName'] as String? ?? item['tenLopHocPhan'] as String? ?? item['lopHocPhanTen'] as String? ?? '',
-            'topicId': item['topicId'] as int? ?? item['deTaiId'] as int? ?? 0,
-            'deTaiId': item['deTaiId'] as int? ?? item['topicId'] as int? ?? 0,
-            'topicTitle': item['topicTitle'] as String? ?? item['tenDeTai'] as String? ?? item['deTaiTen'] as String? ?? 'Đề tài',
-            'status': item['status'] as String? ?? item['trangThai'] as String? ?? 'Chờ duyệt',
-            'registeredAt': item['registeredAt'] ?? item['ngayDangKy'] ?? DateTime.now().toIso8601String(),
-            'note': item['note'] as String? ?? item['ghiChu'] as String?,
-          });
+  Future<List<Map<String, dynamic>>> fetchTopicRegistrations([int? courseId, bool forceRefresh = false]) async {
+    return DataCacheService.instance.getOrFetch<List<Map<String, dynamic>>>(
+      'lecturer_topic_regs_${courseId ?? 'all'}',
+      () async {
+        dynamic res;
+        try {
+          res = await ApiService.instance.get('/api/dang-ky-de-tai');
+        } catch (_) {
+          try {
+            res = await ApiService.instance.get('/api/de-tai/registrations');
+          } catch (_) {}
         }
-      }
-      return list;
-    }
-    return [];
+
+        if (res is List) {
+          final List<Map<String, dynamic>> list = [];
+          for (final item in res) {
+            if (item is Map<String, dynamic>) {
+              final regLopId = item['lopHocPhanId'] as int? ?? item['courseId'] as int?;
+              final regDotId = item['dotDangKyId'] as int?;
+              if (courseId != null && regLopId != null && regLopId != courseId && regDotId != courseId) {
+                continue;
+              }
+              list.add({
+                'id': item['id'] as int? ?? item['dangKyDeTaiId'] as int? ?? 0,
+                'dangKyDeTaiId': item['dangKyDeTaiId'] as int? ?? item['id'] as int? ?? 0,
+                'groupId': item['groupId'] as int? ?? item['nhomId'] as int? ?? 0,
+                'nhomId': item['nhomId'] as int? ?? item['groupId'] as int? ?? 0,
+                'courseId': regLopId ?? 0,
+                'lopHocPhanId': regLopId ?? 0,
+                'dotDangKyId': regDotId ?? 0,
+                'groupName': item['groupName'] as String? ?? item['tenNhom'] as String? ?? item['nhomTen'] as String? ?? 'Nhóm',
+                'leaderName': item['leaderName'] as String? ?? item['tenTruongNhom'] as String? ?? item['truongNhomTen'] as String? ?? 'Trưởng nhóm',
+                'courseName': item['courseName'] as String? ?? item['tenLopHocPhan'] as String? ?? item['lopHocPhanTen'] as String? ?? '',
+                'topicId': item['topicId'] as int? ?? item['deTaiId'] as int? ?? 0,
+                'deTaiId': item['deTaiId'] as int? ?? item['topicId'] as int? ?? 0,
+                'topicTitle': item['topicTitle'] as String? ?? item['tenDeTai'] as String? ?? item['deTaiTen'] as String? ?? 'Đề tài',
+                'status': item['status'] as String? ?? item['trangThai'] as String? ?? 'Chờ duyệt',
+                'registeredAt': item['registeredAt'] ?? item['ngayDangKy'] ?? DateTime.now().toIso8601String(),
+                'note': item['note'] as String? ?? item['ghiChu'] as String?,
+              });
+            }
+          }
+          return list;
+        }
+        return [];
+      },
+      ttl: const Duration(seconds: 15),
+      forceRefresh: forceRefresh,
+    );
   }
 
   /// 7. Duyệt / Từ chối đăng ký đề tài
@@ -377,16 +425,17 @@ class LecturerApiService {
   }
 
   /// 11. Lấy danh sách đề xuất đề tài từ sinh viên
-  /// GET /api/de-tai?nguonDeTai=Sinh viên đề xuất&trangThaiDuyet=Chờ duyệt
+  /// GET /api/de-tai/proposals (tối ưu sẵn lọc ở Backend)
   Future<List<LecturerTopicProposalModel>> fetchTopicProposals([int? courseId]) async {
     dynamic res;
     try {
-      res = await ApiService.instance.get(
-        '/api/de-tai?nguonDeTai=Sinh%20vi%C3%AAn%20%C4%91%E1%BB%81%20xu%E1%BA%A5t',
-      );
+      final query = courseId != null ? '?courseId=$courseId' : '';
+      res = await ApiService.instance.get('/api/de-tai/proposals$query');
     } catch (_) {
       try {
-        res = await ApiService.instance.get('/api/de-tai/proposals');
+        res = await ApiService.instance.get(
+          '/api/de-tai?nguonDeTai=Sinh%20vi%C3%AAn%20%C4%91%E1%BB%81%20xu%E1%BA%A5t',
+        );
       } catch (_) {
         res = await ApiService.instance.get('/api/de-tai');
       }
@@ -430,35 +479,41 @@ class LecturerApiService {
 
   /// 13. Tải hồ sơ giảng viên
   /// GET /api/profile hoặc /api/auth/me
-  Future<LecturerModel?> fetchProfile() async {
-    try {
-      dynamic res;
-      try {
-        res = await ApiService.instance.get('/api/profile');
-      } catch (_) {
-        res = await ApiService.instance.get('/api/auth/me');
-      }
-      if (res is Map<String, dynamic>) {
-        final avatar = (res['avatarUrl'] ?? res['avatar'] ?? '').toString();
-        final gvInfo = res['giangVien'] as Map<String, dynamic>?;
-        final hocVi = (gvInfo?['hocVi'] ?? res['hocVi'] ?? 'ThS.').toString();
-        final chuyenMon = (gvInfo?['chuyenMon'] ?? res['chuyenMon'] ?? 'Công nghệ phần mềm & Di động').toString();
-        final faculty = (gvInfo?['tenKhoa'] ?? res['tenKhoa'] ?? 'Khoa Công nghệ thông tin').toString();
-        return LecturerModel(
-          id: gvInfo?['giangVienId'] as int? ?? res['nguoiDungId'] as int? ?? 1,
-          lecturerCode: gvInfo?['maGiangVien'] as String? ?? res['tenDangNhap'] as String? ?? 'GV001',
-          fullName: res['hoTen'] as String? ?? 'Giảng viên',
-          email: res['email'] as String? ?? '',
-          phoneNumber: (res['soDienThoai'] ?? res['phoneNumber'] ?? '').toString(),
-          faculty: faculty,
-          department: 'Bộ môn Công nghệ phần mềm',
-          avatar: avatar,
-          hocVi: hocVi,
-          chuyenMon: chuyenMon,
-        );
-      }
-    } catch (_) {}
-    return null;
+  Future<LecturerModel?> fetchProfile({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<LecturerModel?>(
+      'lecturer_profile',
+      () async {
+        try {
+          dynamic res;
+          try {
+            res = await ApiService.instance.get('/api/profile');
+          } catch (_) {
+            res = await ApiService.instance.get('/api/auth/me');
+          }
+          if (res is Map<String, dynamic>) {
+            final avatar = (res['avatarUrl'] ?? res['avatar'] ?? '').toString();
+            final gvInfo = res['giangVien'] as Map<String, dynamic>?;
+            final hocVi = (gvInfo?['hocVi'] ?? res['hocVi'] ?? 'ThS.').toString();
+            final chuyenMon = (gvInfo?['chuyenMon'] ?? res['chuyenMon'] ?? 'Công nghệ phần mềm & Di động').toString();
+            final faculty = (gvInfo?['tenKhoa'] ?? res['tenKhoa'] ?? 'Khoa Công nghệ thông tin').toString();
+            return LecturerModel(
+              id: gvInfo?['giangVienId'] as int? ?? res['nguoiDungId'] as int? ?? 1,
+              lecturerCode: gvInfo?['maGiangVien'] as String? ?? res['tenDangNhap'] as String? ?? 'GV001',
+              fullName: res['hoTen'] as String? ?? 'Giảng viên',
+              email: res['email'] as String? ?? '',
+              phoneNumber: (res['soDienThoai'] ?? res['phoneNumber'] ?? '').toString(),
+              faculty: faculty,
+              department: 'Bộ môn Công nghệ phần mềm',
+              avatar: avatar,
+              hocVi: hocVi,
+              chuyenMon: chuyenMon,
+            );
+          }
+        } catch (_) {}
+        return null;
+      },
+      forceRefresh: forceRefresh,
+    );
   }
 
     /// Cập nhật thông tin giảng viên (Họ tên, SĐT, Học vị, Chuyên môn)
@@ -478,25 +533,21 @@ class LecturerApiService {
 
 /// 14. Đổi mật khẩu
   Future<bool> changePassword(String currentPassword, String newPassword) async {
-    try {
-      await ApiService.instance.post('/api/auth/change-password', {
-        'oldPassword': currentPassword,
-        'newPassword': newPassword,
-      });
-      return true;
-    } catch (_) {
-      return false;
-    }
+    await ApiService.instance.put('/api/auth/change-password', {
+      'currentPassword': currentPassword,
+      'oldPassword': currentPassword,
+      'newPassword': newPassword,
+    });
+    return true;
   }
 
   /// 15. Đổi email
-  Future<bool> changeEmail(String newEmail) async {
-    try {
-      await ApiService.instance.put('/api/auth/change-email', {'email': newEmail});
-      return true;
-    } catch (_) {
-      return false;
-    }
+  Future<bool> changeEmail(String newEmail, [String? otp]) async {
+    await ApiService.instance.put('/api/auth/change-email', {
+      'email': newEmail,
+      if (otp != null && otp.isNotEmpty) 'otp': otp,
+    });
+    return true;
   }
 
   /// Đồng bộ toàn bộ dữ liệu từ Backend API

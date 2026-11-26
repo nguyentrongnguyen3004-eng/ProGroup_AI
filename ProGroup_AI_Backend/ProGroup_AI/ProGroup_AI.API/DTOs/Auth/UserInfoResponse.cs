@@ -10,6 +10,8 @@ public class UserInfoResponse
 
     public string Email { get; set; } = string.Empty;
 
+    public string? SoDienThoai { get; set; }
+
     public string MaVaiTro { get; set; } = string.Empty;
 
     public string TenVaiTro { get; set; } = string.Empty;

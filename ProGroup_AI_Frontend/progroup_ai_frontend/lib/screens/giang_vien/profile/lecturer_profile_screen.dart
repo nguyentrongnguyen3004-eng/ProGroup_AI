@@ -7,6 +7,7 @@ import '../../../core/routes/app_routes.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../services/lecturer_api_service.dart';
+import '../../../services/auth_service.dart';
 import '../../../widgets/common/change_email_dialog.dart';
 import '../../../widgets/common/change_password_dialog.dart';
 import '../../../widgets/common/profile_avatar_picker_helper.dart';
@@ -644,11 +645,12 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
     final newEmail = await ChangeEmailDialog.show(
       context,
       currentEmail: currentEmail,
-      onConfirm: (email) async {
-        await LecturerApiService.instance.changeEmail(email);
+      onConfirm: (email, otp) async {
+        await LecturerApiService.instance.changeEmail(email, otp);
       },
     );
     if (newEmail != null && mounted) {
+      _loadProfile();
       _showMessage(
         AppLocalizations.text(
           'Đổi email thành công.',
@@ -1117,6 +1119,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
             ),
             FilledButton(
               onPressed: () {
+                AuthService.logout();
                 Navigator.pop(dialogContext);
                 Navigator.pushNamedAndRemoveUntil(
                   context,

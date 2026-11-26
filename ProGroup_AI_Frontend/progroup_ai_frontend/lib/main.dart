@@ -40,20 +40,20 @@ import 'services/firebase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppSettings.instance.init();
-  await ApiService.initCustomUrl();
-  await ApiService.autoDetectServer();
-  await AuthService.loadSavedToken();
+  await Future.wait([
+    AppSettings.instance.init(),
+    ApiService.initCustomUrl(),
+    AuthService.loadSavedToken(),
+  ]);
+  runApp(const ProGroupApp());
   if (!kIsWeb && defaultTargetPlatform != TargetPlatform.windows) {
-    try {
-      await FirebaseService.instance.initialize();
-    } catch (e) {
+    // Khởi tạo Firebase bất đồng bộ sau khi render khung hình đầu tiên để không làm chậm Cold Start
+    FirebaseService.instance.initialize().catchError((e) {
       if (kDebugMode) {
         print('Firebase init error: $e');
       }
-    }
+    });
   }
-  runApp(const ProGroupApp());
 }
 
 class ProGroupApp extends StatelessWidget {

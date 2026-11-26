@@ -16,6 +16,7 @@ import '../../../models/course_model.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../models/training_import_record_model.dart';
+import '../../../services/api_service.dart';
 
 enum GovernanceImportKind { students, lecturers, courses }
 
@@ -695,6 +696,20 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
               status: _validRows[index].cells[4],
             ),
         ]);
+        try {
+          final usersToImport = [
+            for (final row in _validRows)
+              {
+                'tenDangNhap': row.cells[0],
+                'hoTen': row.cells[1],
+                'email': row.cells[2],
+                'mssv': row.cells[0],
+                'vaiTro': 'SINHVIEN',
+                'matKhau': '123456aA@',
+              }
+          ];
+          await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+        } catch (_) {}
       case GovernanceImportKind.lecturers:
         final nextId = data.nextLecturerId;
         final faculty = data.lecturers.isEmpty
@@ -717,6 +732,20 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
             _validRows[index].cells[0]: _validRows[index].cells[4],
         };
         data.addLecturers(rows, statuses: statuses);
+        try {
+          final usersToImport = [
+            for (final row in _validRows)
+              {
+                'tenDangNhap': row.cells[0],
+                'hoTen': row.cells[1],
+                'email': row.cells[2],
+                'maGiangVien': row.cells[0],
+                'vaiTro': 'GIANGVIEN',
+                'matKhau': '123456aA@',
+              }
+          ];
+          await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+        } catch (_) {}
       case GovernanceImportKind.courses:
         final nextId = data.nextCourseId;
         data.addCourses([
@@ -733,6 +762,17 @@ class _GovernanceImportScreenState extends State<GovernanceImportScreen> {
               status: _validRows[index].cells[4],
             ),
         ]);
+        for (final row in _validRows) {
+          try {
+            await ApiService.instance.post('/api/lop-hoc-phan', {
+              'maLopHocPhan': row.cells[0],
+              'maHocPhan': row.cells[0].split('-').first,
+              'tenLopHocPhan': row.cells[1],
+              'namHoc': '2026-2027',
+              'soLuongToiDa': 50,
+            });
+          } catch (_) {}
+        }
     }
     data.recordImport(
       TrainingImportRecordModel(

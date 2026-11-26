@@ -22,13 +22,11 @@ public sealed class AdminController : ControllerBase
     [HttpGet("users")]
     public async Task<ActionResult<IReadOnlyList<AdminUserResponse>>> GetUsers(
         [FromQuery] string? role,
-        [FromQuery] string? search)
+        [FromQuery] string? search,
+        [FromQuery] int? page = null,
+        [FromQuery] int? pageSize = null)
     {
-        var query = _db.NguoiDungs.AsNoTracking()
-            .Include(u => u.VaiTro)
-            .Include(u => u.SinhVien).ThenInclude(s => s!.Khoa)
-            .Include(u => u.GiangVien).ThenInclude(g => g!.Khoa)
-            .AsQueryable();
+        var query = _db.NguoiDungs.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(role))
         {
@@ -56,8 +54,14 @@ public sealed class AdminController : ControllerBase
                 (u.GiangVien != null && u.GiangVien.MaGiangVien.Contains(s)));
         }
 
-        var users = await query
-            .OrderByDescending(u => u.CreatedAt)
+        IQueryable<NguoiDung> orderedQuery = query.OrderByDescending(u => u.CreatedAt);
+        if (page.HasValue && page.Value > 0 && pageSize.HasValue && pageSize.Value > 0)
+        {
+            var size = Math.Min(pageSize.Value, 200);
+            orderedQuery = orderedQuery.Skip((page.Value - 1) * size).Take(size);
+        }
+
+        var users = await orderedQuery
             .Select(u => new AdminUserResponse
             {
                 NguoiDungId = u.NguoiDungId,
@@ -87,29 +91,49 @@ public sealed class AdminController : ControllerBase
     [HttpGet("stats")]
     public async Task<ActionResult<AdminOverviewResponse>> GetOverview()
     {
-        var totalUsers = await _db.NguoiDungs.CountAsync();
-        var totalStudents = await _db.SinhViens.CountAsync();
-        var totalLecturers = await _db.GiangViens.CountAsync();
-        var totalClasses = await _db.LopHocPhans.CountAsync();
-        var totalTopics = await _db.DeTaiDoAns.CountAsync();
-        var totalApprovedTopics = await _db.DeTaiDoAns.CountAsync(d => d.TrangThai == "Đã duyệt" || d.TrangThai == "Chấp nhận" || d.TrangThai == "Đang thực hiện");
-        var totalGroups = await _db.NhomDoAns.CountAsync(n => n.TrangThai != "Đã hủy");
-        var totalRegistrations = await _db.DangKyDeTais.CountAsync();
-        var openPeriods = await _db.DotDangKyDoAns.CountAsync(d => d.TrangThai == "Đang mở");
-        var totalFaculties = await _db.Khoas.CountAsync();
+        var totalUsers = await _db.NguoiDungs.AsNoTracking().CountAsync();
+        var totalStudents = await _db.SinhViens.AsNoTracking().CountAsync();
+        var totalLecturers = await _db.GiangViens.AsNoTracking().CountAsync();
+        var totalClasses = await _db.LopHocPhans.AsNoTracking().CountAsync();
 
-        var activeStudentsDoingThesis = await _db.ThanhVienNhoms
-            .Where(tv => tv.TrangThai == "Đã chấp nhận" || tv.TrangThai == "Hoạt động" || tv.TrangThai == "Trưởng nhóm")
+        var totalTopics = await _db.DeTaiDoAns.AsNoTracking().CountAsync();
+        var totalApprovedTopics = await _db.DeTaiDoAns.AsNoTracking()
+            .CountAsync(d => d.TrangThaiDuyet == "Đã duyệt");
+
+        var totalGroups = await _db.NhomDoAns.AsNoTracking().CountAsync(n => n.TrangThai != "Đã hủy");
+
+        var regStatusCounts = await _db.DangKyDeTais.AsNoTracking()
+            .GroupBy(d => d.TrangThai)
+            .Select(g => new { TrangThai = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var totalRegistrations = regStatusCounts.Sum(x => x.Count);
+        var completedGroups = regStatusCounts.Where(x => x.TrangThai == "Đã duyệt").Sum(x => x.Count);
+
+        var openPeriods = await _db.DotDangKyDoAns.AsNoTracking().CountAsync(d => d.TrangThai == "Đang mở");
+
+        var activeStudentsDoingThesis = await _db.ThanhVienNhoms.AsNoTracking()
+            .Where(tv => tv.TrangThai == "Đã tham gia" && tv.Nhom != null && tv.Nhom.TrangThai != "Đã hủy")
             .Select(tv => tv.SinhVienId)
             .Distinct()
             .CountAsync();
 
-        if (activeStudentsDoingThesis == 0)
-        {
-            activeStudentsDoingThesis = Math.Max(totalStudents, 35);
-        }
+        double completionRate = totalGroups > 0 ? Math.Round((double)completedGroups / totalGroups * 100, 1) : 0.0;
 
-        var activeSemester = await _db.HocKys
+        var grades = await _db.BaoCaoTienDos.AsNoTracking()
+            .Where(b => b.Diem.HasValue)
+            .Select(b => (double)b.Diem!.Value)
+            .ToListAsync();
+
+        var gradeDistribution = new GradeDistributionDto
+        {
+            XuatSac = grades.Count(g => g >= 9.0),
+            Gioi = grades.Count(g => g >= 8.0 && g < 9.0),
+            Kha = grades.Count(g => g >= 7.0 && g < 8.0),
+            TrungBinh = grades.Count(g => g >= 5.0 && g < 7.0),
+            Rot = grades.Count(g => g < 5.0)
+        };
+
+        var activeSemester = await _db.HocKys.AsNoTracking()
             .Where(h => h.TrangThai)
             .OrderByDescending(h => h.HocKyId)
             .Select(h => $"{h.TenHocKy} ({h.NamHoc})")
@@ -125,6 +149,7 @@ public sealed class AdminController : ControllerBase
             SoNhom = k.LopHocPhans.SelectMany(l => l.DotDangKyDoAns).SelectMany(d => d.NhomDoAns).Count(n => n.TrangThai != "Đã hủy"),
             SoDeTai = k.LopHocPhans.SelectMany(l => l.DotDangKyDoAns).SelectMany(d => d.DeTaiDoAns).Count()
         }).ToListAsync();
+        var totalFaculties = departments.Count;
 
         return Ok(new AdminOverviewResponse
         {
@@ -133,24 +158,99 @@ public sealed class AdminController : ControllerBase
             TongGiangVien = totalLecturers,
             TongLopHocPhan = totalClasses,
             TongDeTai = totalTopics,
-            TongDeTaiDaDuyet = totalApprovedTopics > 0 ? totalApprovedTopics : totalTopics,
+            TongDeTaiDaDuyet = totalApprovedTopics,
             TongNhom = totalGroups,
             TongDangKyDeTai = totalRegistrations,
             DotDangKyDangMo = openPeriods,
             TongKhoa = totalFaculties,
-            TongSinhVienLamDoAn = activeStudentsDoingThesis,
-            TyLeHoanThanh = 85.5,
+            TongSinhVienLamDoAn = activeStudentsDoingThesis > 0 ? activeStudentsDoingThesis : totalStudents,
+            TyLeHoanThanh = completionRate,
             HocKyHienTai = activeSemester,
             ThongKeTheoKhoa = departments,
-            PhoDiem = new GradeDistributionDto
-            {
-                XuatSac = 15,
-                Gioi = 28,
-                Kha = 18,
-                TrungBinh = 5,
-                Rot = 2
-            }
+            PhoDiem = gradeDistribution
         });
+    }
+
+    [Authorize(Roles = "ADMIN,GIAOVUKHOA")]
+    [HttpGet("activity-logs")]
+    public async Task<IActionResult> GetActivityLogs([FromQuery] int limit = 50)
+    {
+        var takeLimit = Math.Clamp(limit, 1, 200);
+        var perSourceLimit = Math.Min(takeLimit, 50);
+        var logs = new List<(DateTime Time, string Actor, string Action, string Target, string Description, string Role, string Status, string Ip)>();
+        var requestIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "N/A";
+
+        var recentUsers = await _db.NguoiDungs.AsNoTracking()
+            .OrderByDescending(u => u.CreatedAt)
+            .Take(perSourceLimit)
+            .Select(u => new
+            {
+                u.CreatedAt,
+                u.TenDangNhap,
+                u.HoTen,
+                TenVaiTro = u.VaiTro != null ? u.VaiTro.TenVaiTro : "Người dùng",
+                u.TrangThai
+            })
+            .ToListAsync();
+
+        foreach (var u in recentUsers)
+        {
+            logs.Add((
+                u.CreatedAt,
+                u.TenDangNhap,
+                "Tạo tài khoản",
+                u.TenDangNhap,
+                $"Tài khoản {u.TenDangNhap} ({u.HoTen}) đã được khởi tạo trong hệ thống.",
+                u.TenVaiTro,
+                u.TrangThai ? "Thành công" : "Đã khóa",
+                requestIp
+            ));
+        }
+
+        var recentRegs = await _db.DangKyDeTais.AsNoTracking()
+            .OrderByDescending(d => d.NgayDangKy)
+            .Take(perSourceLimit)
+            .Select(d => new
+            {
+                d.NgayDangKy,
+                TenNhom = d.Nhom != null ? d.Nhom.TenNhom : null,
+                TenDeTai = d.DeTai != null ? d.DeTai.TenDeTai : null,
+                d.TrangThai
+            })
+            .ToListAsync();
+
+        foreach (var r in recentRegs)
+        {
+            logs.Add((
+                r.NgayDangKy,
+                r.TenNhom ?? "Nhóm sinh viên",
+                "Đăng ký đề tài",
+                r.TenDeTai ?? "Đề tài",
+                $"Nhóm {r.TenNhom} đăng ký đề tài '{r.TenDeTai}'.",
+                "Sinh viên",
+                r.TrangThai == "Đã duyệt" ? "Thành công" : (r.TrangThai == "Từ chối" ? "Thất bại" : "Chờ xử lý"),
+                requestIp
+            ));
+        }
+
+        var sorted = logs
+            .OrderByDescending(x => x.Time)
+            .Take(takeLimit)
+            .Select((x, idx) => new
+            {
+                id = idx + 1,
+                time = x.Time,
+                actor = x.Actor,
+                action = x.Action,
+                target = x.Target,
+                description = x.Description,
+                role = x.Role,
+                status = x.Status,
+                ipAddress = x.Ip
+            })
+            .ToList();
+
+        return Ok(sorted);
     }
 
     [Authorize(Roles = "ADMIN")]
@@ -246,6 +346,30 @@ public sealed class AdminController : ControllerBase
             };
             _db.GiangViens.Add(giangVien);
             await _db.SaveChangesAsync();
+
+            var gvkIds = await _db.NguoiDungs.AsNoTracking()
+                .Where(u => u.TrangThai && u.VaiTro != null && u.VaiTro.MaVaiTro == "GIAOVUKHOA")
+                .Select(u => u.NguoiDungId)
+                .ToListAsync();
+            var khoaTen = await _db.Khoas.AsNoTracking()
+                .Where(k => k.KhoaId == khoaId)
+                .Select(k => k.TenKhoa)
+                .FirstOrDefaultAsync() ?? "Khoa";
+            foreach (var gvkId in gvkIds)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = gvkId,
+                    TieuDe = "Bổ sung giảng viên mới",
+                    NoiDung = $"Tài khoản Giảng viên {user.HoTen} vừa được kích hoạt thuộc {khoaTen}.",
+                    LoaiThongBao = "Hệ thống",
+                    LienKetId = giangVien.GiangVienId,
+                    LoaiLienKet = "GiangVien",
+                    DaDoc = false,
+                    CreatedAt = DateTime.Now
+                });
+            }
+            if (gvkIds.Count > 0) await _db.SaveChangesAsync();
         }
 
         var created = await _db.NguoiDungs.AsNoTracking()
@@ -424,12 +548,16 @@ public sealed class AdminController : ControllerBase
         if (user is null) return NotFound(new { message = "Không tìm thấy người dùng." });
 
         bool hasConstraint = false;
-        if (user.SinhVien != null)
+        if (await _db.DotImports.AnyAsync(d => d.NguoiImportId == id)) hasConstraint = true;
+
+        if (!hasConstraint && user.SinhVien != null)
         {
             var svId = user.SinhVien.SinhVienId;
             var inClass = await _db.SinhVienLopHocPhans.AnyAsync(s => s.SinhVienId == svId);
             var inGroup = await _db.ThanhVienNhoms.AnyAsync(t => t.SinhVienId == svId);
-            if (inClass || inGroup) hasConstraint = true;
+            var isLeader = await _db.NhomDoAns.AnyAsync(n => n.TruongNhomId == svId);
+            var hasProposals = await _db.DeTaiDoAns.AnyAsync(d => d.SinhVienDeXuatId == svId);
+            if (inClass || inGroup || isLeader || hasProposals) hasConstraint = true;
         }
 
         if (!hasConstraint && user.GiangVien != null)
@@ -437,7 +565,8 @@ public sealed class AdminController : ControllerBase
             var gvId = user.GiangVien.GiangVienId;
             var assigned = await _db.PhanCongGiangViens.AnyAsync(p => p.GiangVienId == gvId);
             var hasTopics = await _db.DeTaiDoAns.AnyAsync(d => d.GiangVienId == gvId);
-            if (assigned || hasTopics) hasConstraint = true;
+            var hasApprovals = await _db.DangKyDeTais.AnyAsync(r => r.GiangVienDuyetId == gvId);
+            if (assigned || hasTopics || hasApprovals) hasConstraint = true;
         }
 
         if (hasConstraint)
@@ -460,7 +589,7 @@ public sealed class AdminController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,PHONGDAOTAO,GIAOVUKHOA")]
     [HttpPost("users/import")]
     [HttpPost("users/batch")]
     public async Task<IActionResult> ImportUsers([FromBody] ImportUsersRequest request)
@@ -507,7 +636,8 @@ public sealed class AdminController : ControllerBase
                 continue;
             }
 
-            var roleCode = (item.VaiTro ?? "SINHVIEN").Trim().ToUpperInvariant();
+            var rawRoleCode = !string.IsNullOrWhiteSpace(item.MaVaiTro) ? item.MaVaiTro : item.VaiTro;
+            var roleCode = (string.IsNullOrWhiteSpace(rawRoleCode) ? "SINHVIEN" : rawRoleCode).Trim().ToUpperInvariant();
             var role = roles.FirstOrDefault(r => r.MaVaiTro.ToUpper() == roleCode || r.TenVaiTro.ToUpper().Contains(roleCode))
                        ?? roles.FirstOrDefault(r => r.MaVaiTro == "SINHVIEN");
 
@@ -548,7 +678,7 @@ public sealed class AdminController : ControllerBase
             }
             else if (role != null && role.MaVaiTro.Equals("GIANGVIEN", StringComparison.OrdinalIgnoreCase))
             {
-                _db.GiangViens.Add(new GiangVien
+                var gv = new GiangVien
                 {
                     NguoiDungId = user.NguoiDungId,
                     MaGiangVien = !string.IsNullOrWhiteSpace(item.MaGiangVien) ? item.MaGiangVien.Trim() : "GV_" + username,
@@ -556,7 +686,28 @@ public sealed class AdminController : ControllerBase
                     HocVi = !string.IsNullOrWhiteSpace(item.HocVi) ? item.HocVi.Trim() : "ThS.",
                     ChuyenMon = !string.IsNullOrWhiteSpace(item.ChuyenMon) ? item.ChuyenMon.Trim() : "Công nghệ phần mềm",
                     CreatedAt = DateTime.Now
-                });
+                };
+                _db.GiangViens.Add(gv);
+                await _db.SaveChangesAsync();
+
+                var gvkIds = await _db.NguoiDungs.AsNoTracking()
+                    .Where(u => u.TrangThai && u.VaiTro != null && u.VaiTro.MaVaiTro == "GIAOVUKHOA")
+                    .Select(u => u.NguoiDungId)
+                    .ToListAsync();
+                foreach (var gvkId in gvkIds)
+                {
+                    _db.ThongBaos.Add(new ThongBao
+                    {
+                        NguoiDungId = gvkId,
+                        TieuDe = "Bổ sung giảng viên mới",
+                        NoiDung = $"Tài khoản Giảng viên {user.HoTen} vừa được kích hoạt thuộc {defaultKhoa?.TenKhoa ?? "Khoa"}.",
+                        LoaiThongBao = "Hệ thống",
+                        LienKetId = gv.GiangVienId,
+                        LoaiLienKet = "GiangVien",
+                        DaDoc = false,
+                        CreatedAt = DateTime.Now
+                    });
+                }
             }
 
             await _db.SaveChangesAsync();

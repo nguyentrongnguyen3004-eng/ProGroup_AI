@@ -58,13 +58,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         );
 
         if (deTaiId > 0) {
-          final allTopics = await StudentApiService.instance.fetchTopics();
-          for (final t in allTopics) {
-            if (t.id == deTaiId) {
-              _registeredTopic = t;
-              break;
-            }
-          }
+          _registeredTopic = await StudentApiService.instance.fetchTopicById(deTaiId);
           if (_registeredTopic == null && regData['tenDeTai'] != null) {
             _registeredTopic = TopicModel(
               id: deTaiId,

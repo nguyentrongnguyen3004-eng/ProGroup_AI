@@ -19,11 +19,11 @@ public class CloudflareR2Service : ICloudflareR2Service
         _logger = logger;
         var section = configuration.GetSection("CloudflareR2");
 
-        var accountId = section["AccountId"]?.Trim() ?? string.Empty;
-        _bucketName = section["BucketName"]?.Trim() ?? "progroup-avatars";
-        _publicUrl = (section["PublicUrl"]?.Trim() ?? string.Empty).TrimEnd('/');
-        var accessKeyId = section["AccessKeyId"]?.Trim() ?? string.Empty;
-        var secretAccessKey = section["SecretAccessKey"]?.Trim() ?? string.Empty;
+        var accountId = (Environment.GetEnvironmentVariable("R2_ACCOUNT_ID") ?? section["AccountId"])?.Trim() ?? string.Empty;
+        _bucketName = (Environment.GetEnvironmentVariable("R2_BUCKET_NAME") ?? section["BucketName"])?.Trim() ?? "progroup-avatars";
+        _publicUrl = ((Environment.GetEnvironmentVariable("R2_PUBLIC_URL") ?? section["PublicUrl"])?.Trim() ?? string.Empty).TrimEnd('/');
+        var accessKeyId = (Environment.GetEnvironmentVariable("R2_ACCESS_KEY_ID") ?? section["AccessKeyId"])?.Trim() ?? string.Empty;
+        var secretAccessKey = (Environment.GetEnvironmentVariable("R2_SECRET_ACCESS_KEY") ?? section["SecretAccessKey"])?.Trim() ?? string.Empty;
 
         if (!string.IsNullOrWhiteSpace(accountId) &&
             !string.IsNullOrWhiteSpace(_bucketName) &&

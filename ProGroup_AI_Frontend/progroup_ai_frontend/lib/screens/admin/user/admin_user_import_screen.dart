@@ -186,6 +186,18 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
         return;
       }
 
+      final headerCols = rows.first.map((c) => c.toString().trim().toLowerCase()).toList();
+      final validHeader = headerCols.length >= 4 &&
+          (headerCols[0].contains('đăng nhập') || headerCols[0].contains('tendangnhap') || headerCols[0].contains('username')) &&
+          (headerCols[2].contains('họ') || headerCols[2].contains('hoten') || headerCols[2].contains('name'));
+      if (!validHeader) {
+        setState(() {
+          _parsedUsers = [];
+          _statusMessage = 'Cấu trúc file không đúng định dạng. Vui lòng tải file mẫu để kiểm tra.';
+        });
+        return;
+      }
+
       final List<Map<String, dynamic>> users = [];
       // Bỏ qua dòng header
       for (var i = 1; i < rows.length; i++) {
@@ -235,6 +247,19 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
 
       if (table == null || table.rows.length <= 1) {
         setState(() => _statusMessage = 'File Excel không có dữ liệu để nhập.');
+        return;
+      }
+
+      final headerRow = table.rows.first;
+      final headerCols = headerRow.map((c) => (c?.value?.toString() ?? '').trim().toLowerCase()).toList();
+      final validHeader = headerCols.length >= 4 &&
+          (headerCols[0].contains('đăng nhập') || headerCols[0].contains('tendangnhap') || headerCols[0].contains('username')) &&
+          (headerCols[2].contains('họ') || headerCols[2].contains('hoten') || headerCols[2].contains('name'));
+      if (!validHeader) {
+        setState(() {
+          _parsedUsers = [];
+          _statusMessage = 'Cấu trúc file không đúng định dạng. Vui lòng tải file mẫu để kiểm tra.';
+        });
         return;
       }
 
@@ -297,18 +322,28 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
     int successCount = 0;
     int failCount = 0;
 
-    for (var i = 0; i < _parsedUsers.length; i++) {
-      final user = _parsedUsers[i];
-      try {
-        await AdminApiService.instance.createUser(user);
-        successCount++;
-      } catch (_) {
-        failCount++;
-      }
+    try {
+      setState(() => _importProgress = 0.25);
+      final batchRes = await AdminApiService.instance.importUsersBatch(_parsedUsers);
+      successCount = (batchRes['successCount'] as num?)?.toInt() ?? 0;
+      failCount = (batchRes['failedCount'] as num?)?.toInt() ?? 0;
       if (mounted) {
-        setState(() {
-          _importProgress = (i + 1) / _parsedUsers.length;
-        });
+        setState(() => _importProgress = 1.0);
+      }
+    } catch (_) {
+      for (var i = 0; i < _parsedUsers.length; i++) {
+        final user = _parsedUsers[i];
+        try {
+          await AdminApiService.instance.createUser(user);
+          successCount++;
+        } catch (_) {
+          failCount++;
+        }
+        if (mounted) {
+          setState(() {
+            _importProgress = (i + 1) / _parsedUsers.length;
+          });
+        }
       }
     }
 

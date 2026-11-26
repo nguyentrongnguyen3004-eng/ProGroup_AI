@@ -1,6 +1,9 @@
+using System.Diagnostics;
+using System.IO.Compression;
 using System.Text;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.StaticFiles;
@@ -11,11 +14,26 @@ using Microsoft.OpenApi;
 var builder = WebApplication.CreateBuilder(args);
 
 // ========================================
-// Controllers
+// Controllers & Response Compression
 // ========================================
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
 
 builder.Services.AddCors(options =>
 {
@@ -74,7 +92,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // JWT Authentication
 // ========================================
 
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? builder.Configuration["Jwt:Key"];
 
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
@@ -185,8 +203,33 @@ if (app.Environment.IsDevelopment())
 // ========================================
 
 app.UseExceptionHandler();
+app.UseResponseCompression();
 app.UseCors("AllowAll");
-app.UseHttpsRedirection();
+
+// Lightweight API timing instrumentation (never logs tokens, OTPs, passwords, or secrets)
+app.Use(async (context, next) =>
+{
+    var sw = Stopwatch.StartNew();
+    context.Response.OnStarting(() =>
+    {
+        sw.Stop();
+        context.Response.Headers["X-Response-Time-Ms"] = sw.ElapsedMilliseconds.ToString();
+        return Task.CompletedTask;
+    });
+    await next();
+    sw.Stop();
+    if (sw.ElapsedMilliseconds >= 300)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("ApiTiming");
+        logger.LogWarning("Slow API {Method} {Path} -> {StatusCode} in {ElapsedMs}ms",
+            context.Request.Method, context.Request.Path.Value, context.Response.StatusCode, sw.ElapsedMilliseconds);
+    }
+});
+
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORT")))
+{
+    app.UseHttpsRedirection();
+}
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings[".apk"] = "application/vnd.android.package-archive";
 app.UseStaticFiles(new StaticFileOptions

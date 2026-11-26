@@ -46,7 +46,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -55,9 +55,9 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
 
     try {
       final results = await Future.wait([
-        AdminApiService.instance.fetchOverview(),
-        AdminApiService.instance.fetchUsers(),
-        AdminApiService.instance.fetchNotifications(),
+        AdminApiService.instance.fetchOverview(forceRefresh: forceRefresh),
+        AdminApiService.instance.fetchUsers(forceRefresh: forceRefresh),
+        AdminApiService.instance.fetchNotifications(forceRefresh: forceRefresh),
       ]);
 
       // Đồng bộ ảnh đại diện từ hồ sơ cá nhân
@@ -158,25 +158,31 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
 
     final int totalUsers = _users.isNotEmpty
         ? _users.length
-        : (_overview['tongNguoiDung'] as int? ?? _overview['totalUsers'] as int? ?? _overview['users'] as int? ?? 150);
+        : (_overview['tongNguoiDung'] as int? ?? _overview['TongNguoiDung'] as int? ?? _overview['totalUsers'] as int? ?? 150);
     final int totalStudents = _overview['tongSinhVien'] as int? ??
+        _overview['TongSinhVien'] as int? ??
         _overview['totalStudents'] as int? ??
-        _overview['sinhViens'] as int? ??
-        (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('SINHVIEN')).length);
+        (_users.where((u) {
+          final r = (u['maVaiTro'] ?? u['tenVaiTro'] ?? u['role'] ?? u['vaiTro'] ?? '').toString().toUpperCase();
+          return r.contains('SINHVIEN') || r.contains('SV');
+        }).length);
     final int totalLecturers = _overview['tongGiangVien'] as int? ??
+        _overview['TongGiangVien'] as int? ??
         _overview['totalLecturers'] as int? ??
-        _overview['giangViens'] as int? ??
-        (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('GIANGVIEN')).length);
+        (_users.where((u) {
+          final r = (u['maVaiTro'] ?? u['tenVaiTro'] ?? u['role'] ?? u['vaiTro'] ?? '').toString().toUpperCase();
+          return r.contains('GIANGVIEN') || r.contains('GV');
+        }).length);
     final int totalCourses = _overview['tongLopHocPhan'] as int? ??
+        _overview['TongLopHocPhan'] as int? ??
         _overview['totalCourses'] as int? ??
-        _overview['lopHocPhans'] as int? ??
         14;
 
     return Scaffold(
       body: SafeArea(
         bottom: true,
         child: RefreshIndicator(
-          onRefresh: _loadData,
+          onRefresh: () => _loadData(forceRefresh: true),
           color: const Color(0xFF2563EB),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 80),
@@ -566,22 +572,38 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   }
 
   Widget _buildAdminAnalyticsCard(ColorScheme colors, int totalUsers, int totalStudents, int totalLecturers) {
-    final int rawGiaovu = (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('GIAOVU')).length);
-    final int rawPdt = (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('PHONGDAOTAO')).length);
-    final int rawAdmin = (_users.where((u) => (u['vaiTro'] ?? u['role'] ?? '').toString().toUpperCase().contains('ADMIN')).length);
+    int svCount = 0;
+    int gvCount = 0;
+    int gvkCount = 0;
+    int pdtCount = 0;
+    int admCount = 0;
 
-    final int svCount = totalStudents > 0 ? totalStudents : 120;
-    final int gvCount = totalLecturers > 0 ? totalLecturers : 20;
-    final int gvkCount = rawGiaovu > 0 ? rawGiaovu : 5;
-    final int pdtCount = rawPdt > 0 ? rawPdt : 4;
-    final int admCount = rawAdmin > 0 ? rawAdmin : 2;
+    for (final u in _users) {
+      final r = (u['maVaiTro'] ?? u['vaiTro'] ?? u['role'] ?? u['tenVaiTro'] ?? '').toString().toUpperCase().trim();
+      if (r == 'ADMIN' || r.contains('QUẢN TRỊ')) {
+        admCount++;
+      } else if (r == 'PHONGDAOTAO' || r == 'PHONG_DAO_TAO' || r.contains('ĐÀO TẠO')) {
+        pdtCount++;
+      } else if (r == 'GIAOVUKHOA' || r == 'GIAOVU' || r.contains('GIÁO VỤ')) {
+        gvkCount++;
+      } else if (r == 'GIANGVIEN' || r == 'LECTURER' || r.contains('GIẢNG VIÊN')) {
+        gvCount++;
+      } else if (r == 'SINHVIEN' || r.contains('SINH VIÊN')) {
+        svCount++;
+      }
+    }
+
+    if (_users.isEmpty) {
+      svCount = totalStudents;
+      gvCount = totalLecturers;
+    }
 
     final int effectiveTotal = svCount + gvCount + gvkCount + pdtCount + admCount;
-    final int svPct = ((svCount / effectiveTotal) * 100).round();
-    final int gvPct = ((gvCount / effectiveTotal) * 100).round();
-    final int gvkPct = ((gvkCount / effectiveTotal) * 100).round();
-    final int pdtPct = ((pdtCount / effectiveTotal) * 100).round();
-    final int adPct = 100 - svPct - gvPct - gvkPct - pdtPct;
+    final int svPct = effectiveTotal > 0 ? ((svCount / effectiveTotal) * 100).round() : 0;
+    final int gvPct = effectiveTotal > 0 ? ((gvCount / effectiveTotal) * 100).round() : 0;
+    final int gvkPct = effectiveTotal > 0 ? ((gvkCount / effectiveTotal) * 100).round() : 0;
+    final int pdtPct = effectiveTotal > 0 ? ((pdtCount / effectiveTotal) * 100).round() : 0;
+    final int adPct = effectiveTotal > 0 ? (100 - svPct - gvPct - gvkPct - pdtPct).clamp(0, 100) : 0;
 
     return Container(
       padding: const EdgeInsets.all(18),

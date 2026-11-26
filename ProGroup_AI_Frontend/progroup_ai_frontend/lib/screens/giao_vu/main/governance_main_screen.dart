@@ -20,6 +20,7 @@ class GovernanceMainScreen extends StatefulWidget {
 
 class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
   int _currentIndex = 0;
+  final Set<int> _initializedTabs = {0};
   int _unreadCount = 0;
 
   @override
@@ -45,7 +46,10 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
 
   void _selectTab(int index) {
     if (index < 0 || index >= 5 || index == _currentIndex) return;
-    setState(() => _currentIndex = index);
+    setState(() {
+      _initializedTabs.add(index);
+      _currentIndex = index;
+    });
     if (index == 3) _loadUnread();
   }
 
@@ -102,10 +106,18 @@ class _GovernanceMainScreenState extends State<GovernanceMainScreen> {
                 onOpenNotifications: () => _selectTab(3),
                 onOpenProfile: () => _selectTab(4),
               ),
-              GovernanceDataManagementScreen(key: ValueKey('gov_data_$lang')),
-              GovernanceToolsScreen(key: ValueKey('gov_tools_$lang')),
-              GovernanceNotificationScreen(key: ValueKey('gov_notif_$lang')),
-              GovernanceProfileScreen(key: ValueKey('gov_prof_$lang')),
+              _initializedTabs.contains(1)
+                  ? GovernanceDataManagementScreen(key: ValueKey('gov_data_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(2)
+                  ? GovernanceToolsScreen(key: ValueKey('gov_tools_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(3)
+                  ? GovernanceNotificationScreen(key: ValueKey('gov_notif_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(4)
+                  ? GovernanceProfileScreen(key: ValueKey('gov_prof_$lang'))
+                  : const SizedBox.shrink(),
             ],
           ),
           bottomNavigationBar: UnifiedRoleBottomNav(

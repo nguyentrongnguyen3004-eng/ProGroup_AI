@@ -81,8 +81,8 @@ public sealed class DotDangKyController : ControllerBase
             return BadRequest(new { message = "Số lượng thành viên không hợp lệ (Min > 0 và Max >= Min)." });
         }
 
-        var courseExists = await _db.LopHocPhans.AnyAsync(c => c.LopHocPhanId == request.LopHocPhanId);
-        if (!courseExists)
+        var course = await _db.LopHocPhans.AsNoTracking().FirstOrDefaultAsync(c => c.LopHocPhanId == request.LopHocPhanId);
+        if (course is null)
         {
             return BadRequest(new { message = "Lớp học phần không tồn tại." });
         }
@@ -105,6 +105,29 @@ public sealed class DotDangKyController : ControllerBase
 
         _db.DotDangKyDoAns.Add(period);
         await _db.SaveChangesAsync();
+
+        if (status == "Đang mở")
+        {
+            var staffUserIds = await _db.NguoiDungs.AsNoTracking()
+                .Where(u => u.TrangThai && u.VaiTro != null && (u.VaiTro.MaVaiTro == "PHONGDAOTAO" || u.VaiTro.MaVaiTro == "GIAOVUKHOA"))
+                .Select(u => u.NguoiDungId)
+                .ToListAsync();
+            foreach (var uid in staffUserIds)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = uid,
+                    TieuDe = $"Đợt đăng ký đồ án mới: {period.TenDot}",
+                    NoiDung = $"Đợt đăng ký đồ án cho LHP {course.TenLopHocPhan ?? course.MaLopHocPhan} vừa được kích hoạt.",
+                    LoaiThongBao = "Hệ thống",
+                    LienKetId = period.DotDangKyId,
+                    LoaiLienKet = "DotDangKyDoAn",
+                    DaDoc = false,
+                    CreatedAt = DateTime.Now
+                });
+            }
+            if (staffUserIds.Count > 0) await _db.SaveChangesAsync();
+        }
 
         var created = await _db.DotDangKyDoAns.AsNoTracking()
             .Where(d => d.DotDangKyId == period.DotDangKyId)

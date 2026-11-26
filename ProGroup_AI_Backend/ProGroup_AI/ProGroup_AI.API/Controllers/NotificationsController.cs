@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProGroup_AI.API.Data;
+using ProGroup_AI.API.Models;
 
 namespace ProGroup_AI.API.Controllers;
 
@@ -29,7 +30,7 @@ public sealed class NotificationsController : ControllerBase
     public async Task<IActionResult> GetUnreadCount()
     {
         var userId = GetCurrentUserId();
-        var notifications = await GenerateNotificationsAsync(userId);
+        var notifications = await GenerateNotificationsAsync(userId, countOnly: true);
         var unreadCount = notifications.Count(n => !n.isRead);
         return Ok(new { unreadCount });
     }
@@ -53,6 +54,26 @@ public sealed class NotificationsController : ControllerBase
                 await _db.SaveChangesAsync();
             }
         }
+        else
+        {
+            // Bền vững hóa trạng thái đã đọc của thông báo hệ thống tự sinh vào CSDL
+            var alreadyMarked = await _db.ThongBaos.AnyAsync(t => t.NguoiDungId == userId && t.LienKetId == id && t.LoaiLienKet == "VirtualRead");
+            if (!alreadyMarked)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = userId,
+                    TieuDe = "Virtual Read Marker",
+                    NoiDung = $"Read marker for notification {id}",
+                    LoaiThongBao = "HeThong",
+                    DaDoc = true,
+                    LienKetId = id,
+                    LoaiLienKet = "VirtualRead",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _db.SaveChangesAsync();
+            }
+        }
 
         return Ok(new { success = true, message = "Đã đánh dấu thông báo đã đọc.", id });
     }
@@ -62,6 +83,7 @@ public sealed class NotificationsController : ControllerBase
     {
         var userId = GetCurrentUserId();
         var notifications = await GenerateNotificationsAsync(userId);
+        var unreadIds = notifications.Where(n => !n.isRead && n.id >= 100000).Select(n => n.id).Distinct().ToList();
         var set = _userReadNotifications.GetOrAdd(userId, _ => new HashSet<int>());
         lock (set)
         {
@@ -71,13 +93,36 @@ public sealed class NotificationsController : ControllerBase
             }
         }
 
-        var dbNotifs = await _db.ThongBaos.Where(t => t.NguoiDungId == userId && !t.DaDoc).ToListAsync();
-        if (dbNotifs.Any())
+        var existingVirtualReads = await _db.ThongBaos
+            .Where(t => t.NguoiDungId == userId && t.LoaiLienKet == "VirtualRead" && t.LienKetId != null)
+            .Select(t => t.LienKetId!.Value)
+            .ToListAsync();
+        var existingSet = existingVirtualReads.ToHashSet();
+        foreach (var vid in unreadIds)
         {
-            foreach (var tb in dbNotifs)
+            if (!existingSet.Contains(vid))
             {
-                tb.DaDoc = true;
+                _db.ThongBaos.Add(new Models.ThongBao
+                {
+                    NguoiDungId = userId,
+                    TieuDe = "System Read Sync",
+                    NoiDung = "Đã đọc",
+                    LoaiThongBao = "System",
+                    LienKetId = vid,
+                    LoaiLienKet = "VirtualRead",
+                    DaDoc = true,
+                    CreatedAt = DateTime.Now
+                });
             }
+        }
+
+        var dbNotifs = await _db.ThongBaos.Where(t => t.NguoiDungId == userId && !t.DaDoc).ToListAsync();
+        foreach (var tb in dbNotifs)
+        {
+            tb.DaDoc = true;
+        }
+        if (dbNotifs.Any() || unreadIds.Any(id => !existingSet.Contains(id)))
+        {
             await _db.SaveChangesAsync();
         }
 
@@ -90,26 +135,47 @@ public sealed class NotificationsController : ControllerBase
         return int.TryParse(idClaim, out var id) ? id : 0;
     }
 
-    private async Task<List<NotificationItem>> GenerateNotificationsAsync(int userId)
+    private async Task<List<NotificationItem>> GenerateNotificationsAsync(int userId, bool countOnly = false)
     {
         var notifications = new List<NotificationItem>();
 
-        _userReadNotifications.TryGetValue(userId, out var readSet);
+        _userReadNotifications.TryGetValue(userId, out var inMemReadSet);
 
-        // 0. Thông báo thực tế gửi riêng cho người dùng từ DB (Bảng ThongBaos)
+        // Nạp các ID thông báo đã đọc được lưu vĩnh viễn trong CSDL
+        var persistedReadIds = await _db.ThongBaos.AsNoTracking()
+            .Where(t => t.NguoiDungId == userId && t.LoaiLienKet == "VirtualRead" && t.LienKetId != null)
+            .Select(t => t.LienKetId!.Value)
+            .ToListAsync();
+
+        var readSet = new HashSet<int>(persistedReadIds);
+        if (inMemReadSet != null)
+        {
+            foreach (var r in inMemReadSet) readSet.Add(r);
+        }
+
+        // 0. Thông báo thực tế gửi riêng cho người dùng từ DB (Bảng ThongBaos, loại trừ marker đọc nội bộ)
         var userDbNotifs = await _db.ThongBaos.AsNoTracking()
-            .Where(t => t.NguoiDungId == userId)
+            .Where(t => t.NguoiDungId == userId && t.LoaiLienKet != "VirtualRead")
             .OrderByDescending(t => t.CreatedAt)
             .Take(40)
+            .Select(t => new
+            {
+                t.ThongBaoId,
+                t.LoaiThongBao,
+                t.TieuDe,
+                t.NoiDung,
+                t.DaDoc,
+                t.CreatedAt
+            })
             .ToListAsync();
 
         foreach (var tb in userDbNotifs)
         {
-            var isRead = tb.DaDoc || (readSet != null && readSet.Contains(tb.ThongBaoId));
-            var (timeDiff, localCreated) = CalculateTimeDifference(tb.CreatedAt);
+            var isRead = tb.DaDoc || readSet.Contains(tb.ThongBaoId);
+            var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, tb.CreatedAt) : CalculateTimeDifference(tb.CreatedAt);
 
             string? rejReason = null;
-            if (!string.IsNullOrEmpty(tb.NoiDung) && tb.NoiDung.Contains("Lý do:"))
+            if (!countOnly && !string.IsNullOrEmpty(tb.NoiDung) && tb.NoiDung.Contains("Lý do:"))
             {
                 var parts = tb.NoiDung.Split("Lý do:", 2);
                 if (parts.Length > 1) rejReason = parts[1].Trim();
@@ -121,7 +187,7 @@ public sealed class NotificationsController : ControllerBase
                 type = tb.LoaiThongBao ?? "Hệ thống",
                 title = tb.TieuDe,
                 content = tb.NoiDung,
-                time = FormatTimeAgo(timeDiff),
+                time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,
                 createdAt = localCreated,
@@ -131,29 +197,40 @@ public sealed class NotificationsController : ControllerBase
         }
 
         // 0.5 Thông báo thời gian thực trực tiếp cho sinh viên về đăng ký đề tài và đề xuất đề tài
-        var currentStudent = await _db.SinhViens.AsNoTracking().FirstOrDefaultAsync(s => s.NguoiDungId == userId);
-        if (currentStudent != null)
+        var currentStudentId = await _db.SinhViens.AsNoTracking()
+            .Where(s => s.NguoiDungId == userId)
+            .Select(s => (int?)s.SinhVienId)
+            .FirstOrDefaultAsync();
+        if (currentStudentId.HasValue)
         {
             var myGroupIds = await _db.NhomDoAns.AsNoTracking()
-                .Where(g => g.TruongNhomId == currentStudent.SinhVienId || g.ThanhVienNhoms.Any(m => m.SinhVienId == currentStudent.SinhVienId && m.TrangThai != "Đã rời nhóm" && m.TrangThai != "Từ chối"))
+                .Where(g => g.TruongNhomId == currentStudentId.Value || g.ThanhVienNhoms.Any(m => m.SinhVienId == currentStudentId.Value && m.TrangThai != "Đã rời nhóm" && m.TrangThai != "Từ chối"))
                 .Select(g => g.NhomId)
                 .ToListAsync();
 
             if (myGroupIds.Any())
             {
                 var myDecidedRegs = await _db.DangKyDeTais.AsNoTracking()
-                    .Include(r => r.DeTai)
-                    .Include(r => r.Nhom)
                     .Where(r => myGroupIds.Contains(r.NhomId) && (r.TrangThai == "Từ chối" || r.TrangThai == "Đã duyệt"))
                     .OrderByDescending(r => r.NgayDuyet ?? r.NgayDangKy)
                     .Take(10)
+                    .Select(r => new
+                    {
+                        r.DangKyDeTaiId,
+                        r.TrangThai,
+                        r.GhiChu,
+                        r.NgayDuyet,
+                        r.NgayDangKy,
+                        TenDeTai = r.DeTai != null ? r.DeTai.TenDeTai : null,
+                        TenNhom = r.Nhom != null ? r.Nhom.TenNhom : null
+                    })
                     .ToListAsync();
 
                 foreach (var reg in myDecidedRegs)
                 {
                     var isRej = reg.TrangThai == "Từ chối";
-                    var tenDeTai = reg.DeTai?.TenDeTai ?? "đề tài";
-                    var tenNhom = reg.Nhom?.TenNhom ?? "Nhóm";
+                    var tenDeTai = reg.TenDeTai ?? "đề tài";
+                    var tenNhom = reg.TenNhom ?? "Nhóm";
                     var reason = !string.IsNullOrWhiteSpace(reg.GhiChu) ? reg.GhiChu : "Đề tài đã đủ số lượng / Cần chọn đề tài khác";
                     var title = isRej ? "Đăng ký đề tài bị từ chối" : "Đăng ký đề tài được duyệt";
                     var content = isRej
@@ -164,15 +241,15 @@ public sealed class NotificationsController : ControllerBase
                     if (!notifications.Any(n => n.id == notifId || (n.content != null && n.content.Contains(tenDeTai) && n.content.Contains(isRej ? "từ chối" : "duyệt"))))
                     {
                         var eventTime = reg.NgayDuyet ?? reg.NgayDangKy;
-                        var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
-                        var isRead = readSet != null && readSet.Contains(notifId);
+                        var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, eventTime) : CalculateTimeDifference(eventTime);
+                        var isRead = readSet.Contains(notifId);
                         notifications.Add(new NotificationItem
                         {
                             id = notifId,
                             type = "Đề tài",
                             title = title,
                             content = content,
-                            time = FormatTimeAgo(timeDiff),
+                            time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                             isRead = isRead,
                             read = isRead,
                             createdAt = localCreated,
@@ -185,9 +262,18 @@ public sealed class NotificationsController : ControllerBase
 
             // Đề xuất của chính sinh viên này
             var myProposals = await _db.DeTaiDoAns.AsNoTracking()
-                .Where(t => t.SinhVienDeXuatId == currentStudent.SinhVienId && (t.TrangThaiDuyet == "Từ chối" || t.TrangThaiDuyet == "Đã duyệt"))
+                .Where(t => t.SinhVienDeXuatId == currentStudentId.Value && (t.TrangThaiDuyet == "Từ chối" || t.TrangThaiDuyet == "Đã duyệt"))
                 .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
                 .Take(10)
+                .Select(t => new
+                {
+                    t.DeTaiId,
+                    t.TenDeTai,
+                    t.TrangThaiDuyet,
+                    t.LyDoTuChoi,
+                    t.UpdatedAt,
+                    t.CreatedAt
+                })
                 .ToListAsync();
 
             foreach (var prop in myProposals)
@@ -203,15 +289,15 @@ public sealed class NotificationsController : ControllerBase
                 if (!notifications.Any(n => n.id == notifId || (n.content != null && n.content.Contains(prop.TenDeTai) && n.content.Contains(isRej ? "từ chối" : "phê duyệt"))))
                 {
                     var eventTime = prop.UpdatedAt ?? prop.CreatedAt;
-                    var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
-                    var isRead = readSet != null && readSet.Contains(notifId);
+                    var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, eventTime) : CalculateTimeDifference(eventTime);
+                    var isRead = readSet.Contains(notifId);
                     notifications.Add(new NotificationItem
                     {
                         id = notifId,
                         type = "Đề tài",
                         title = title,
                         content = content,
-                        time = FormatTimeAgo(timeDiff),
+                        time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                         isRead = isRead,
                         read = isRead,
                         createdAt = localCreated,
@@ -224,19 +310,26 @@ public sealed class NotificationsController : ControllerBase
 
         // 1. Đăng ký đề tài gần đây (Bảng DangKyDeTais)
         var recentRegistrations = await _db.DangKyDeTais.AsNoTracking()
-            .Include(r => r.Nhom)
-            .Include(r => r.DeTai)
             .OrderByDescending(r => r.NgayDangKy)
             .Take(12)
+            .Select(r => new
+            {
+                r.DangKyDeTaiId,
+                r.TrangThai,
+                r.GhiChu,
+                r.NgayDangKy,
+                TenNhom = r.Nhom != null ? r.Nhom.TenNhom : null,
+                TenDeTai = r.DeTai != null ? r.DeTai.TenDeTai : null
+            })
             .ToListAsync();
 
         foreach (var reg in recentRegistrations)
         {
-            var tenNhom = reg.Nhom?.TenNhom ?? "Nhóm";
-            var tenDeTai = reg.DeTai?.TenDeTai ?? "Đề tài";
-            var (timeDiff, localCreated) = CalculateTimeDifference(reg.NgayDangKy);
+            var tenNhom = reg.TenNhom ?? "Nhóm";
+            var tenDeTai = reg.TenDeTai ?? "Đề tài";
+            var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, reg.NgayDangKy) : CalculateTimeDifference(reg.NgayDangKy);
             var id = 100000 + reg.DangKyDeTaiId;
-            var isRead = (readSet != null && readSet.Contains(id)) || reg.TrangThai == "Đã duyệt";
+            var isRead = readSet.Contains(id) || reg.TrangThai == "Đã duyệt";
 
             var isRejected = string.Equals(reg.TrangThai, "Từ chối", StringComparison.OrdinalIgnoreCase);
             var title = isRejected ? $"Đăng ký đề tài bị từ chối: {tenDeTai}" : $"Đăng ký đề tài: {tenDeTai}";
@@ -251,7 +344,7 @@ public sealed class NotificationsController : ControllerBase
                 type = "Đăng ký",
                 title = title,
                 content = content,
-                time = FormatTimeAgo(timeDiff),
+                time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,
                 createdAt = localCreated
@@ -260,19 +353,25 @@ public sealed class NotificationsController : ControllerBase
 
         // 2. Nhóm đồ án mới thành lập (Bảng NhomDoAns)
         var recentGroups = await _db.NhomDoAns.AsNoTracking()
-            .Include(g => g.DotDangKy).ThenInclude(d => d!.LopHocPhan)
-            .Include(g => g.TruongNhom).ThenInclude(s => s!.NguoiDung)
             .OrderByDescending(g => g.CreatedAt)
             .Take(10)
+            .Select(g => new
+            {
+                g.NhomId,
+                g.TenNhom,
+                g.CreatedAt,
+                TenLopHocPhan = g.DotDangKy != null && g.DotDangKy.LopHocPhan != null ? g.DotDangKy.LopHocPhan.TenLopHocPhan : null,
+                Leader = g.TruongNhom != null && g.TruongNhom.NguoiDung != null ? g.TruongNhom.NguoiDung.HoTen : null
+            })
             .ToListAsync();
 
         foreach (var group in recentGroups)
         {
-            var lhp = group.DotDangKy?.LopHocPhan?.TenLopHocPhan ?? "Lớp học phần";
-            var leader = group.TruongNhom?.NguoiDung?.HoTen ?? "Trưởng nhóm";
-            var (timeDiff, localCreated) = CalculateTimeDifference(group.CreatedAt);
+            var lhp = group.TenLopHocPhan ?? "Lớp học phần";
+            var leader = group.Leader ?? "Trưởng nhóm";
+            var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, group.CreatedAt) : CalculateTimeDifference(group.CreatedAt);
             var id = 200000 + group.NhomId;
-            var isRead = readSet != null && readSet.Contains(id);
+            var isRead = readSet.Contains(id);
 
             notifications.Add(new NotificationItem
             {
@@ -280,7 +379,7 @@ public sealed class NotificationsController : ControllerBase
                 type = "Nhóm",
                 title = $"Nhóm mới: {group.TenNhom}",
                 content = $"{leader} đã thành lập nhóm '{group.TenNhom}' thuộc {lhp}.",
-                time = FormatTimeAgo(timeDiff),
+                time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,
                 createdAt = localCreated
@@ -292,14 +391,22 @@ public sealed class NotificationsController : ControllerBase
             .Where(t => t.TrangThaiDuyet == "Đã duyệt")
             .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
             .Take(10)
+            .Select(t => new
+            {
+                t.DeTaiId,
+                t.TenDeTai,
+                t.NguonDeTai,
+                t.UpdatedAt,
+                t.CreatedAt
+            })
             .ToListAsync();
 
         foreach (var topic in recentTopics)
         {
             var eventTime = topic.UpdatedAt ?? topic.CreatedAt;
-            var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
+            var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, eventTime) : CalculateTimeDifference(eventTime);
             var id = 300000 + topic.DeTaiId;
-            var isRead = readSet != null && readSet.Contains(id);
+            var isRead = readSet.Contains(id);
 
             notifications.Add(new NotificationItem
             {
@@ -307,56 +414,77 @@ public sealed class NotificationsController : ControllerBase
                 type = "Đề tài",
                 title = $"Đề tài đã duyệt: {topic.TenDeTai}",
                 content = $"Đề tài '{topic.TenDeTai}' nguồn {topic.NguonDeTai} đã sẵn sàng cho sinh viên đăng ký.",
-                time = FormatTimeAgo(timeDiff),
+                time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,
                 createdAt = localCreated
             });
         }
 
-        // 3.5 Đề xuất đề tài bị từ chối (Bảng DeTaiDoAns)
-        var rejectedTopics = await _db.DeTaiDoAns.AsNoTracking()
-            .Where(t => t.TrangThaiDuyet == "Từ chối" && t.SinhVienDeXuatId != null)
-            .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
-            .Take(10)
-            .ToListAsync();
-
-        foreach (var topic in rejectedTopics)
+        // 3.5 Đề xuất đề tài bị từ chối: chỉ hiển thị với tài khoản quản lý/giảng viên (sinh viên đã có myProposals riêng ở trên)
+        if (!currentStudentId.HasValue)
         {
-            var eventTime = topic.UpdatedAt ?? topic.CreatedAt;
-            var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
-            var id = 350000 + topic.DeTaiId;
-            var isRead = readSet != null && readSet.Contains(id);
-            var reason = !string.IsNullOrWhiteSpace(topic.LyDoTuChoi) ? topic.LyDoTuChoi : "Không có lý do cụ thể";
+            var rejectedTopics = await _db.DeTaiDoAns.AsNoTracking()
+                .Where(t => t.TrangThaiDuyet == "Từ chối" && t.SinhVienDeXuatId != null)
+                .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
+                .Take(10)
+                .Select(t => new
+                {
+                    t.DeTaiId,
+                    t.TenDeTai,
+                    t.LyDoTuChoi,
+                    t.UpdatedAt,
+                    t.CreatedAt
+                })
+                .ToListAsync();
 
-            notifications.Add(new NotificationItem
+            foreach (var topic in rejectedTopics)
             {
-                id = id,
-                type = "Đề tài",
-                title = $"Đề xuất đề tài bị từ chối: {topic.TenDeTai}",
-                content = $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {reason}",
-                time = FormatTimeAgo(timeDiff),
-                isRead = isRead,
-                read = isRead,
-                createdAt = localCreated
-            });
+                var eventTime = topic.UpdatedAt ?? topic.CreatedAt;
+                var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, eventTime) : CalculateTimeDifference(eventTime);
+                var id = 350000 + topic.DeTaiId;
+                var isRead = readSet.Contains(id);
+                var reason = !string.IsNullOrWhiteSpace(topic.LyDoTuChoi) ? topic.LyDoTuChoi : "Không có lý do cụ thể";
+
+                notifications.Add(new NotificationItem
+                {
+                    id = id,
+                    type = "Đề tài",
+                    title = $"Đề xuất đề tài bị từ chối: {topic.TenDeTai}",
+                    content = $"Đề xuất đề tài '{topic.TenDeTai}' bị từ chối. Lý do: {reason}",
+                    time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
+                    isRead = isRead,
+                    read = isRead,
+                    createdAt = localCreated,
+                    rejectionReason = reason,
+                    lyDoTuChoi = reason
+                });
+            }
         }
 
         // 4. Đợt đăng ký đồ án (Bảng DotDangKyDoAns)
         var periods = await _db.DotDangKyDoAns.AsNoTracking()
-            .Include(p => p.LopHocPhan)
             .Where(p => p.TrangThai == "Đang mở")
             .OrderByDescending(p => p.CreatedAt)
             .Take(5)
+            .Select(p => new
+            {
+                p.DotDangKyId,
+                p.TenDot,
+                p.NgayBatDau,
+                p.NgayKetThuc,
+                p.CreatedAt,
+                TenLopHocPhan = p.LopHocPhan != null ? p.LopHocPhan.TenLopHocPhan : null
+            })
             .ToListAsync();
 
         foreach (var period in periods)
         {
-            var lhp = period.LopHocPhan?.TenLopHocPhan ?? "học phần";
+            var lhp = period.TenLopHocPhan ?? "học phần";
             var eventTime = period.CreatedAt != default ? period.CreatedAt : period.NgayBatDau;
-            var (timeDiff, localCreated) = CalculateTimeDifference(eventTime);
+            var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, eventTime) : CalculateTimeDifference(eventTime);
             var id = 400000 + period.DotDangKyId;
-            var isRead = readSet != null && readSet.Contains(id);
+            var isRead = readSet.Contains(id);
 
             notifications.Add(new NotificationItem
             {
@@ -364,11 +492,16 @@ public sealed class NotificationsController : ControllerBase
                 type = "Hệ thống",
                 title = $"Đợt đăng ký đang mở: {period.TenDot}",
                 content = $"Đợt đăng ký {period.TenDot} cho {lhp} đang tiếp nhận đăng ký đến {period.NgayKetThuc:dd/MM/yyyy}.",
-                time = FormatTimeAgo(timeDiff),
+                time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,
                 createdAt = localCreated
             });
+        }
+
+        if (countOnly)
+        {
+            return notifications;
         }
 
         // Sắp xếp thống nhất 100% theo thời gian thực tế trong SQL giảm dần

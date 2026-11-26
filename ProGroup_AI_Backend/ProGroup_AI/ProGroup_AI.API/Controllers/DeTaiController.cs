@@ -51,10 +51,11 @@ public sealed class DeTaiController : ControllerBase
             query = query.Where(t => t.NguonDeTai == nguonDeTai.Trim());
         }
 
-        var results = await query
-            .OrderByDescending(t => t.CreatedAt)
+        var results = (await query
             .Select(ToTopicResponse())
-            .ToListAsync();
+            .ToListAsync())
+            .OrderByDescending(t => t.CreatedAt)
+            .ToList();
 
         return Ok(results);
     }
@@ -85,10 +86,11 @@ public sealed class DeTaiController : ControllerBase
             query = query.Where(t => t.DotDangKyId == dotDangKyId.Value);
         }
 
-        var list = await query
-            .OrderByDescending(t => t.CreatedAt)
+        var list = (await query
             .Select(ToTopicResponse())
-            .ToListAsync();
+            .ToListAsync())
+            .OrderByDescending(t => t.CreatedAt)
+            .ToList();
 
         return Ok(list);
     }
@@ -104,6 +106,35 @@ public sealed class DeTaiController : ControllerBase
             .OrderByDescending(t => t.CreatedAt)
             .Select(ToTopicResponse())
             .ToListAsync();
+
+        return Ok(list);
+    }
+
+    [HttpGet("proposals")]
+    [Authorize(Roles = "GIANGVIEN,ADMIN")]
+    public async Task<ActionResult<IReadOnlyList<TopicResponse>>> GetTopicProposals([FromQuery] int? courseId)
+    {
+        var lecturerId = await GetCurrentLecturerIdAsync();
+        var query = _db.DeTaiDoAns.AsNoTracking()
+            .Where(t => t.SinhVienDeXuatId != null || t.NguonDeTai == "SinhVienDeXuat" || t.NguonDeTai == "AIDeXuat");
+
+        if (lecturerId.HasValue && !User.IsInRole("ADMIN"))
+        {
+            query = query.Where(t => t.GiangVienId == lecturerId.Value ||
+                (t.DotDangKy != null && t.DotDangKy.LopHocPhan != null &&
+                 t.DotDangKy.LopHocPhan.PhanCongGiangViens.Any(pc => pc.GiangVienId == lecturerId.Value)));
+        }
+
+        if (courseId.HasValue && courseId.Value > 0)
+        {
+            query = query.Where(t => t.DotDangKy != null && t.DotDangKy.LopHocPhanId == courseId.Value);
+        }
+
+        var list = (await query
+            .Select(ToTopicResponse())
+            .ToListAsync())
+            .OrderByDescending(t => t.CreatedAt)
+            .ToList();
 
         return Ok(list);
     }
@@ -167,7 +198,7 @@ public sealed class DeTaiController : ControllerBase
                     TenDot = $"Đợt đăng ký {lhp.TenLopHocPhan}",
                     NgayBatDau = DateTime.Now.Date,
                     NgayKetThuc = DateTime.Now.Date.AddDays(30),
-                    MinMembers = 3,
+                    MinMembers = 2,
                     MaxMembers = 5,
                     TrangThai = "Đang mở",
                     CreatedAt = DateTime.Now
@@ -204,7 +235,7 @@ public sealed class DeTaiController : ControllerBase
                         TenDot = $"Đợt đăng ký {defaultLhp.TenLopHocPhan}",
                         NgayBatDau = DateTime.Now.Date,
                         NgayKetThuc = DateTime.Now.Date.AddDays(30),
-                        MinMembers = 3,
+                        MinMembers = 2,
                         MaxMembers = 5,
                         TrangThai = "Đang mở",
                         CreatedAt = DateTime.Now
@@ -347,10 +378,21 @@ public sealed class DeTaiController : ControllerBase
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Tài khoản chưa có hồ sơ sinh viên." });
         }
 
-        var period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId);
-        if (period is null && request.DotDangKyId > 0)
+        DotDangKyDoAn? period = null;
+        if (request.DotDangKyId > 0)
         {
-            period = await _db.DotDangKyDoAns.FirstOrDefaultAsync(d => d.LopHocPhanId == request.DotDangKyId && d.TrangThai == "Đang mở");
+            period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId);
+            if (period is null)
+            {
+                period = await _db.DotDangKyDoAns.FirstOrDefaultAsync(d => d.LopHocPhanId == request.DotDangKyId && d.TrangThai == "Đang mở");
+            }
+        }
+        if (period is null && request.LopHocPhanId.HasValue && request.LopHocPhanId.Value > 0)
+        {
+            period = await _db.DotDangKyDoAns
+                .OrderByDescending(d => d.TrangThai == "Đang mở")
+                .ThenByDescending(d => d.DotDangKyId)
+                .FirstOrDefaultAsync(d => d.LopHocPhanId == request.LopHocPhanId.Value);
         }
         if (period is null)
         {
@@ -361,6 +403,11 @@ public sealed class DeTaiController : ControllerBase
         {
             return BadRequest(new { message = "Đợt đăng ký không tồn tại." });
         }
+
+        var assignedLecturer = await _db.PhanCongGiangViens.AsNoTracking()
+            .Where(p => p.LopHocPhanId == period.LopHocPhanId && p.TrangThai && p.GiangVien != null)
+            .Select(p => new { p.GiangVienId, p.GiangVien!.NguoiDungId })
+            .FirstOrDefaultAsync();
 
         var hasActiveProposal = await _db.DeTaiDoAns.AnyAsync(t =>
             t.SinhVienDeXuatId == studentId.Value &&
@@ -381,6 +428,7 @@ public sealed class DeTaiController : ControllerBase
             PhamVi = request.PhamVi?.Trim(),
             CongNgheDuKien = request.CongNgheDuKien?.Trim(),
             NguonDeTai = "Sinh viên đề xuất",
+            GiangVienId = assignedLecturer?.GiangVienId,
             SinhVienDeXuatId = studentId,
             TrangThai = "Chưa sử dụng",
             TrangThaiDuyet = "Chờ duyệt",
@@ -389,6 +437,22 @@ public sealed class DeTaiController : ControllerBase
 
         _db.DeTaiDoAns.Add(topic);
         await _db.SaveChangesAsync();
+
+        if (assignedLecturer != null)
+        {
+            _db.ThongBaos.Add(new ThongBao
+            {
+                NguoiDungId = assignedLecturer.NguoiDungId,
+                TieuDe = "Đề xuất đề tài mới từ sinh viên",
+                NoiDung = $"Sinh viên vừa đề xuất đề tài '{topic.TenDeTai}'. Vui lòng vào xem và phê duyệt.",
+                LoaiThongBao = "Đề tài",
+                LienKetId = topic.DeTaiId,
+                LoaiLienKet = "DeTaiDoAn",
+                DaDoc = false,
+                CreatedAt = DateTime.Now
+            });
+            await _db.SaveChangesAsync();
+        }
 
         var created = await _db.DeTaiDoAns.AsNoTracking()
             .Where(t => t.DeTaiId == topic.DeTaiId)
@@ -639,6 +703,13 @@ public sealed class DeTaiController : ControllerBase
         if (topic is null) return NotFound(new { message = "Đề tài không tồn tại trong đợt đăng ký của nhóm." });
         if ((topic.TrangThai != "Chưa sử dụng" && topic.TrangThai != "Đang hoạt động") || topic.TrangThaiDuyet != "Đã duyệt")
             return Conflict(new { message = "Đề tài không khả dụng hoặc chưa được duyệt." });
+
+        var isAlreadyRegistered = await _db.DangKyDeTais.AnyAsync(r => r.DeTaiId == topic.DeTaiId &&
+            (r.TrangThai == "Chờ duyệt" || r.TrangThai == "Đã duyệt"));
+        if (isAlreadyRegistered)
+        {
+            return Conflict(new { message = "Đề tài này đã có nhóm khác đăng ký." });
+        }
 
         var registration = new DangKyDeTai
         {

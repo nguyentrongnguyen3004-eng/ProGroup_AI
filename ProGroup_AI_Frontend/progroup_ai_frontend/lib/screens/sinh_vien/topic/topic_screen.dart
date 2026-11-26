@@ -36,12 +36,9 @@ class _TopicScreenState extends State<TopicScreen> {
     });
 
     try {
-      var data = await StudentApiService.instance.fetchTopics(
+      final data = await StudentApiService.instance.fetchTopics(
         lopHocPhanId: widget.course?.id,
       );
-      if (data.isEmpty && widget.course != null) {
-        data = await StudentApiService.instance.fetchTopics();
-      }
       if (!mounted) return;
       setState(() {
         _topics = data;
@@ -69,14 +66,27 @@ class _TopicScreenState extends State<TopicScreen> {
         );
   }
 
+  String _normalizeVi(String input) {
+    const src = 'àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ';
+    const dst = 'aaaaaaaaaaaaaaaaadeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy';
+    final lower = input.toLowerCase();
+    final buf = StringBuffer();
+    for (var i = 0; i < lower.length; i++) {
+      final ch = lower[i];
+      final idx = src.indexOf(ch);
+      buf.write(idx >= 0 ? dst[idx] : ch);
+    }
+    return buf.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredTopics = _topics.where((topic) {
-      final keyword = search.trim().toLowerCase();
+      final keyword = _normalizeVi(search.trim());
       if (keyword.isEmpty) return true;
-      return topic.title.toLowerCase().contains(keyword) ||
-          topic.description.toLowerCase().contains(keyword) ||
-          topic.technology.toLowerCase().contains(keyword);
+      return _normalizeVi(topic.title).contains(keyword) ||
+          _normalizeVi(topic.description).contains(keyword) ||
+          _normalizeVi(topic.technology).contains(keyword);
     }).toList();
 
     return Scaffold(

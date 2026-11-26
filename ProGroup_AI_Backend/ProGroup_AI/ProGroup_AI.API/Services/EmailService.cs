@@ -7,7 +7,7 @@ namespace ProGroup_AI.API.Services;
 
 public interface IEmailService
 {
-    Task<bool> SendOtpEmailAsync(string toEmail, string otpCode, string recipientName = "Người dùng");
+    Task<bool> SendOtpEmailAsync(string toEmail, string otpCode, string recipientName = "Người dùng", string purpose = "đặt lại mật khẩu");
 }
 
 public class EmailService : IEmailService
@@ -21,19 +21,26 @@ public class EmailService : IEmailService
         _logger = logger;
     }
 
-    public async Task<bool> SendOtpEmailAsync(string toEmail, string otpCode, string recipientName = "Người dùng")
+    public async Task<bool> SendOtpEmailAsync(string toEmail, string otpCode, string recipientName = "Người dùng", string purpose = "đặt lại mật khẩu")
     {
         try
         {
-            var smtpServer = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
-            var port = int.TryParse(_configuration["EmailSettings:Port"], out var p) ? p : 587;
-            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "nguyentrongnguyen30042005@gmail.com";
-            var senderPassword = _configuration["EmailSettings:SenderPassword"] ?? "fdwv lpjz pakd cifz";
+            var smtpServer = Environment.GetEnvironmentVariable("SMTP_SERVER") ?? _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+            var portStr = Environment.GetEnvironmentVariable("SMTP_PORT") ?? _configuration["EmailSettings:Port"];
+            var port = int.TryParse(portStr, out var p) ? p : 587;
+            var senderEmail = Environment.GetEnvironmentVariable("SMTP_SENDER_EMAIL") ?? _configuration["EmailSettings:SenderEmail"] ?? "no-reply@progroupai.edu.vn";
+            var senderPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? _configuration["EmailSettings:SenderPassword"] ?? string.Empty;
             var displayName = _configuration["EmailSettings:SenderDisplayName"] ?? "ProGroup AI";
+
+            if (string.IsNullOrWhiteSpace(senderPassword))
+            {
+                _logger.LogWarning("Chưa cấu hình mật khẩu SMTP (SMTP_PASSWORD hoặc EmailSettings:SenderPassword). Bỏ qua gửi email thực tế cho {Email}.", toEmail);
+                return true;
+            }
 
             var fromAddress = new MailAddress(senderEmail, displayName);
             var toAddress = new MailAddress(toEmail);
-            var subject = $"[{otpCode}] Mã xác thực OTP đặt lại mật khẩu - ProGroup AI";
+            var subject = $"[{otpCode}] Mã xác thực OTP {purpose} - ProGroup AI";
 
             var htmlContent = $@"
             <div style='font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #0F172A; border-radius: 20px; color: #F8FAFC;'>
@@ -41,13 +48,13 @@ public class EmailService : IEmailService
                     <div style='display: inline-block; padding: 10px 18px; background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%); border-radius: 12px; margin-bottom: 12px;'>
                         <span style='font-size: 20px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.5px;'>ProGroup AI</span>
                     </div>
-                    <h2 style='margin: 0; font-size: 20px; font-weight: 700; color: #FFFFFF;'>Xác thực đặt lại mật khẩu</h2>
+                    <h2 style='margin: 0; font-size: 20px; font-weight: 700; color: #FFFFFF;'>Xác thực {purpose}</h2>
                 </div>
 
                 <div style='padding: 28px 0;'>
                     <p style='font-size: 15px; color: #E2E8F0; margin: 0 0 12px 0;'>Xin chào <strong>{recipientName}</strong>,</p>
                     <p style='font-size: 14px; line-height: 1.6; color: #94A3B8; margin: 0 0 24px 0;'>
-                        Hệ thống ProGroup AI vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản liên kết với địa chỉ email này. Vui lòng sử dụng mã xác thực OTP bên dưới để tiếp tục:
+                        Hệ thống ProGroup AI vừa nhận được yêu cầu {purpose} cho tài khoản liên kết với địa chỉ email này. Vui lòng sử dụng mã xác thực OTP bên dưới để tiếp tục:
                     </p>
 
                     <div style='text-align: center; margin: 28px 0;'>

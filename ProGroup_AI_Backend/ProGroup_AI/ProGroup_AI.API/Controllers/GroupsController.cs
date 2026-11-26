@@ -42,17 +42,7 @@ public sealed class GroupsController : ControllerBase
 
     {
 
-        var query = _db.NhomDoAns.AsNoTracking()
-
-            .Include(g => g.DotDangKy).ThenInclude(d => d!.LopHocPhan)
-
-            .Include(g => g.TruongNhom).ThenInclude(s => s!.NguoiDung)
-
-            .Include(g => g.ThanhVienNhoms).ThenInclude(m => m.SinhVien).ThenInclude(s => s!.NguoiDung)
-
-            .AsQueryable();
-
-
+        var query = _db.NhomDoAns.AsNoTracking().AsQueryable();
 
         if (lopHocPhanId.HasValue)
 
@@ -62,11 +52,12 @@ public sealed class GroupsController : ControllerBase
 
         }
 
+        var groups = await query
+            .OrderBy(g => g.NhomId)
+            .Select(ToGroupProjection())
+            .ToListAsync();
 
-
-        var groups = await query.OrderBy(g => g.NhomId).ToListAsync();
-
-        return Ok(groups.Select(ToResponse));
+        return Ok(groups.Select(FinalizeGroupResponse));
 
     }
 
@@ -86,23 +77,13 @@ public sealed class GroupsController : ControllerBase
 
         var studentId = studentAccess.StudentId!.Value;
 
-        var ids = await _db.NhomDoAns.AsNoTracking()
-
-            .Where(g => g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia"))
-
-            .Select(g => g.NhomId).ToListAsync();
-
-        var groups = await _db.NhomDoAns.AsNoTracking().Where(g => ids.Contains(g.NhomId))
-
-            .Include(g => g.DotDangKy).ThenInclude(d => d!.LopHocPhan)
-
-            .Include(g => g.TruongNhom).ThenInclude(s => s!.NguoiDung)
-
-            .Include(g => g.ThanhVienNhoms).ThenInclude(m => m.SinhVien).ThenInclude(s => s!.NguoiDung)
-
+        var groups = await _db.NhomDoAns.AsNoTracking()
+            .Where(g => g.TrangThai != "Đã hủy" && (g.TruongNhomId == studentId || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId && m.TrangThai == "Đã tham gia")))
+            .OrderBy(g => g.NhomId)
+            .Select(ToGroupProjection())
             .ToListAsync();
 
-        return Ok(groups.Select(ToResponse));
+        return Ok(groups.Select(FinalizeGroupResponse));
 
     }
 
@@ -172,34 +153,31 @@ public sealed class GroupsController : ControllerBase
 
 
 
-    [Authorize]
-
+    [Authorize(Roles = "SINHVIEN,ADMIN")]
     [HttpPut("{id:int}")]
-
+    [HttpPut("{id:int}/name")]
     public async Task<IActionResult> UpdateGroupName(int id, [FromBody] UpdateGroupNameRequest request)
-
     {
-
-        var group = await _db.NhomDoAns.FirstOrDefaultAsync(x => x.NhomId == id);
-
+        var group = await _db.NhomDoAns.FirstOrDefaultAsync(x => x.NhomId == id && x.TrangThai != "Đã hủy");
         if (group is null) return NotFound(new { message = "Không tìm thấy nhóm." });
 
-
+        if (!User.IsInRole("ADMIN"))
+        {
+            var studentAccess = await ResolveCurrentStudent();
+            if (studentAccess.Error is not null) return studentAccess.Error;
+            if (group.TruongNhomId != studentAccess.StudentId!.Value)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "Chỉ trưởng nhóm mới có quyền đổi tên nhóm." });
+            }
+        }
 
         var newName = (request.TenNhom ?? string.Empty).Trim();
-
         if (string.IsNullOrEmpty(newName))
-
             return BadRequest(new { message = "Tên nhóm không được để trống." });
 
-
-
         group.TenNhom = newName;
-
         await _db.SaveChangesAsync();
-
         return Ok(new { success = true, nhomId = group.NhomId, tenNhom = group.TenNhom, message = "Đổi tên nhóm thành công." });
-
     }
 
 
@@ -307,6 +285,24 @@ public sealed class GroupsController : ControllerBase
         }
 
 
+
+        var topicIds = group.DangKyDeTais.Select(r => r.DeTaiId).Distinct().ToList();
+        if (topicIds.Count > 0)
+        {
+            var topicsToFree = await _db.DeTaiDoAns
+                .Where(t => topicIds.Contains(t.DeTaiId))
+                .ToListAsync();
+
+            foreach (var topic in topicsToFree)
+            {
+                var otherActiveReg = await _db.DangKyDeTais
+                    .AnyAsync(r => r.DeTaiId == topic.DeTaiId && r.NhomId != group.NhomId && (r.TrangThai == "Đã duyệt" || r.TrangThai == "Chờ duyệt"));
+                if (!otherActiveReg)
+                {
+                    topic.TrangThai = "Chưa sử dụng";
+                }
+            }
+        }
 
         _db.DangKyDeTais.RemoveRange(group.DangKyDeTais);
 
@@ -526,41 +522,80 @@ public sealed class GroupsController : ControllerBase
 
 
         var invitations = await _db.ThanhVienNhoms.AsNoTracking()
-
-            .Where(m => m.NhomId == id && m.VaiTro == "Lời mời")
-
+            .Where(m => m.NhomId == id && m.SinhVienId != group.TruongNhomId && m.TrangThai == "Chờ tham gia")
             .Include(m => m.SinhVien).ThenInclude(s => s!.NguoiDung)
-
             .OrderByDescending(m => m.NgayThamGia)
-
             .Select(m => new GroupInvitationResponse
-
             {
-
                 Id = m.ThanhVienNhomId,
-
                 GroupId = m.NhomId,
-
                 GroupName = group.TenNhom,
-
                 Inviter = group.TruongNhom != null && group.TruongNhom.NguoiDung != null ? group.TruongNhom.NguoiDung.HoTen : "Trưởng nhóm",
-
                 InviteeName = m.SinhVien != null && m.SinhVien.NguoiDung != null ? m.SinhVien.NguoiDung.HoTen : string.Empty,
-
                 InviteeMssv = m.SinhVien != null ? m.SinhVien.MSSV : string.Empty,
-
                 Status = m.TrangThai,
-
                 CreatedAt = m.NgayThamGia
-
             })
-
             .ToListAsync();
 
+        return Ok(invitations);
+    }
 
+    [Authorize(Policy = "StudentOnly")]
+    [HttpGet("invitations/me")]
+    public async Task<IActionResult> GetMyInvitations()
+    {
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var studentId = studentAccess.StudentId!.Value;
+
+        var invitations = await _db.ThanhVienNhoms.AsNoTracking()
+            .Where(m => m.SinhVienId == studentId && m.TrangThai == "Chờ tham gia" && m.Nhom != null && m.Nhom.TrangThai != "Đã hủy")
+            .OrderByDescending(m => m.NgayThamGia)
+            .Select(m => new
+            {
+                thanhVienId = m.ThanhVienNhomId,
+                nhomId = m.NhomId,
+                tenNhom = m.Nhom!.TenNhom,
+                trangThai = m.TrangThai,
+                ngayThamGia = m.NgayThamGia
+            })
+            .ToListAsync();
 
         return Ok(invitations);
+    }
 
+    [Authorize(Policy = "StudentOnly")]
+    [HttpPut("invitations/{invitationId:int}")]
+    public async Task<IActionResult> RespondInvitation(int invitationId, [FromBody] RespondRequest request)
+    {
+        var studentAccess = await ResolveCurrentStudent();
+        if (studentAccess.Error is not null) return studentAccess.Error;
+        var studentId = studentAccess.StudentId!.Value;
+
+        var record = await _db.ThanhVienNhoms
+            .Include(m => m.Nhom).ThenInclude(g => g!.DotDangKy)
+            .FirstOrDefaultAsync(m => m.ThanhVienNhomId == invitationId && m.SinhVienId == studentId);
+        if (record is null || record.Nhom is null) return NotFound(new { message = "Không tìm thấy lời mời." });
+
+        if (request.IsApproved)
+        {
+            if (record.TrangThai == "Đã tham gia")
+                return Ok(new { success = true, message = "Bạn đã tham gia nhóm này." });
+            var activeCount = await _db.ThanhVienNhoms.CountAsync(m => m.NhomId == record.NhomId && m.TrangThai == "Đã tham gia");
+            if (record.Nhom.DotDangKy != null && activeCount >= record.Nhom.DotDangKy.MaxMembers)
+                return BadRequest(new { message = "Nhóm đã đạt số lượng thành viên tối đa." });
+            record.TrangThai = "Đã tham gia";
+            record.VaiTro = "Thành viên";
+            record.NgayThamGia = DateTime.Now;
+        }
+        else
+        {
+            record.TrangThai = "Đã rời nhóm";
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, message = request.IsApproved ? "Đã tham gia nhóm thành công." : "Đã từ chối lời mời." });
     }
 
 
@@ -618,49 +653,42 @@ public sealed class GroupsController : ControllerBase
 
 
         var existing = await _db.ThanhVienNhoms.FirstOrDefaultAsync(m => m.NhomId == id && m.SinhVienId == invitee.SinhVienId);
-
         if (existing is not null)
-
         {
-
             if (existing.TrangThai == "Đã tham gia") return BadRequest(new { message = "Sinh viên đã là thành viên của nhóm." });
-
-            existing.VaiTro = "Lời mời";
-
-            existing.TrangThai = "Chờ xử lý";
-
+            existing.VaiTro = "Thành viên";
+            existing.TrangThai = "Chờ tham gia";
             existing.NgayThamGia = DateTime.Now;
-
         }
-
         else
-
         {
-
             _db.ThanhVienNhoms.Add(new ThanhVienNhom
-
             {
-
                 NhomId = id,
-
                 SinhVienId = invitee.SinhVienId,
-
-                VaiTro = "Lời mời",
-
-                TrangThai = "Chờ xử lý",
-
+                VaiTro = "Thành viên",
+                TrangThai = "Chờ tham gia",
                 NgayThamGia = DateTime.Now
-
             });
-
         }
 
-
+        if (invitee.NguoiDung != null)
+        {
+            _db.ThongBaos.Add(new ThongBao
+            {
+                NguoiDungId = invitee.NguoiDungId,
+                TieuDe = $"Lời mời tham gia nhóm: {group.TenNhom}",
+                NoiDung = $"Bạn nhận được lời mời tham gia nhóm '{group.TenNhom}'.",
+                LoaiThongBao = "Nhóm",
+                LienKetId = group.NhomId,
+                LoaiLienKet = "NhomDoAn",
+                DaDoc = false,
+                CreatedAt = DateTime.Now
+            });
+        }
 
         await _db.SaveChangesAsync();
-
         return Ok(new { success = true, message = "Đã gửi lời mời tham gia nhóm." });
-
     }
 
 
@@ -695,8 +723,7 @@ public sealed class GroupsController : ControllerBase
 
 
 
-        record.TrangThai = "Đã hủy";
-
+        record.TrangThai = "Đã rời nhóm";
         await _db.SaveChangesAsync();
 
         return Ok(new { success = true, message = "Đã hủy lời mời." });
@@ -801,41 +828,23 @@ public sealed class GroupsController : ControllerBase
 
 
         var existing = await _db.ThanhVienNhoms.FirstOrDefaultAsync(m => m.NhomId == id && m.SinhVienId == studentId);
-
         if (existing != null)
-
         {
-
             if (existing.TrangThai == "Đã tham gia") return BadRequest(new { message = "Bạn đã ở trong nhóm." });
-
-            existing.VaiTro = "Yêu cầu gia nhập";
-
-            existing.TrangThai = "Chờ duyệt";
-
+            existing.VaiTro = "Thành viên";
+            existing.TrangThai = "Chờ tham gia";
             existing.NgayThamGia = DateTime.Now;
-
         }
-
         else
-
         {
-
             _db.ThanhVienNhoms.Add(new ThanhVienNhom
-
             {
-
                 NhomId = id,
-
                 SinhVienId = studentId,
-
-                VaiTro = "Yêu cầu gia nhập",
-
-                TrangThai = "Chờ duyệt",
-
+                VaiTro = "Thành viên",
+                TrangThai = "Chờ tham gia",
                 NgayThamGia = DateTime.Now
-
             });
-
         }
 
 
@@ -953,13 +962,9 @@ public sealed class GroupsController : ControllerBase
 
 
             var activeCount = await _db.ThanhVienNhoms.CountAsync(m => m.NhomId == group.NhomId && m.TrangThai == "Đã tham gia");
-
-            if (group.DotDangKy != null && activeCount + 1 >= group.DotDangKy.MaxMembers)
-
+            if (group.DotDangKy != null && activeCount >= group.DotDangKy.MaxMembers)
             {
-
                 return BadRequest(new { message = "Nhóm đã đạt số lượng thành viên tối đa." });
-
             }
 
 
@@ -973,11 +978,8 @@ public sealed class GroupsController : ControllerBase
         }
 
         else
-
         {
-
-            record.TrangThai = "Đã từ chối";
-
+            record.TrangThai = "Đã rời nhóm";
         }
 
 
@@ -1001,6 +1003,76 @@ public sealed class GroupsController : ControllerBase
         .FirstOrDefaultAsync(g => g.NhomId == id);
 
 
+
+    private sealed class GroupProjectionDto
+    {
+        public int NhomId { get; set; }
+        public int DotDangKyId { get; set; }
+        public int LopHocPhanId { get; set; }
+        public string TenNhom { get; set; } = string.Empty;
+        public string TrangThai { get; set; } = string.Empty;
+        public int TruongNhomId { get; set; }
+        public string TruongNhomHoTen { get; set; } = string.Empty;
+        public string TruongNhomMSSV { get; set; } = string.Empty;
+        public int MinMembers { get; set; }
+        public int MaxMembers { get; set; }
+        public List<GroupMemberResponse> Members { get; set; } = new();
+    }
+
+    private static System.Linq.Expressions.Expression<Func<NhomDoAn, GroupProjectionDto>> ToGroupProjection() => g => new GroupProjectionDto
+    {
+        NhomId = g.NhomId,
+        DotDangKyId = g.DotDangKyId,
+        LopHocPhanId = g.DotDangKy != null ? g.DotDangKy.LopHocPhanId : 0,
+        TenNhom = g.TenNhom,
+        TrangThai = g.TrangThai,
+        TruongNhomId = g.TruongNhomId,
+        TruongNhomHoTen = g.TruongNhom != null && g.TruongNhom.NguoiDung != null ? g.TruongNhom.NguoiDung.HoTen : string.Empty,
+        TruongNhomMSSV = g.TruongNhom != null ? g.TruongNhom.MSSV : string.Empty,
+        MinMembers = g.DotDangKy != null ? g.DotDangKy.MinMembers : 0,
+        MaxMembers = g.DotDangKy != null ? g.DotDangKy.MaxMembers : 0,
+        Members = g.ThanhVienNhoms
+            .Where(m => m.TrangThai == "Đã tham gia")
+            .Select(m => new GroupMemberResponse
+            {
+                SinhVienId = m.SinhVienId,
+                MSSV = m.SinhVien != null ? m.SinhVien.MSSV : string.Empty,
+                HoTen = m.SinhVien != null && m.SinhVien.NguoiDung != null ? m.SinhVien.NguoiDung.HoTen : string.Empty,
+                VaiTro = m.VaiTro,
+                TrangThai = m.TrangThai
+            })
+            .ToList()
+    };
+
+    private static GroupResponse FinalizeGroupResponse(GroupProjectionDto g)
+    {
+        var members = g.Members;
+        if (!members.Any(m => m.SinhVienId == g.TruongNhomId))
+        {
+            members.Insert(0, new GroupMemberResponse
+            {
+                SinhVienId = g.TruongNhomId,
+                MSSV = g.TruongNhomMSSV,
+                HoTen = g.TruongNhomHoTen,
+                VaiTro = "Trưởng nhóm",
+                TrangThai = "Đã tham gia"
+            });
+        }
+
+        return new GroupResponse
+        {
+            NhomId = g.NhomId,
+            DotDangKyId = g.DotDangKyId,
+            LopHocPhanId = g.LopHocPhanId,
+            TenNhom = g.TenNhom,
+            TrangThai = g.TrangThai,
+            TruongNhomId = g.TruongNhomId,
+            TruongNhom = g.TruongNhomHoTen,
+            MinMembers = g.MinMembers,
+            MaxMembers = g.MaxMembers,
+            ThanhViens = members
+        };
+    }
 
     private GroupResponse ToResponse(NhomDoAn g)
 

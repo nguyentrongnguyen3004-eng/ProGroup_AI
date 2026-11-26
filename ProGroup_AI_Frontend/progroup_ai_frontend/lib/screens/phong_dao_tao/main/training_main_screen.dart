@@ -19,6 +19,7 @@ class TrainingMainScreen extends StatefulWidget {
 
 class _TrainingMainScreenState extends State<TrainingMainScreen> {
   int _currentIndex = 0;
+  final Set<int> _initializedTabs = {0};
   int _unreadCount = 0;
   TrainingDataKind _selectedKind = TrainingDataKind.courseClasses;
 
@@ -45,12 +46,16 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
 
   void _selectTab(int index) {
     if (index < 0 || index >= 4 || index == _currentIndex) return;
-    setState(() => _currentIndex = index);
+    setState(() {
+      _initializedTabs.add(index);
+      _currentIndex = index;
+    });
     if (index == 2) _loadUnread();
   }
 
   void _openManagement(TrainingDataKind kind) {
     setState(() {
+      _initializedTabs.add(1);
       _selectedKind = kind;
       _currentIndex = 1;
     });
@@ -102,12 +107,18 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
                 onOpenNotifications: () => _selectTab(2),
                 onOpenProfile: () => _selectTab(3),
               ),
-              TrainingDataManagementScreen(
-                key: ValueKey('train_data_${_selectedKind}_$lang'),
-                initialKind: _selectedKind,
-              ),
-              TrainingNotificationScreen(key: ValueKey('train_notif_$lang')),
-              TrainingProfileScreen(key: ValueKey('train_prof_$lang')),
+              _initializedTabs.contains(1)
+                  ? TrainingDataManagementScreen(
+                      key: ValueKey('train_data_${_selectedKind}_$lang'),
+                      initialKind: _selectedKind,
+                    )
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(2)
+                  ? TrainingNotificationScreen(key: ValueKey('train_notif_$lang'))
+                  : const SizedBox.shrink(),
+              _initializedTabs.contains(3)
+                  ? TrainingProfileScreen(key: ValueKey('train_prof_$lang'))
+                  : const SizedBox.shrink(),
             ],
           ),
           bottomNavigationBar: UnifiedRoleBottomNav(

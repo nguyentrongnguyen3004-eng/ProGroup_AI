@@ -33,9 +33,6 @@ public sealed class StudentController : ControllerBase
 
         var courses = await _db.SinhVienLopHocPhans.AsNoTracking()
             .Where(s => s.SinhVienId == studentId.Value && s.TrangThai)
-            .Include(s => s.LopHocPhan).ThenInclude(l => l!.HocPhan)
-            .Include(s => s.LopHocPhan).ThenInclude(l => l!.HocKy)
-            .Include(s => s.LopHocPhan).ThenInclude(l => l!.PhanCongGiangViens).ThenInclude(p => p.GiangVien).ThenInclude(g => g!.NguoiDung)
             .OrderBy(s => s.LopHocPhan!.MaLopHocPhan)
             .Select(s => new StudentCourseResponse
             {
@@ -75,52 +72,60 @@ public sealed class StudentController : ControllerBase
             return Ok(Array.Empty<StudentCourseResponse>());
         }
 
-        var groupIds = await _db.NhomDoAns.AsNoTracking()
+        // Dùng projection trực tiếp thay vì 4x .Include() để tránh Cartesian explosion và giảm SQL Memory Grant
+        var groups = await _db.NhomDoAns.AsNoTracking()
             .Where(g => g.TrangThai != "Đã hủy" &&
                 (g.TruongNhomId == studentId.Value || g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId.Value && m.TrangThai == "Đã tham gia")))
-            .Select(g => g.NhomId)
-            .ToListAsync();
-
-        var groups = await _db.NhomDoAns.AsNoTracking()
-            .Where(g => groupIds.Contains(g.NhomId))
-            .Include(g => g.DotDangKy).ThenInclude(d => d!.LopHocPhan)
-            .Include(g => g.TruongNhom).ThenInclude(s => s!.NguoiDung)
-            .Include(g => g.ThanhVienNhoms).ThenInclude(m => m.SinhVien).ThenInclude(s => s!.NguoiDung)
-            .Include(g => g.DangKyDeTais).ThenInclude(r => r.DeTai)
+            .Select(g => new
+            {
+                g.NhomId,
+                g.DotDangKyId,
+                TenDot = g.DotDangKy != null ? g.DotDangKy.TenDot : null,
+                LopHocPhanId = g.DotDangKy != null ? (int?)g.DotDangKy.LopHocPhanId : null,
+                TenLopHocPhan = g.DotDangKy != null && g.DotDangKy.LopHocPhan != null ? g.DotDangKy.LopHocPhan.TenLopHocPhan : null,
+                g.TenNhom,
+                g.TruongNhomId,
+                TruongNhomHoTen = g.TruongNhom != null && g.TruongNhom.NguoiDung != null ? g.TruongNhom.NguoiDung.HoTen : string.Empty,
+                TruongNhomMSSV = g.TruongNhom != null ? g.TruongNhom.MSSV : string.Empty,
+                HasTruongNhomRecord = g.TruongNhom != null,
+                g.TrangThai,
+                MinMembers = g.DotDangKy != null ? g.DotDangKy.MinMembers : 0,
+                MaxMembers = g.DotDangKy != null ? g.DotDangKy.MaxMembers : 0,
+                g.CreatedAt,
+                Members = g.ThanhVienNhoms
+                    .Where(m => m.TrangThai == "Đã tham gia")
+                    .Select(m => new GroupMemberResponse
+                    {
+                        SinhVienId = m.SinhVienId,
+                        MSSV = m.SinhVien != null ? m.SinhVien.MSSV : string.Empty,
+                        HoTen = m.SinhVien != null && m.SinhVien.NguoiDung != null ? m.SinhVien.NguoiDung.HoTen : string.Empty,
+                        VaiTro = m.VaiTro,
+                        TrangThai = m.TrangThai
+                    })
+                    .ToList(),
+                ActiveTopic = g.DangKyDeTais
+                    .Where(r => r.TrangThai == "Đã duyệt" || r.TrangThai == "Chờ duyệt")
+                    .OrderByDescending(r => r.NgayDangKy)
+                    .Select(r => new
+                    {
+                        r.DeTaiId,
+                        TenDeTai = r.DeTai != null ? r.DeTai.TenDeTai : null,
+                        TrangThaiDangKy = r.TrangThai
+                    })
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
         var responses = groups.Select(g =>
         {
-            var activeTopic = g.DangKyDeTais
-                .Where(r => r.TrangThai == "Đã duyệt" || r.TrangThai == "Chờ duyệt")
-                .OrderByDescending(r => r.NgayDangKy)
-                .Select(r => new
-                {
-                    r.DeTaiId,
-                    TenDeTai = r.DeTai?.TenDeTai,
-                    TrangThaiDangKy = r.TrangThai
-                })
-                .FirstOrDefault();
-
-            var members = g.ThanhVienNhoms
-                .Where(m => m.TrangThai == "Đã tham gia")
-                .Select(m => new GroupMemberResponse
-                {
-                    SinhVienId = m.SinhVienId,
-                    MSSV = m.SinhVien?.MSSV ?? string.Empty,
-                    HoTen = m.SinhVien?.NguoiDung?.HoTen ?? string.Empty,
-                    VaiTro = m.VaiTro,
-                    TrangThai = m.TrangThai
-                })
-                .ToList();
-
-            if (!members.Any(m => m.SinhVienId == g.TruongNhomId) && g.TruongNhom != null)
+            var members = g.Members;
+            if (!members.Any(m => m.SinhVienId == g.TruongNhomId) && g.HasTruongNhomRecord)
             {
                 members.Insert(0, new GroupMemberResponse
                 {
                     SinhVienId = g.TruongNhomId,
-                    MSSV = g.TruongNhom.MSSV,
-                    HoTen = g.TruongNhom.NguoiDung?.HoTen ?? string.Empty,
+                    MSSV = g.TruongNhomMSSV,
+                    HoTen = g.TruongNhomHoTen,
                     VaiTro = "Trưởng nhóm",
                     TrangThai = "Đã tham gia"
                 });
@@ -130,18 +135,18 @@ public sealed class StudentController : ControllerBase
             {
                 g.NhomId,
                 g.DotDangKyId,
-                TenDot = g.DotDangKy?.TenDot,
-                LopHocPhanId = g.DotDangKy?.LopHocPhanId,
-                TenLopHocPhan = g.DotDangKy?.LopHocPhan?.TenLopHocPhan,
+                g.TenDot,
+                g.LopHocPhanId,
+                g.TenLopHocPhan,
                 g.TenNhom,
                 g.TruongNhomId,
-                TruongNhom = g.TruongNhom?.NguoiDung?.HoTen ?? string.Empty,
+                TruongNhom = g.TruongNhomHoTen,
                 g.TrangThai,
-                MinMembers = g.DotDangKy?.MinMembers ?? 0,
-                MaxMembers = g.DotDangKy?.MaxMembers ?? 0,
+                g.MinMembers,
+                g.MaxMembers,
                 SoThanhVien = members.Count,
                 ThanhViens = members,
-                DeTai = activeTopic,
+                DeTai = g.ActiveTopic,
                 g.CreatedAt
             };
         });
@@ -173,10 +178,11 @@ public sealed class StudentController : ControllerBase
                         (t.TrangThai == "Chưa sử dụng" || t.TrangThai == "Đang hoạt động") &&
                         t.TrangThaiDuyet == "Đã duyệt");
 
-        var topics = await query
-            .OrderByDescending(t => t.CreatedAt)
+        var topics = (await query
             .Select(ToTopicResponse())
-            .ToListAsync();
+            .ToListAsync())
+            .OrderByDescending(t => t.CreatedAt)
+            .ToList();
 
         return Ok(topics);
     }

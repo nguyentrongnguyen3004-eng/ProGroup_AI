@@ -36,9 +36,6 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
 
   Map<String, dynamic> _overview = {};
   List<Map<String, dynamic>> _courses = [];
-  List<Map<String, dynamic>> _groups = [];
-  List<Map<String, dynamic>> _students = [];
-  List<Map<String, dynamic>> _lecturers = [];
   List<Map<String, dynamic>> _notifications = [];
 
   @override
@@ -48,7 +45,7 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -57,12 +54,9 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
 
     try {
       final results = await Future.wait([
-        GovernanceApiService.instance.fetchOverview(),
-        GovernanceApiService.instance.fetchCourses(),
-        GovernanceApiService.instance.fetchGroups(),
-        GovernanceApiService.instance.fetchStudents(),
-        GovernanceApiService.instance.fetchLecturers(),
-        GovernanceApiService.instance.fetchNotifications(),
+        GovernanceApiService.instance.fetchOverview(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchCourses(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchNotifications(forceRefresh: forceRefresh),
       ]);
 
       // Đồng bộ ảnh đại diện từ hồ sơ cá nhân giáo vụ
@@ -76,20 +70,7 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
       setState(() {
         _overview = results[0] as Map<String, dynamic>;
         _courses = results[1] as List<Map<String, dynamic>>;
-        _groups = results[2] as List<Map<String, dynamic>>;
-        _students = results[3] as List<Map<String, dynamic>>;
-        _lecturers = results[4] as List<Map<String, dynamic>>;
-        _notifications = results[5] as List<Map<String, dynamic>>;
-        if (_notifications.isEmpty || !_notifications.any((n) => (n['tieuDe'] ?? '').toString().contains('kích hoạt'))) {
-          _notifications.insert(0, {
-            'id': 999,
-            'tieuDe': 'Kích hoạt tài khoản Giảng viên mới',
-            'noiDung': 'Tài khoản Giảng viên TS. Lê Hoàng Nam vừa được kích hoạt thuộc khoa CNTT.',
-            'createdAt': DateTime.now().toIso8601String(),
-            'isRead': false,
-            'daDoc': false,
-          });
-        }
+        _notifications = results[2] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
     } catch (e) {
@@ -175,19 +156,15 @@ class _GovernanceOverviewScreenState extends State<GovernanceOverviewScreen> {
     }
 
     final int totalCourses = _courses.length;
-    final int totalStudents = _students.isNotEmpty
-        ? _students.length
-        : (_overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120);
-    final int totalLecturers = _lecturers.isNotEmpty
-        ? _lecturers.length
-        : (_overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18);
-    final int totalGroups = _groups.length;
+    final int totalStudents = _overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120;
+    final int totalLecturers = _overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18;
+    final int totalGroups = _overview['tongNhom'] as int? ?? _overview['totalGroups'] as int? ?? _overview['nhoms'] as int? ?? 0;
 
     return Scaffold(
       body: SafeArea(
         bottom: true,
         child: RefreshIndicator(
-          onRefresh: _loadData,
+          onRefresh: () => _loadData(forceRefresh: true),
           color: const Color(0xFF2563EB),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 80),

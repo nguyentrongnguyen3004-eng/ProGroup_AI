@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_service.dart';
+import 'data_cache_service.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -33,8 +35,7 @@ class ApiService {
   static const String currentLanIpUrlOld = 'http://192.168.1.229:5094';
   static const String usbUrl = 'http://127.0.0.1:5094';
   static const String emulatorUrl = 'http://10.0.2.2:5094';
-  static const String currentCloudflareUrl =
-      'https://platforms-interaction-alcohol-share.trycloudflare.com';
+  static const String currentCloudflareUrl = 'https://pub-394dab3d868e4d68b09fbd3349573541.r2.dev';
 
   /// Danh sách địa chỉ máy chủ theo thứ tự ưu tiên tốc độ cao nhất:
   /// 1. usbUrl (127.0.0.1:5094): Cực nhanh qua ADB Reverse (dùng cho cả máy thật cắm USB lẫn máy ảo Android).
@@ -51,6 +52,7 @@ class ApiService {
 
   static String? _workingBaseUrl;
   static String? _customBaseUrl;
+  static Future<String?>? _detectingFuture;
 
   static String? get workingBaseUrl => _workingBaseUrl ?? _customBaseUrl;
   static String? get customBaseUrl => _customBaseUrl;
@@ -59,25 +61,51 @@ class ApiService {
     _workingBaseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
   }
 
-  /// Tự động dò tìm máy chủ Backend khả dụng (USB hoặc Wi-Fi) trong nền
-  static Future<String?> autoDetectServer() async {
-    // Nếu người dùng đã cài đặt URL thủ công và kết nối được thì dùng luôn
+  /// Tự động dò tìm máy chủ Backend khả dụng (gom đồng thời để tránh lặp lại và giảm độ trễ khởi động)
+  static Future<String?> autoDetectServer() {
+    if (_detectingFuture != null) return _detectingFuture!;
+    _detectingFuture = _autoDetectServerImpl().whenComplete(() {
+      _detectingFuture = null;
+    });
+    return _detectingFuture!;
+  }
+
+  static Future<String?> _autoDetectServerImpl() async {
+    // 1. Ưu tiên URL tùy chỉnh hoặc URL USB/ADB Reverse trước
     if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
-      if (await testConnection(_customBaseUrl!)) {
+      if (await testConnection(_customBaseUrl!, timeoutSeconds: 2)) {
         _workingBaseUrl = _customBaseUrl;
         return _customBaseUrl;
       }
     }
 
-    // Ping nhanh các địa chỉ ứng cử viên
-    for (final url in baseUrls) {
-      if (await testConnection(url)) {
-        _workingBaseUrl = url;
-        debugPrint('[ApiService] Tự động kết nối máy chủ thành công: $url');
-        return url;
-      }
+    if (await testConnection(usbUrl, timeoutSeconds: 1)) {
+      _workingBaseUrl = usbUrl;
+      debugPrint('[ApiService] Kết nối nhanh qua ADB Reverse: $usbUrl');
+      return usbUrl;
     }
-    return null;
+
+    // 2. Thử song song các ứng cử viên còn lại để chọn địa chỉ phản hồi nhanh nhất
+    final remaining = baseUrls.where((u) => u != usbUrl).toList();
+    final completer = Completer<String?>();
+    int pending = remaining.length;
+
+    for (final url in remaining) {
+      testConnection(url, timeoutSeconds: 2).then((ok) {
+        if (ok && !completer.isCompleted) {
+          _workingBaseUrl = url;
+          debugPrint('[ApiService] Tự động kết nối máy chủ thành công: $url');
+          completer.complete(url);
+        }
+      }).whenComplete(() {
+        pending--;
+        if (pending == 0 && !completer.isCompleted) {
+          completer.complete(null);
+        }
+      });
+    }
+
+    return completer.future;
   }
 
   /// Khởi tạo và đọc URL máy chủ người dùng đã cấu hình trước đó (nếu có)
@@ -115,11 +143,11 @@ class ApiService {
   }
 
   /// Kiểm tra xem một URL có kết nối được tới Backend hay không (/api/health)
-  static Future<bool> testConnection(String url) async {
+  static Future<bool> testConnection(String url, {int timeoutSeconds = 2}) async {
     try {
       final cleanUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
       final uri = Uri.parse('$cleanUrl/api/health');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 3));
+      final res = await _client.get(uri).timeout(Duration(seconds: timeoutSeconds));
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final body = utf8.decode(res.bodyBytes).toLowerCase();
         return body.contains('healthy');
@@ -212,6 +240,10 @@ class ApiService {
         if (response.statusCode >= 200 && response.statusCode < 300) {
           // Lưu lại URL thành công để các request tiếp theo không mất thời gian thử lại
           _workingBaseUrl = baseUrl;
+          // Bất kỳ thao tác ghi nào thành công đều làm mới cache đọc để đảm bảo dữ liệu nhất quán
+          if (method.toUpperCase() != 'GET') {
+            DataCacheService.instance.invalidateAll();
+          }
 
           if (responseBody.trim().isEmpty) return null;
           try {

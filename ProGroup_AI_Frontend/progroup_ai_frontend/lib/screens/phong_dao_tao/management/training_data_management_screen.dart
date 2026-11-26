@@ -94,7 +94,11 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
 
           final matchesQuery = query.isEmpty || code.contains(query) || name.contains(query) || lecturer.contains(query);
           
-          final matchesFaculty = _selectedFaculty == 'Tất cả Khoa' || faculty.contains(_selectedFaculty.toLowerCase().replaceAll('khoa ', ''));
+          final matchesFaculty = _selectedFaculty == 'Tất cả Khoa' ||
+              (_selectedFaculty == 'Khoa CNTT' && (faculty.contains('cntt') || faculty.contains('công nghệ thông tin'))) ||
+              (_selectedFaculty == 'Khoa Điện tử' && faculty.contains('điện')) ||
+              (_selectedFaculty == 'Khoa Kinh tế' && faculty.contains('kinh tế')) ||
+              faculty.contains(_selectedFaculty.toLowerCase().replaceAll('khoa ', ''));
 
           final matchesStatus = _selectedPeriodStatus == 'Tất cả đợt' ||
               (_selectedPeriodStatus == 'Chưa mở đợt' && (periodStatus.contains('chưa') || periodStatus.contains('đóng'))) ||

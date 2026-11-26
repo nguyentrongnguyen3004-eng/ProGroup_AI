@@ -6,6 +6,7 @@ import '../../../models/course_model.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../models/training_subject_model.dart';
+import '../../../services/api_service.dart';
 import 'training_data_management_screen.dart';
 
 class TrainingAddFormScreen extends StatefulWidget {
@@ -166,7 +167,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final data = MockTrainingData.instance;
     final code = _codeController.text.trim();
@@ -188,6 +189,16 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
       );
       if (existing == null) {
         data.addStudents([student]);
+        try {
+          await ApiService.instance.post('/api/admin/users', {
+            'username': code,
+            'userCode': code,
+            'fullName': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'role': 'SINHVIEN',
+            'password': 'Password@123',
+          });
+        } catch (_) {}
       } else {
         data.updateStudent(student);
       }
@@ -204,6 +215,16 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
       );
       if (existing == null) {
         data.addLecturers([lecturer], statuses: {code: _status});
+        try {
+          await ApiService.instance.post('/api/admin/users', {
+            'username': code,
+            'userCode': code,
+            'fullName': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'role': 'GIANGVIEN',
+            'password': 'Password@123',
+          });
+        } catch (_) {}
       } else {
         data.updateLecturer(lecturer, status: _status);
       }
@@ -251,11 +272,21 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
       );
       if (existing == null) {
         data.addCourseClasses([courseClass]);
+        try {
+          await ApiService.instance.post('/api/lop-hoc-phan', {
+            'maLopHocPhan': code,
+            'maHocPhan': subject.code,
+            'tenLopHocPhan': subject.name,
+            'namHoc': '2026-2027',
+            'soLuongToiDa': 50,
+          });
+        } catch (_) {}
       } else {
         data.updateCourseClass(courseClass);
       }
     }
 
+    if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     navigator.pop();

@@ -30,53 +30,45 @@ public sealed class LecturerController : ControllerBase
         }
 
         var classesQuery = _db.LopHocPhans.AsNoTracking()
-            .Include(c => c.HocPhan)
-            .Include(c => c.HocKy)
-            .Include(c => c.SinhVienLopHocPhans)
-            .Include(c => c.DotDangKyDoAns).ThenInclude(d => d.NhomDoAns)
-            .Include(c => c.DotDangKyDoAns).ThenInclude(d => d.DeTaiDoAns)
             .Where(c => c.TrangThai);
 
         if (lecturerId.HasValue)
         {
-            var assignedClassIds = await _db.PhanCongGiangViens
-                .Where(p => p.GiangVienId == lecturerId.Value && p.TrangThai)
-                .Select(p => p.LopHocPhanId)
-                .ToListAsync();
-
-            classesQuery = classesQuery.Where(c => assignedClassIds.Contains(c.LopHocPhanId));
+            classesQuery = classesQuery.Where(c =>
+                c.PhanCongGiangViens.Any(p => p.GiangVienId == lecturerId.Value && p.TrangThai));
         }
 
-        var classes = await classesQuery.ToListAsync();
-
-        var responses = classes.Select(c => new LecturerCourseResponse
-        {
-            LopHocPhanId = c.LopHocPhanId,
-            MaLopHocPhan = c.MaLopHocPhan,
-            TenLopHocPhan = c.TenLopHocPhan ?? string.Empty,
-            HocPhanId = c.HocPhanId,
-            MaHocPhan = c.HocPhan?.MaHocPhan ?? string.Empty,
-            TenHocPhan = c.HocPhan?.TenHocPhan ?? string.Empty,
-            HocKyId = c.HocKyId,
-            TenHocKy = c.HocKy?.TenHocKy ?? string.Empty,
-            NamHoc = c.HocKy?.NamHoc ?? string.Empty,
-            SoLuongToiDa = c.SoLuongToiDa,
-            SoSinhVien = c.SinhVienLopHocPhans.Count(s => s.TrangThai),
-            SoNhom = c.DotDangKyDoAns.SelectMany(d => d.NhomDoAns).Count(n => n.TrangThai != "Đã hủy"),
-            SoDeTai = c.DotDangKyDoAns.SelectMany(d => d.DeTaiDoAns).Count(),
-            DotDangKys = c.DotDangKyDoAns.Select(d => new CourseDotDangKyInfo
+        // Dùng projection trực tiếp xuống SQL để đếm số lượng thay vì tải toàn bộ SinhVienLopHocPhans/NhomDoAns vào RAM
+        var responses = await classesQuery
+            .Select(c => new LecturerCourseResponse
             {
-                DotDangKyId = d.DotDangKyId,
-                TenDot = d.TenDot,
-                NgayBatDau = d.NgayBatDau,
-                NgayKetThuc = d.NgayKetThuc,
-                MinMembers = d.MinMembers,
-                MaxMembers = d.MaxMembers,
-                TrangThai = d.TrangThai,
-                SoNhom = d.NhomDoAns.Count(n => n.TrangThai != "Đã hủy"),
-                SoDeTai = d.DeTaiDoAns.Count
-            }).ToList()
-        }).ToList();
+                LopHocPhanId = c.LopHocPhanId,
+                MaLopHocPhan = c.MaLopHocPhan,
+                TenLopHocPhan = c.TenLopHocPhan ?? string.Empty,
+                HocPhanId = c.HocPhanId,
+                MaHocPhan = c.HocPhan != null ? c.HocPhan.MaHocPhan : string.Empty,
+                TenHocPhan = c.HocPhan != null ? c.HocPhan.TenHocPhan : string.Empty,
+                HocKyId = c.HocKyId,
+                TenHocKy = c.HocKy != null ? c.HocKy.TenHocKy : string.Empty,
+                NamHoc = c.HocKy != null ? c.HocKy.NamHoc : string.Empty,
+                SoLuongToiDa = c.SoLuongToiDa,
+                SoSinhVien = c.SinhVienLopHocPhans.Count(s => s.TrangThai),
+                SoNhom = c.DotDangKyDoAns.SelectMany(d => d.NhomDoAns).Count(n => n.TrangThai != "Đã hủy"),
+                SoDeTai = c.DotDangKyDoAns.SelectMany(d => d.DeTaiDoAns).Count(),
+                DotDangKys = c.DotDangKyDoAns.Select(d => new CourseDotDangKyInfo
+                {
+                    DotDangKyId = d.DotDangKyId,
+                    TenDot = d.TenDot,
+                    NgayBatDau = d.NgayBatDau,
+                    NgayKetThuc = d.NgayKetThuc,
+                    MinMembers = d.MinMembers,
+                    MaxMembers = d.MaxMembers,
+                    TrangThai = d.TrangThai,
+                    SoNhom = d.NhomDoAns.Count(n => n.TrangThai != "Đã hủy"),
+                    SoDeTai = d.DeTaiDoAns.Count
+                }).ToList()
+            })
+            .ToListAsync();
 
         return Ok(responses);
     }
@@ -90,46 +82,36 @@ public sealed class LecturerController : ControllerBase
             return Ok(new LecturerStatisticsResponse());
         }
 
-        IQueryable<int> assignedClassIdsQuery;
-        if (lecturerId.HasValue)
-        {
-            assignedClassIdsQuery = _db.PhanCongGiangViens
+        var assignedClassIds = lecturerId.HasValue
+            ? await _db.PhanCongGiangViens.AsNoTracking()
                 .Where(p => p.GiangVienId == lecturerId.Value && p.TrangThai)
-                .Select(p => p.LopHocPhanId);
-        }
-        else
-        {
-            assignedClassIdsQuery = _db.LopHocPhans.Where(c => c.TrangThai).Select(c => c.LopHocPhanId);
-        }
-
-        var assignedClassIds = await assignedClassIdsQuery.ToListAsync();
+                .Select(p => p.LopHocPhanId)
+                .ToListAsync()
+            : await _db.LopHocPhans.AsNoTracking()
+                .Where(c => c.TrangThai)
+                .Select(c => c.LopHocPhanId)
+                .ToListAsync();
 
         var totalClasses = assignedClassIds.Count;
 
-        var periods = await _db.DotDangKyDoAns.AsNoTracking()
-            .Where(d => assignedClassIds.Contains(d.LopHocPhanId))
-            .Include(d => d.NhomDoAns)
-            .Include(d => d.DeTaiDoAns)
+        var totalGroups = await _db.NhomDoAns.AsNoTracking()
+            .CountAsync(n => n.DotDangKy != null && assignedClassIds.Contains(n.DotDangKy.LopHocPhanId) && n.TrangThai != "Đã hủy");
+
+        var topicStats = await _db.DeTaiDoAns.AsNoTracking()
+            .Where(t => (t.DotDangKy != null && assignedClassIds.Contains(t.DotDangKy.LopHocPhanId)) ||
+                        (lecturerId.HasValue && t.GiangVienId == lecturerId.Value))
+            .Select(t => new { t.DeTaiId, t.TrangThai, t.TrangThaiDuyet })
             .ToListAsync();
 
-        var totalGroups = periods.SelectMany(d => d.NhomDoAns).Count(n => n.TrangThai != "Đã hủy");
+        var totalTopics = topicStats.Count;
+        var registeredTopicsCount = topicStats.Count(t => t.TrangThai == "Đã đăng ký");
+        var pendingTopicsCount = topicStats.Count(t => t.TrangThaiDuyet == "Chờ duyệt");
 
-        var topics = periods.SelectMany(d => d.DeTaiDoAns).ToList();
-        if (lecturerId.HasValue)
-        {
-            var myOwnTopics = await _db.DeTaiDoAns.AsNoTracking()
-                .Where(t => t.GiangVienId == lecturerId.Value && !topics.Select(x => x.DeTaiId).Contains(t.DeTaiId))
-                .ToListAsync();
-            topics.AddRange(myOwnTopics);
-        }
-
-        var totalTopics = topics.Count;
-        var registeredTopicsCount = topics.Count(t => t.TrangThai == "Đã đăng ký");
-        var pendingTopicsCount = topics.Count(t => t.TrangThaiDuyet == "Chờ duyệt");
-
-        var topicIds = topics.Select(t => t.DeTaiId).ToList();
-        var pendingRegistrationsCount = await _db.DangKyDeTais
-            .CountAsync(r => topicIds.Contains(r.DeTaiId) && r.TrangThai == "Chờ duyệt");
+        var topicIds = topicStats.Select(t => t.DeTaiId).ToList();
+        var pendingRegistrationsCount = topicIds.Count == 0
+            ? 0
+            : await _db.DangKyDeTais.AsNoTracking()
+                .CountAsync(r => topicIds.Contains(r.DeTaiId) && r.TrangThai == "Chờ duyệt");
 
         var percent = totalTopics > 0
             ? Math.Round((double)registeredTopicsCount / totalTopics * 100, 2)
@@ -156,11 +138,7 @@ public sealed class LecturerController : ControllerBase
             return Ok(Array.Empty<LecturerCourseResponse>());
         }
 
-        var query = _db.DangKyDeTais.AsNoTracking()
-            .Include(r => r.DeTai).ThenInclude(t => t!.DotDangKy).ThenInclude(d => d!.LopHocPhan)
-            .Include(r => r.Nhom).ThenInclude(n => n!.TruongNhom).ThenInclude(s => s!.NguoiDung)
-            .Include(r => r.GiangVienDuyet).ThenInclude(g => g!.NguoiDung)
-            .AsQueryable();
+        var query = _db.DangKyDeTais.AsNoTracking().AsQueryable();
 
         if (lecturerId.HasValue)
         {

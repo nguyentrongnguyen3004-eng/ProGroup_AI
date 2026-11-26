@@ -110,11 +110,48 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
       );
   }
 
+  bool get _hasUnsavedChanges =>
+      titleController.text.trim().isNotEmpty ||
+      objectiveController.text.trim().isNotEmpty ||
+      scopeController.text.trim().isNotEmpty ||
+      technologyController.text.trim().isNotEmpty ||
+      descriptionController.text.trim().isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final navigator = Navigator.of(context);
+        if (!_hasUnsavedChanges) {
+          navigator.pop();
+          return;
+        }
+        final confirmDiscard = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Xác nhận hủy'),
+            content: const Text('Bạn có muốn hủy bỏ thông tin đang nhập không?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Hủy'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Đồng ý'),
+              ),
+            ],
+          ),
+        );
+        if (confirmDiscard == true && mounted) {
+          navigator.pop();
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(
           AppLocalizations.text('Đề xuất đề tài', en: 'Propose Topic'),
@@ -364,6 +401,7 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

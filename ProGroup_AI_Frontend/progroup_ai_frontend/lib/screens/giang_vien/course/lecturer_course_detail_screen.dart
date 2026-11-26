@@ -715,6 +715,27 @@ class _LecturerCourseDetailScreenState
                                         );
                                         if (updated != null && mounted) {
                                           setState(() => _course = updated);
+                                          try {
+                                            await LecturerApiService.instance.updateCourseSettings(updated.id, {
+                                              'minMembers': updated.minMembers,
+                                              'maxMembers': updated.maxMembers,
+                                              'groupRegistrationStart': updated.groupRegistrationStart,
+                                              'groupRegistrationEnd': updated.groupRegistrationEnd,
+                                              'topicRegistrationStart': updated.topicRegistrationStart,
+                                              'topicRegistrationEnd': updated.topicRegistrationEnd,
+                                            });
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Đã lưu cấu hình lớp học phần vào cơ sở dữ liệu thành công.')),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Lỗi khi lưu cấu hình lên máy chủ: $e')),
+                                              );
+                                            }
+                                          }
                                         }
                                       },
                                       style: OutlinedButton.styleFrom(

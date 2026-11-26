@@ -15,6 +15,7 @@ public sealed class ImportUserItemDto
     public string Email { get; set; } = string.Empty;
     public string? SoDienThoai { get; set; }
     public string VaiTro { get; set; } = "SINHVIEN";
+    public string? MaVaiTro { get; set; }
     public string? Khoa { get; set; }
     public string? MSSV { get; set; }
     public string? MaGiangVien { get; set; }

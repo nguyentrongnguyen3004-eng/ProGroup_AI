@@ -132,46 +132,64 @@ public sealed class LopHocPhanController : ControllerBase
 
         var groups = await _db.NhomDoAns.AsNoTracking()
             .Where(n => periodIds.Contains(n.DotDangKyId) && n.TrangThai != "Đã hủy")
-            .Include(n => n.ThanhVienNhoms)
-            .Include(n => n.DangKyDeTais).ThenInclude(dk => dk.DeTai)
+            .Select(n => new
+            {
+                n.TenNhom,
+                Members = n.ThanhVienNhoms
+                    .Where(tv => tv.TrangThai == "Đã tham gia" || tv.TrangThai == "Trưởng nhóm")
+                    .Select(tv => tv.SinhVienId)
+                    .ToList(),
+                ApprovedTopic = n.DangKyDeTais
+                    .Where(dk => dk.TrangThai == "Đã duyệt" || dk.TrangThai == "Chờ duyệt")
+                    .Select(dk => dk.DeTai != null ? dk.DeTai.TenDeTai : null)
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
         var studentGroupMap = new Dictionary<int, (string TenNhom, string? TenDeTai)>();
         foreach (var g in groups)
         {
-            var approvedTopic = g.DangKyDeTais
-                .FirstOrDefault(dk => dk.TrangThai == "Đã duyệt" || dk.TrangThai == "Chờ duyệt")?.DeTai?.TenDeTai;
-            foreach (var m in g.ThanhVienNhoms.Where(tv => tv.TrangThai == "Đã tham gia" || tv.TrangThai == "Trưởng nhóm"))
+            foreach (var sid in g.Members)
             {
-                studentGroupMap[m.SinhVienId] = (g.TenNhom, approvedTopic);
+                studentGroupMap[sid] = (g.TenNhom, g.ApprovedTopic);
             }
         }
 
+        var result = await BuildCourseStudentsListAsync(id, studentGroupMap);
+        return Ok(result);
+    }
+
+    private async Task<List<object>> BuildCourseStudentsListAsync(int id, Dictionary<int, (string TenNhom, string? TenDeTai)> studentGroupMap)
+    {
         var enrolled = await _db.SinhVienLopHocPhans.AsNoTracking()
             .Where(s => s.LopHocPhanId == id && s.TrangThai && s.SinhVien != null)
-            .Include(s => s.SinhVien).ThenInclude(sv => sv!.NguoiDung)
             .OrderBy(s => s.SinhVien!.MSSV)
+            .Select(s => new
+            {
+                s.SinhVien!.SinhVienId,
+                s.SinhVien.MSSV,
+                HoTen = s.SinhVien.NguoiDung != null ? s.SinhVien.NguoiDung.HoTen : string.Empty,
+                Email = s.SinhVien.NguoiDung != null ? s.SinhVien.NguoiDung.Email : string.Empty,
+                SoDienThoai = s.SinhVien.NguoiDung != null ? s.SinhVien.NguoiDung.SoDienThoai : string.Empty
+            })
             .ToListAsync();
 
-        var result = enrolled.Select(s =>
+        return enrolled.Select(sv =>
         {
-            var sv = s.SinhVien!;
             var hasGroup = studentGroupMap.TryGetValue(sv.SinhVienId, out var gInfo);
-            return new
+            return (object)new
             {
                 sinhVienId = sv.SinhVienId,
                 mssv = sv.MSSV,
-                hoTen = sv.NguoiDung?.HoTen ?? string.Empty,
-                email = sv.NguoiDung?.Email ?? string.Empty,
-                soDienThoai = sv.NguoiDung?.SoDienThoai ?? "0909123456",
+                hoTen = sv.HoTen,
+                email = sv.Email,
+                soDienThoai = sv.SoDienThoai ?? string.Empty,
                 daCoNhom = hasGroup,
                 tenNhom = hasGroup ? gInfo.TenNhom : "Chưa có nhóm",
                 daCoDeTai = hasGroup && !string.IsNullOrEmpty(gInfo.TenDeTai),
                 tenDeTai = hasGroup && !string.IsNullOrEmpty(gInfo.TenDeTai) ? gInfo.TenDeTai : "Chưa đăng ký đề tài"
             };
         }).ToList();
-
-        return Ok(result);
     }
 
     [HttpGet("{id:int}/chi-tiet")]
@@ -184,45 +202,63 @@ public sealed class LopHocPhanController : ControllerBase
 
         var groups = await _db.NhomDoAns.AsNoTracking()
             .Where(n => periodIds.Contains(n.DotDangKyId) && n.TrangThai != "Đã hủy")
-            .Include(n => n.TruongNhom).ThenInclude(sv => sv!.NguoiDung)
-            .Include(n => n.ThanhVienNhoms).ThenInclude(tv => tv.SinhVien).ThenInclude(sv => sv!.NguoiDung)
-            .Include(n => n.DangKyDeTais).ThenInclude(dk => dk.DeTai)
             .OrderBy(n => n.TenNhom)
+            .Select(n => new
+            {
+                n.NhomId,
+                n.TenNhom,
+                TruongNhom = n.TruongNhom != null && n.TruongNhom.NguoiDung != null ? n.TruongNhom.NguoiDung.HoTen : "Trưởng nhóm",
+                Members = n.ThanhVienNhoms
+                    .Where(tv => tv.TrangThai == "Đã tham gia" || tv.TrangThai == "Trưởng nhóm")
+                    .Select(tv => new
+                    {
+                        sinhVienId = tv.SinhVienId,
+                        mssv = tv.SinhVien != null ? tv.SinhVien.MSSV : string.Empty,
+                        hoTen = tv.SinhVien != null && tv.SinhVien.NguoiDung != null ? tv.SinhVien.NguoiDung.HoTen : string.Empty,
+                        vaiTro = tv.VaiTro
+                    })
+                    .ToList(),
+                ActiveReg = n.DangKyDeTais
+                    .OrderByDescending(dk => dk.TrangThai == "Đã duyệt" ? 2 : (dk.TrangThai == "Chờ duyệt" ? 1 : 0))
+                    .Select(dk => new
+                    {
+                        dk.DeTaiId,
+                        TenDeTai = dk.DeTai != null ? dk.DeTai.TenDeTai : null,
+                        dk.TrangThai
+                    })
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
+        var studentGroupMap = new Dictionary<int, (string TenNhom, string? TenDeTai)>();
         var groupDtos = groups.Select(g =>
         {
-            var activeReg = g.DangKyDeTais
-                .OrderByDescending(dk => dk.TrangThai == "Đã duyệt" ? 2 : (dk.TrangThai == "Chờ duyệt" ? 1 : 0))
-                .FirstOrDefault();
-            var members = g.ThanhVienNhoms
-                .Where(tv => tv.TrangThai == "Đã tham gia" || tv.TrangThai == "Trưởng nhóm")
-                .Select(tv => new
-                {
-                    sinhVienId = tv.SinhVienId,
-                    mssv = tv.SinhVien?.MSSV ?? string.Empty,
-                    hoTen = tv.SinhVien?.NguoiDung?.HoTen ?? string.Empty,
-                    vaiTro = tv.VaiTro
-                }).ToList();
+            var approvedTopic = (g.ActiveReg != null && (g.ActiveReg.TrangThai == "Đã duyệt" || g.ActiveReg.TrangThai == "Chờ duyệt"))
+                ? g.ActiveReg.TenDeTai
+                : null;
+            foreach (var m in g.Members)
+            {
+                studentGroupMap[m.sinhVienId] = (g.TenNhom, approvedTopic);
+            }
 
             return new
             {
                 nhomId = g.NhomId,
                 tenNhom = g.TenNhom,
-                truongNhom = g.TruongNhom?.NguoiDung?.HoTen ?? "Trưởng nhóm",
-                soThanhVien = members.Count,
-                thanhViens = members,
-                deTaiId = activeReg?.DeTaiId,
-                tenDeTai = activeReg?.DeTai?.TenDeTai ?? "Chưa đăng ký đề tài",
-                trangThaiDeTai = activeReg?.TrangThai ?? "Chưa đăng ký"
+                truongNhom = g.TruongNhom,
+                soThanhVien = g.Members.Count,
+                thanhViens = g.Members,
+                deTaiId = g.ActiveReg?.DeTaiId,
+                tenDeTai = g.ActiveReg?.TenDeTai ?? "Chưa đăng ký đề tài",
+                trangThaiDeTai = g.ActiveReg?.TrangThai ?? "Chưa đăng ký"
             };
         }).ToList();
 
-        var studentsRes = await GetCourseStudents(id) as OkObjectResult;
+        var students = await BuildCourseStudentsListAsync(id, studentGroupMap);
         return Ok(new
         {
             lopHocPhanId = id,
-            sinhViens = studentsRes?.Value ?? Array.Empty<object>(),
+            sinhViens = students,
             nhoms = groupDtos
         });
     }
@@ -255,9 +291,8 @@ public sealed class LopHocPhanController : ControllerBase
         var all = await _db.HocKys.ToListAsync();
         foreach (var hk in all)
         {
-            hk.TrangThai = true; // giữ hiệu lực hiển thị các lớp học phần
+            hk.TrangThai = (hk.HocKyId == id);
         }
-        target.TrangThai = true;
         await _db.SaveChangesAsync();
 
         return Ok(new
@@ -330,4 +365,94 @@ public sealed class LopHocPhanController : ControllerBase
 
         return Ok(new { success = true, lopHocPhanId = lopHocPhan.LopHocPhanId, message = "Tạo lớp học phần thành công." });
     }
+
+    [Authorize(Roles = "GIANGVIEN,ADMIN,GIAOVUKHOA")]
+    [HttpPut("{id:int}/cau-hinh")]
+    public async Task<IActionResult> UpdateCourseSettings(int id, [FromBody] UpdateCourseSettingsRequest request)
+    {
+        var course = await _db.LopHocPhans
+            .Include(l => l.DotDangKyDoAns)
+            .FirstOrDefaultAsync(l => l.LopHocPhanId == id);
+
+        if (course == null) return NotFound(new { message = "Không tìm thấy lớp học phần." });
+
+        if (request.SoLuongToiDa.HasValue && request.SoLuongToiDa.Value > 0)
+        {
+            course.SoLuongToiDa = request.SoLuongToiDa.Value;
+        }
+
+        var topicStart = TryParseDate(request.TopicRegistrationStart) ?? TryParseDate(request.GroupRegistrationStart);
+        var topicEnd = TryParseDate(request.TopicRegistrationEnd) ?? TryParseDate(request.GroupRegistrationEnd);
+
+        var period = course.DotDangKyDoAns.OrderByDescending(d => d.DotDangKyId).FirstOrDefault();
+        if (period == null)
+        {
+            var start = topicStart ?? DateTime.Today;
+            var end = topicEnd ?? DateTime.Today.AddMonths(1);
+            if (end <= start) return BadRequest(new { message = "Ngày kết thúc phải sau ngày bắt đầu." });
+
+            period = new DotDangKyDoAn
+            {
+                LopHocPhanId = id,
+                TenDot = $"Đợt đăng ký - {course.TenLopHocPhan ?? course.MaLopHocPhan}",
+                NgayBatDau = start,
+                NgayKetThuc = end,
+                MinMembers = request.MinMembers ?? 2,
+                MaxMembers = request.MaxMembers ?? 5,
+                TrangThai = "Đang mở",
+                CreatedAt = DateTime.Now
+            };
+            _db.DotDangKyDoAns.Add(period);
+        }
+        else
+        {
+            if (request.MinMembers.HasValue && request.MinMembers.Value > 0)
+                period.MinMembers = request.MinMembers.Value;
+            if (request.MaxMembers.HasValue && request.MaxMembers.Value >= period.MinMembers)
+                period.MaxMembers = request.MaxMembers.Value;
+            if (topicStart.HasValue)
+                period.NgayBatDau = topicStart.Value;
+            if (topicEnd.HasValue)
+                period.NgayKetThuc = topicEnd.Value;
+            if (period.NgayKetThuc <= period.NgayBatDau)
+                return BadRequest(new { message = "Ngày kết thúc phải sau ngày bắt đầu." });
+            period.TrangThai = "Đang mở";
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            lopHocPhanId = course.LopHocPhanId,
+            minMembers = period.MinMembers,
+            maxMembers = period.MaxMembers,
+            topicRegistrationStart = period.NgayBatDau.ToString("yyyy-MM-dd"),
+            topicRegistrationEnd = period.NgayKetThuc.ToString("yyyy-MM-dd"),
+            message = "Đã lưu cấu hình lớp học phần thành công vào cơ sở dữ liệu."
+        });
+    }
+
+    private static DateTime? TryParseDate(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var trimmed = raw.Trim();
+        if (DateTime.TryParseExact(trimmed, new[] { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-ddTHH:mm:ss.fffZ" },
+            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed))
+        {
+            return parsed;
+        }
+        return DateTime.TryParse(trimmed, out var fallback) ? fallback : null;
+    }
+}
+
+public class UpdateCourseSettingsRequest
+{
+    public int? MinMembers { get; set; }
+    public int? MaxMembers { get; set; }
+    public string? GroupRegistrationStart { get; set; }
+    public string? GroupRegistrationEnd { get; set; }
+    public string? TopicRegistrationStart { get; set; }
+    public string? TopicRegistrationEnd { get; set; }
+    public int? SoLuongToiDa { get; set; }
 }

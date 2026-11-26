@@ -566,8 +566,8 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
     final newEmail = await ChangeEmailDialog.show(
       context,
       currentEmail: current,
-      onConfirm: (email) async {
-        await AdminApiService.instance.changeEmail(email);
+      onConfirm: (email, otp) async {
+        await AdminApiService.instance.changeEmail(email, otp);
       },
     );
     if (newEmail != null && mounted) {
@@ -579,6 +579,7 @@ class _TrainingProfileScreenState extends State<TrainingProfileScreen> {
           email: newEmail,
           role: _user.role,
           roleName: _user.roleName,
+          avatarUrl: _user.avatarUrl,
         );
       });
       _showMessage(AppLocalizations.text('Đổi email thành công.', en: 'Email changed successfully.'));

@@ -48,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -62,14 +62,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final results = await Future.wait([
-        StudentApiService.instance.fetchMyCourses(),
-        StudentApiService.instance.fetchMyGroups(),
-        StudentApiService.instance.fetchTopics(),
-        StudentApiService.instance.fetchUnreadCount(),
+        StudentApiService.instance.fetchMyCourses(forceRefresh: forceRefresh),
+        StudentApiService.instance.fetchMyGroups(forceRefresh: forceRefresh),
+        StudentApiService.instance.fetchAvailableTopics(forceRefresh: forceRefresh),
+        StudentApiService.instance.fetchUnreadCount(forceRefresh: forceRefresh),
       ]);
 
       // Đồng bộ ảnh đại diện từ hồ sơ cá nhân sinh viên
-      StudentApiService.instance.fetchProfile().then((p) {
+      StudentApiService.instance.fetchProfile(forceRefresh: forceRefresh).then((p) {
         if (p.avatarUrl.isNotEmpty) {
           AvatarService.instance.syncFromServer(AuthService.currentUser.username, p.avatarUrl);
         }
@@ -136,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         bottom: true,
         child: RefreshIndicator(
-          onRefresh: _loadData,
+          onRefresh: () => _loadData(forceRefresh: true),
           color: const Color(0xFF2563EB),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 76),

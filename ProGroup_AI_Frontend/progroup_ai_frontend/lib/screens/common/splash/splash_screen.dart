@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../services/api_service.dart';
+import '../../../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,12 +17,29 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    _bootstrap();
+  }
 
-    Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    });
+  Future<void> _bootstrap() async {
+    await Future.wait([
+      ApiService.autoDetectServer().timeout(const Duration(milliseconds: 1800), onTimeout: () => null),
+      Future.delayed(const Duration(milliseconds: 450)),
+    ]);
+    final restoredUser = await AuthService.restoreSession();
+    if (!mounted) return;
+    if (restoredUser != null) {
+      final destination = switch (restoredUser.role) {
+        'LECTURER' || 'GIANGVIEN' => AppRoutes.lecturerMain,
+        'SINHVIEN' => AppRoutes.home,
+        'GIAOVU' || 'GIAOVUKHOA' => AppRoutes.governanceMain,
+        'PHONG_DAO_TAO' || 'PHONGDAOTAO' => AppRoutes.trainingMain,
+        'ADMIN' => AppRoutes.adminMain,
+        _ => AppRoutes.login,
+      };
+      Navigator.pushReplacementNamed(context, destination, arguments: restoredUser);
+      return;
+    }
+    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   @override
