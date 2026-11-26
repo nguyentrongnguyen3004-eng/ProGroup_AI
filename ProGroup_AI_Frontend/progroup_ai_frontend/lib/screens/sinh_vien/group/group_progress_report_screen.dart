@@ -114,6 +114,7 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
     final githubController = TextEditingController();
     final fileController = TextEditingController();
     final demoController = TextEditingController();
+    final scrollController = ScrollController();
     bool isSubmitting = false;
     String? fileError;
     String? githubError;
@@ -135,6 +136,7 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: SingleChildScrollView(
+                controller: scrollController,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,10 +231,19 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: githubController,
+                      onChanged: (val) {
+                        if (githubError != null) {
+                          setModalState(() {
+                            githubError = null;
+                            if (fileError == null && demoError == null) globalError = null;
+                          });
+                        }
+                      },
                       decoration: InputDecoration(
                         labelText: 'Link mã nguồn GitHub (nếu có)',
                         hintText: 'https://github.com/...',
                         errorText: githubError,
+                        errorMaxLines: 2,
                         prefixIcon: const Icon(Icons.code_rounded, size: 20),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -240,10 +251,19 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: fileController,
+                      onChanged: (val) {
+                        if (fileError != null) {
+                          setModalState(() {
+                            fileError = null;
+                            if (githubError == null && demoError == null) globalError = null;
+                          });
+                        }
+                      },
                       decoration: InputDecoration(
                         labelText: 'Link file báo cáo PDF / Google Drive',
                         hintText: 'https://drive.google.com/...',
                         errorText: fileError,
+                        errorMaxLines: 2,
                         prefixIcon: const Icon(Icons.picture_as_pdf_rounded, size: 20),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -251,15 +271,54 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: demoController,
+                      onChanged: (val) {
+                        if (demoError != null) {
+                          setModalState(() {
+                            demoError = null;
+                            if (githubError == null && fileError == null) globalError = null;
+                          });
+                        }
+                      },
                       decoration: InputDecoration(
                         labelText: 'Link Video Demo / Figma (nếu có)',
                         hintText: 'https://youtube.com/ hoặc https://figma.com/...',
                         errorText: demoError,
+                        errorMaxLines: 2,
                         prefixIcon: const Icon(Icons.play_circle_outline_rounded, size: 20),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    if (globalError != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFEF4444), width: 1.2),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                globalError!,
+                                style: const TextStyle(
+                                  color: Color(0xFFDC2626),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -269,12 +328,19 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
                             : () async {
                                 final title = titleController.text.trim();
                                 if (title.isEmpty) {
+                                  const titleWarning = 'Vui lòng nhập tiêu đề báo cáo.';
                                   setModalState(() {
-                                    globalError = 'Vui lòng nhập tiêu đề báo cáo.';
+                                    globalError = titleWarning;
                                   });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Vui lòng nhập tiêu đề báo cáo.')),
-                                  );
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (scrollController.hasClients) {
+                                      scrollController.animateTo(
+                                        scrollController.position.maxScrollExtent,
+                                        duration: const Duration(milliseconds: 250),
+                                        curve: Curves.easeOut,
+                                      );
+                                    }
+                                  });
                                   return;
                                 }
 
@@ -288,20 +354,23 @@ class _GroupProgressReportScreenState extends State<GroupProgressReportScreen> {
 
                                 if (isGitInvalid || isFileInvalid || isDemoInvalid) {
                                   const urlWarning = 'Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)';
+                                  const fieldWarning = 'Link phải bắt đầu bằng http:// hoặc https://';
                                   setModalState(() {
                                     globalError = urlWarning;
-                                    githubError = isGitInvalid ? urlWarning : null;
-                                    fileError = isFileInvalid ? urlWarning : null;
-                                    demoError = isDemoInvalid ? urlWarning : null;
+                                    githubError = isGitInvalid ? fieldWarning : null;
+                                    fileError = isFileInvalid ? fieldWarning : null;
+                                    demoError = isDemoInvalid ? fieldWarning : null;
                                   });
 
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(urlWarning),
-                                      backgroundColor: Colors.red,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (scrollController.hasClients) {
+                                      scrollController.animateTo(
+                                        scrollController.position.maxScrollExtent,
+                                        duration: const Duration(milliseconds: 250),
+                                        curve: Curves.easeOut,
+                                      );
+                                    }
+                                  });
                                   return;
                                 }
 
