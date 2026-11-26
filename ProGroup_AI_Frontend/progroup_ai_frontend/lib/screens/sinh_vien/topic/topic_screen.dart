@@ -36,7 +36,12 @@ class _TopicScreenState extends State<TopicScreen> {
     });
 
     try {
-      final data = await StudentApiService.instance.fetchTopics();
+      var data = await StudentApiService.instance.fetchTopics(
+        lopHocPhanId: widget.course?.id,
+      );
+      if (data.isEmpty && widget.course != null) {
+        data = await StudentApiService.instance.fetchTopics();
+      }
       if (!mounted) return;
       setState(() {
         _topics = data;
@@ -45,7 +50,7 @@ class _TopicScreenState extends State<TopicScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
         _isLoading = false;
       });
     }
@@ -147,41 +152,63 @@ class _TopicScreenState extends State<TopicScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Có ${filteredTopics.length} đề tài',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w600,
+            if (!_isLoading && _errorMessage == null) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Có ${filteredTopics.length} đề tài',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _errorMessage != null
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _errorMessage!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                              const SizedBox(height: 12),
-                              ElevatedButton.icon(
-                                onPressed: _loadTopics,
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Thử lại'),
-                              ),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 48,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _loadTopics,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Thử lại'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       : filteredTopics.isEmpty

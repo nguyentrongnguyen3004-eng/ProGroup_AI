@@ -77,10 +77,12 @@ class StudentApiService {
   }
 
   /// Tải danh sách đề tài đồ án
-  Future<List<TopicModel>> fetchTopics({int? dotDangKyId}) async {
-    final path = dotDangKyId != null
-        ? '/api/de-tai?dotDangKyId=$dotDangKyId'
-        : '/api/de-tai';
+  Future<List<TopicModel>> fetchTopics({int? dotDangKyId, int? lopHocPhanId}) async {
+    final params = <String>[];
+    if (dotDangKyId != null) params.add('dotDangKyId=$dotDangKyId');
+    if (lopHocPhanId != null) params.add('lopHocPhanId=$lopHocPhanId');
+    final query = params.isNotEmpty ? '?${params.join('&')}' : '';
+    final path = '/api/de-tai$query';
     final res = await ApiService.instance.get(path);
 
     final List<dynamic> list;

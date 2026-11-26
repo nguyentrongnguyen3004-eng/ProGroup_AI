@@ -31,13 +31,13 @@ timeout /t 3 /nobreak >nul
 echo ============================================================
 echo THONG TIN KET NOI CHO DIEN THOAI:
 echo.
-echo [CACH 1 - QUA CAP USB] Neu dang cam day cap:
+echo [CACH 1 - QUA CAP USB / MAY AO] Neu dang cam day cap hoac dung may ao Android:
 echo    Dia chi API: http://127.0.0.1:5094 hoac http://localhost:5094
-echo    (Da duoc tu dong thiet lap cau noi ADB Reverse)
+echo    (Da duoc tu dong thiet lap cau noi ADB Reverse toc do cao)
 echo.
 echo [CACH 2 - QUA WI-FI] Neu dien thoai dung CHUNG WI-FI voi Laptop:
-echo    Dia chi API: http://192.168.1.109:5094
-echo    (Test tren trinh duyet dien thoai: http://192.168.1.109:5094/api/health)
+echo    Dia chi API: http://192.168.1.234:5094
+echo    (Test tren trinh duyet dien thoai: http://192.168.1.234:5094/api/health)
 echo ============================================================
 echo.
 echo He thong Backend da san sang hoat dong!

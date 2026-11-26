@@ -19,15 +19,31 @@ class ApiService {
   ApiService._();
   static final ApiService instance = ApiService._();
 
-  static const String currentLanIpUrl = 'http://192.168.1.229:5094';
-  static const String currentLanIpUrlOld = 'http://192.168.1.223:5094';
+  static http.Client _client = http.Client();
+  static http.Client get client => _client;
+
+  static void resetClient() {
+    try {
+      _client.close();
+    } catch (_) {}
+    _client = http.Client();
+  }
+
+  static const String currentLanIpUrl = 'http://192.168.1.234:5094';
+  static const String currentLanIpUrlOld = 'http://192.168.1.229:5094';
   static const String usbUrl = 'http://127.0.0.1:5094';
+  static const String emulatorUrl = 'http://10.0.2.2:5094';
   static const String currentCloudflareUrl =
       'https://platforms-interaction-alcohol-share.trycloudflare.com';
 
+  /// Danh sách địa chỉ máy chủ theo thứ tự ưu tiên tốc độ cao nhất:
+  /// 1. usbUrl (127.0.0.1:5094): Cực nhanh qua ADB Reverse (dùng cho cả máy thật cắm USB lẫn máy ảo Android).
+  /// 2. emulatorUrl (10.0.2.2:5094): Dự phòng cho Android Emulator nếu chưa chạy reverse ADB.
+  /// 3. localhost:5094: Dành cho Windows / Web Desktop.
+  /// 4. Wi-Fi LAN IPs: Dành cho điện thoại kết nối cùng mạng Wi-Fi.
   static const List<String> baseUrls = [
-    'http://10.0.2.2:5094',
     usbUrl,
+    emulatorUrl,
     'http://localhost:5094',
     currentLanIpUrl,
     currentLanIpUrlOld,
@@ -103,7 +119,7 @@ class ApiService {
     try {
       final cleanUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
       final uri = Uri.parse('$cleanUrl/api/health');
-      final res = await http.get(uri).timeout(const Duration(seconds: 2));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 3));
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final body = utf8.decode(res.bodyBytes).toLowerCase();
         return body.contains('healthy');
@@ -169,25 +185,25 @@ class ApiService {
         final http.Response response;
         switch (method.toUpperCase()) {
           case 'POST':
-            response = await http
+            response = await _client
                 .post(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 15));
+                .timeout(const Duration(seconds: 25));
             break;
           case 'PUT':
-            response = await http
+            response = await _client
                 .put(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 15));
+                .timeout(const Duration(seconds: 25));
             break;
           case 'DELETE':
-            response = await http
+            response = await _client
                 .delete(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 15));
+                .timeout(const Duration(seconds: 25));
             break;
           case 'GET':
           default:
-            response = await http
+            response = await _client
                 .get(uri, headers: headers)
-                .timeout(const Duration(seconds: 15));
+                .timeout(const Duration(seconds: 25));
             break;
         }
 
@@ -248,7 +264,20 @@ class ApiService {
       } on ApiException {
         rethrow;
       } catch (e) {
-        lastError = ApiException('Lỗi kết nối: ${e.toString()}', null);
+        final errStr = e.toString();
+        if (errStr.contains('TimeoutException')) {
+          lastError = ApiException(
+            'Hết thời gian chờ kết nối máy chủ (Timeout). Vui lòng thử lại.',
+            null,
+          );
+        } else if (errStr.contains('SocketException')) {
+          lastError = ApiException(
+            'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.',
+            null,
+          );
+        } else {
+          lastError = ApiException('Lỗi kết nối: $errStr', null);
+        }
       }
     }
 
