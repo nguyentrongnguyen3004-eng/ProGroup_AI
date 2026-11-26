@@ -7,6 +7,7 @@ import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/group/create_group_screen.dart';
 import 'package:progroup_ai_frontend/services/api_service.dart';
 import 'package:progroup_ai_frontend/services/auth_service.dart';
+import 'package:progroup_ai_frontend/services/student_api_service.dart';
 
 class CourseGroupScreen extends StatefulWidget {
   final CourseModel course;
@@ -576,11 +577,11 @@ class _CourseGroupScreenState extends State<CourseGroupScreen> {
 
   Future<void> _joinGroup(GroupModel group) async {
     try {
-      await ApiService.instance.post('/api/groups/${group.id}/join', {});
+      await StudentApiService.instance.requestToJoinGroup(group.id);
       _showMessage('Gửi yêu cầu tham gia nhóm thành công.');
       _loadGroups();
     } catch (e) {
-      _showMessage('Thông báo: $e');
+      _showMessage('Thông báo: ${e.toString().replaceAll('Exception: ', '')}');
     }
   }
 

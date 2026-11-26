@@ -731,6 +731,7 @@ public sealed class GroupsController : ControllerBase
     [Authorize(Policy = "StudentOnly")]
 
     [HttpPost("{id:int}/join-requests")]
+    [HttpPost("{id:int}/join")]
 
     public async Task<IActionResult> RequestToJoin(int id)
 

@@ -281,7 +281,11 @@ class StudentApiService {
 
   /// Sinh viên gửi yêu cầu xin vào nhóm
   Future<void> requestToJoinGroup(int nhomId) async {
-    await ApiService.instance.post('/api/groups/$nhomId/join-requests', {});
+    try {
+      await ApiService.instance.post('/api/groups/$nhomId/join', {});
+    } catch (_) {
+      await ApiService.instance.post('/api/groups/$nhomId/join-requests', {});
+    }
   }
 
   /// Trưởng nhóm duyệt hoặc từ chối yêu cầu gia nhập

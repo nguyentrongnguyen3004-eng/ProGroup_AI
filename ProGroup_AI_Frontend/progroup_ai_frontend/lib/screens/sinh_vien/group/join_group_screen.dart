@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 import 'package:progroup_ai_frontend/models/group_model.dart';
 import 'package:progroup_ai_frontend/services/api_service.dart';
+import 'package:progroup_ai_frontend/services/student_api_service.dart';
 
 class JoinGroupScreen extends StatefulWidget {
   const JoinGroupScreen({super.key});
@@ -82,13 +83,13 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
 
     setState(() => _isJoining = true);
     try {
-      await ApiService.instance.post('/api/groups/${foundGroup!.id}/join', {});
+      await StudentApiService.instance.requestToJoinGroup(foundGroup!.id);
       if (!mounted) return;
       _showMessage('Đã gửi yêu cầu tham gia nhóm thành công.');
       Navigator.pop(context, foundGroup);
     } catch (e) {
       if (!mounted) return;
-      _showMessage(e.toString());
+      _showMessage(e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isJoining = false);
     }
