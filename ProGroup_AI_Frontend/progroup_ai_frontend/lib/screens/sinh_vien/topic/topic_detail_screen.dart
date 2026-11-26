@@ -88,6 +88,14 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       return;
     }
 
+    final minReq = group.minMembers > 0 ? group.minMembers : 2;
+    if (group.memberCount < minReq) {
+      _showMessage(
+        'Nhóm của bạn chưa đủ số thành viên tối thiểu (yêu cầu tối thiểu $minReq thành viên).',
+      );
+      return;
+    }
+
     if (_registration != null) {
       _showMessage(
         AppLocalizations.text(

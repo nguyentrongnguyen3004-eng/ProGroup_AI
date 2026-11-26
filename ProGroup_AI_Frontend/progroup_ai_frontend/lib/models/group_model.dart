@@ -4,6 +4,7 @@ class GroupModel {
   final String name;
   final String leader;
   final int memberCount;
+  final int minMembers;
   final int maxMembers;
   final String status;
   final List<String> members;
@@ -14,6 +15,7 @@ class GroupModel {
     required this.name,
     required this.leader,
     required this.memberCount,
+    this.minMembers = 2,
     required this.maxMembers,
     required this.status,
     required this.members,
@@ -32,6 +34,7 @@ class GroupModel {
         json['truongNhom'] as String? ??
         '';
     final maxMembers = json['maxMembers'] as int? ?? 5;
+    final minMembers = json['minMembers'] as int? ?? 2;
     final status = json['status'] as String? ??
         json['trangThai'] as String? ??
         'Đang hoạt động';
@@ -74,6 +77,7 @@ class GroupModel {
       name: name,
       leader: leader,
       memberCount: memberCount,
+      minMembers: minMembers,
       maxMembers: maxMembers,
       status: status,
       members: memberNames,

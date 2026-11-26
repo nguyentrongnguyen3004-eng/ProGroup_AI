@@ -162,12 +162,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   onPressed: () async {
                     final newName = controller.text.trim();
                     if (newName.isEmpty) {
+                      final msg = AppLocalizations.text(
+                        'Tên nhóm không được để trống',
+                        en: 'Group name cannot be empty',
+                      );
                       setDialogState(() {
-                        errorMessage = AppLocalizations.text(
-                          'Tên nhóm không được để trống',
-                          en: 'Group name cannot be empty',
-                        );
+                        errorMessage = msg;
                       });
+                      _showMessage(msg);
                       return;
                     }
                     try {

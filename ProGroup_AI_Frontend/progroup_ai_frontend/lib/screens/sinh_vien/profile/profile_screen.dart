@@ -616,6 +616,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _changeAvatar() {
     ProfileAvatarPickerHelper.show(
       context: context,
+      username: user.username,
       onAvatarSelected: (newAvatar) {
         setState(() {
           avatarData = newAvatar;
