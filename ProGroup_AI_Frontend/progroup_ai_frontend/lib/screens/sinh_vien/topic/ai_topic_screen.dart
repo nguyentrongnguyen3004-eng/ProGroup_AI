@@ -73,6 +73,7 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
   String? _error;
 
   int _topicCount = 3;
+  final Set<String> _proposedTitles = {};
 
 
 
@@ -254,34 +255,28 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
 
 
 
-  void _useSuggestionForProposal(LecturerTopicSuggestionModel suggestion) {
-
-    Navigator.of(context).push(
-
+  Future<void> _useSuggestionForProposal(LecturerTopicSuggestionModel suggestion) async {
+    final result = await Navigator.of(context).push<Map<String, dynamic>?>(
       MaterialPageRoute(
-
         builder: (_) => ProposeTopicScreen(
-
           initialValues: {
-
+            'dotDangKyId': _selectedCourse?.id ?? 0,
             'title': suggestion.title,
-
             'description': suggestion.description,
-
             'objective': suggestion.objective,
-
             'scope': suggestion.scope,
-
             'technology': suggestion.technology,
-
           },
-
         ),
-
       ),
-
     );
 
+    if (result != null && mounted) {
+      setState(() {
+        _proposedTitles.add(suggestion.title);
+      });
+      Navigator.of(context).pop(result);
+    }
   }
 
 
@@ -1296,30 +1291,30 @@ Mô tả: ${suggestion.description}
 
                             ),
 
-                            FilledButton.icon(
-
-                              onPressed: () => _useSuggestionForProposal(s),
-
-                              icon: const Icon(Icons.send_rounded, size: 16),
-
-                              label: Text(
-
-                                AppLocalizations.text('Đề xuất đề tài này', en: 'Propose Topic'),
-
-                                style: const TextStyle(fontSize: 12.5),
-
-                              ),
-
-                              style: FilledButton.styleFrom(
-
-                                backgroundColor: const Color(0xFF4F46E5),
-
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-
-                              ),
-
+                            Builder(
+                              builder: (context) {
+                                final isProposed = _proposedTitles.contains(s.title);
+                                return FilledButton.icon(
+                                  onPressed: isProposed ? null : () => _useSuggestionForProposal(s),
+                                  icon: Icon(
+                                    isProposed ? Icons.check_circle_rounded : Icons.send_rounded,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    isProposed
+                                        ? AppLocalizations.text('Đã gửi đề xuất', en: 'Proposed')
+                                        : AppLocalizations.text('Đề xuất đề tài này', en: 'Propose Topic'),
+                                    style: const TextStyle(fontSize: 12.5),
+                                  ),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: isProposed ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                                    disabledBackgroundColor: const Color(0xFF10B981).withValues(alpha: 0.8),
+                                    disabledForegroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                );
+                              },
                             ),
 
                           ],

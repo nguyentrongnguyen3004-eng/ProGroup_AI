@@ -94,11 +94,14 @@ class _TopicScreenState extends State<TopicScreen> {
           IconButton(
             icon: const Icon(Icons.auto_awesome, color: Colors.white),
             tooltip: 'AI Gợi ý đề tài',
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final result = await Navigator.push<Object?>(
                 context,
                 MaterialPageRoute(builder: (_) => const AiTopicScreen()),
               );
+              if (result is Map && result['submitted'] == true) {
+                _loadTopics();
+              }
             },
           ),
         ],
@@ -281,6 +284,12 @@ class _TopicScreenState extends State<TopicScreen> {
     final title = value('title');
     if (title.isEmpty) {
       _showProposalMessage('Đề xuất cần có tên đề tài.', isError: true);
+      return;
+    }
+
+    if (result['submitted'] == true) {
+      _showProposalMessage('Đã gửi đề xuất đến giảng viên để xem xét.');
+      _loadTopics();
       return;
     }
 

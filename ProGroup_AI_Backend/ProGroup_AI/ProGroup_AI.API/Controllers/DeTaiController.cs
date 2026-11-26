@@ -348,14 +348,33 @@ public sealed class DeTaiController : ControllerBase
         }
 
         var period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId);
+        if (period is null && request.DotDangKyId > 0)
+        {
+            period = await _db.DotDangKyDoAns.FirstOrDefaultAsync(d => d.LopHocPhanId == request.DotDangKyId && d.TrangThai == "Đang mở");
+        }
+        if (period is null)
+        {
+            period = await _db.DotDangKyDoAns.OrderByDescending(d => d.DotDangKyId).FirstOrDefaultAsync(d => d.TrangThai == "Đang mở")
+                ?? await _db.DotDangKyDoAns.OrderByDescending(d => d.DotDangKyId).FirstOrDefaultAsync();
+        }
         if (period is null)
         {
             return BadRequest(new { message = "Đợt đăng ký không tồn tại." });
         }
 
+        var hasActiveProposal = await _db.DeTaiDoAns.AnyAsync(t =>
+            t.SinhVienDeXuatId == studentId.Value &&
+            t.DotDangKyId == period.DotDangKyId &&
+            (t.TrangThaiDuyet == "Chờ duyệt" || t.TrangThaiDuyet == "Đã duyệt"));
+
+        if (hasActiveProposal)
+        {
+            return BadRequest(new { message = "Bạn đã có đề tài trong đợt này đang chờ duyệt hoặc đã được duyệt. Mỗi sinh viên chỉ gửi 1 đề tài trong một đợt." });
+        }
+
         var topic = new DeTaiDoAn
         {
-            DotDangKyId = request.DotDangKyId,
+            DotDangKyId = period.DotDangKyId,
             TenDeTai = request.TenDeTai.Trim(),
             MoTa = request.MoTa?.Trim(),
             MucTieu = request.MucTieu?.Trim(),

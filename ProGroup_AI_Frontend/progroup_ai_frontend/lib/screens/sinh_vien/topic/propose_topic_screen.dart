@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
+import 'package:progroup_ai_frontend/services/student_api_service.dart';
 
 class ProposeTopicScreen extends StatefulWidget {
   final Map<String, dynamic>? initialValues;
@@ -39,7 +40,9 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
     super.dispose();
   }
 
-  void _submitProposal() {
+  bool _isSubmitting = false;
+
+  Future<void> _submitProposal() async {
     final title = titleController.text.trim();
 
     if (title.isEmpty) {
@@ -52,17 +55,47 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
       return;
     }
 
-    final result = {
-      'title': title,
-      'description': descriptionController.text.trim(),
-      'objective': objectiveController.text.trim(),
-      'scope': scopeController.text.trim(),
-      'technology': technologyController.text.trim(),
-      'source': 'Sinh viên đề xuất',
-      'status': 'Chờ duyệt',
-    };
+    setState(() => _isSubmitting = true);
 
-    Navigator.pop(context, result);
+    try {
+      final dotId = widget.initialValues?['dotDangKyId'] as int? ?? 0;
+      await StudentApiService.instance.proposeTopic(
+        dotDangKyId: dotId,
+        tenDeTai: title,
+        moTa: descriptionController.text.trim(),
+        mucTieu: objectiveController.text.trim(),
+        phamVi: scopeController.text.trim(),
+        congNgheDuKien: technologyController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã gửi đề xuất đề tài đến giảng viên thành công!'),
+          backgroundColor: Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      final result = {
+        'title': title,
+        'description': descriptionController.text.trim(),
+        'objective': objectiveController.text.trim(),
+        'scope': scopeController.text.trim(),
+        'technology': technologyController.text.trim(),
+        'source': 'Sinh viên đề xuất',
+        'status': 'Chờ duyệt',
+        'submitted': true,
+      };
+
+      Navigator.pop(context, result);
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage('Lỗi khi gửi đề xuất: ${e.toString().replaceAll('Exception: ', '')}');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   void _showMessage(String message) {
@@ -302,7 +335,7 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
             SizedBox(
               height: 52,
               child: FilledButton.icon(
-                onPressed: _submitProposal,
+                onPressed: _isSubmitting ? null : _submitProposal,
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF2563EB),
                   shape: RoundedRectangleBorder(
@@ -310,9 +343,17 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
                   ),
                   elevation: 2,
                 ),
-                icon: const Icon(Icons.send_rounded, size: 20),
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded, size: 20),
                 label: Text(
-                  AppLocalizations.text('GỬI ĐỀ XUẤT ĐỀ TÀI', en: 'SUBMIT PROPOSAL'),
+                  _isSubmitting
+                      ? 'ĐANG GỬI ĐỀ XUẤT...'
+                      : AppLocalizations.text('GỬI ĐỀ XUẤT ĐỀ TÀI', en: 'SUBMIT PROPOSAL'),
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
