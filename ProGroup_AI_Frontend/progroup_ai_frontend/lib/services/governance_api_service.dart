@@ -75,6 +75,7 @@ class GovernanceApiService {
       'lopHocPhanId': lopHocPhanId,
       'giangVienId': giangVienId,
     });
+    DataCacheService.instance.invalidateAll();
   }
 
   Future<Map<String, dynamic>> fetchOverview({bool forceRefresh = false}) {

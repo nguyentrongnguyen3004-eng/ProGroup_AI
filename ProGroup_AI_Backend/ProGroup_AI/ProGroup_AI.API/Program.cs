@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -17,7 +19,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers & Response Compression
 // ========================================
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+    });
 builder.Services.AddProblemDetails();
 
 builder.Services.AddResponseCompression(options =>

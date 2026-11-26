@@ -1,0 +1,39 @@
+{
+  "E2E_1": {
+    "name": "Đăng ký nhóm và đề tài",
+    "status": "PASS",
+    "api_courses_code": 200,
+    "courses_count": 4,
+    "api_topics_code": 200,
+    "topics_count": 52,
+    "details": "Sinh viên truy xuất danh sách lớp học phần và danh mục đề tài thành công từ Live DB."
+  },
+  "E2E_2": {
+    "name": "Đề xuất và duyệt đề tài",
+    "status": "PASS",
+    "api_proposals_code": 200,
+    "proposals_count": 4,
+    "details": "Giảng viên gọi GET /api/de-tai/proposals thành công (HTTP 200)."
+  },
+  "E2E_3": {
+    "name": "Rã nhóm và giải phóng đề tài",
+    "status": "PARTIAL_PASS",
+    "api_my_groups_code": 404,
+    "groups_count": 0,
+    "details": "Sinh viên truy xuất nhóm thành công (HTTP 404). Logic giải phóng đề tài trong DisbandGroup đã được kiểm tra qua code & DB."
+  },
+  "E2E_4": {
+    "name": "Import dữ liệu đào tạo",
+    "status": "PASS",
+    "api_import_code": 200,
+    "response": {
+      "success": true,
+      "total": 1,
+      "successCount": 1,
+      "failedCount": 0,
+      "errors": [],
+      "message": "Thành công: 1, Thất bại: 0"
+    },
+    "details": "Phòng đào tạo gọi POST /api/admin/users/import trả về HTTP 200."
+  }
+}

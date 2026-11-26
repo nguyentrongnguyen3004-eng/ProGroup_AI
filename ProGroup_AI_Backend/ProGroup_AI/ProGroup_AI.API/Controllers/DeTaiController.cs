@@ -78,8 +78,14 @@ public sealed class DeTaiController : ControllerBase
             return Ok(Array.Empty<TopicResponse>());
         }
 
+        var assignedClassIds = await _db.PhanCongGiangViens
+            .Where(p => p.GiangVienId == lecturerId.Value && p.TrangThai)
+            .Select(p => p.LopHocPhanId)
+            .ToListAsync();
+
         var query = _db.DeTaiDoAns.AsNoTracking()
-            .Where(t => t.GiangVienId == lecturerId.Value);
+            .Where(t => t.GiangVienId == lecturerId.Value ||
+                        (t.DotDangKy != null && assignedClassIds.Contains(t.DotDangKy.LopHocPhanId)));
 
         if (dotDangKyId.HasValue)
         {
@@ -120,9 +126,14 @@ public sealed class DeTaiController : ControllerBase
 
         if (lecturerId.HasValue && !User.IsInRole("ADMIN"))
         {
+            var assignedClassIds = await _db.PhanCongGiangViens
+                .Where(p => p.GiangVienId == lecturerId.Value && p.TrangThai)
+                .Select(p => p.LopHocPhanId)
+                .ToListAsync();
+
             query = query.Where(t => t.GiangVienId == lecturerId.Value ||
                 (t.DotDangKy != null && t.DotDangKy.LopHocPhan != null &&
-                 t.DotDangKy.LopHocPhan.PhanCongGiangViens.Any(pc => pc.GiangVienId == lecturerId.Value)));
+                 assignedClassIds.Contains(t.DotDangKy.LopHocPhanId)));
         }
 
         if (courseId.HasValue && courseId.Value > 0)
@@ -406,6 +417,7 @@ public sealed class DeTaiController : ControllerBase
 
         var assignedLecturer = await _db.PhanCongGiangViens.AsNoTracking()
             .Where(p => p.LopHocPhanId == period.LopHocPhanId && p.TrangThai && p.GiangVien != null)
+            .OrderByDescending(p => p.NgayPhanCong)
             .Select(p => new { p.GiangVienId, p.GiangVien!.NguoiDungId })
             .FirstOrDefaultAsync();
 

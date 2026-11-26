@@ -46,12 +46,14 @@ public sealed class StudentController : ControllerBase
                 TenHocKy = s.LopHocPhan != null && s.LopHocPhan.HocKy != null ? s.LopHocPhan.HocKy.TenHocKy : string.Empty,
                 NamHoc = s.LopHocPhan != null && s.LopHocPhan.HocKy != null ? s.LopHocPhan.HocKy.NamHoc : string.Empty,
                 GiangVienPhuTrach = s.LopHocPhan != null ? s.LopHocPhan.PhanCongGiangViens
-                    .Where(p => p.TrangThai)
-                    .Select(p => p.GiangVien != null && p.GiangVien.NguoiDung != null ? p.GiangVien.NguoiDung.HoTen : null)
+                    .Where(p => p.TrangThai && p.GiangVien != null && p.GiangVien.NguoiDung != null)
+                    .OrderByDescending(p => p.NgayPhanCong)
+                    .Select(p => p.GiangVien!.NguoiDung!.HoTen)
                     .FirstOrDefault() : null,
                 EmailGiangVien = s.LopHocPhan != null ? s.LopHocPhan.PhanCongGiangViens
-                    .Where(p => p.TrangThai)
-                    .Select(p => p.GiangVien != null && p.GiangVien.NguoiDung != null ? p.GiangVien.NguoiDung.Email : null)
+                    .Where(p => p.TrangThai && p.GiangVien != null && p.GiangVien.NguoiDung != null)
+                    .OrderByDescending(p => p.NgayPhanCong)
+                    .Select(p => p.GiangVien!.NguoiDung!.Email)
                     .FirstOrDefault() : null,
                 NgayThamGia = s.NgayThamGia,
                 TrangThai = s.LopHocPhan != null && s.LopHocPhan.DotDangKyDoAns.Any(d => d.TrangThai == "Đang mở" && DateTime.Now >= d.NgayBatDau && DateTime.Now <= d.NgayKetThuc)

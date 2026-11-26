@@ -92,6 +92,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('DEBUG_OVERVIEW: build called, _isLoading=$_isLoading, _errorMessage=$_errorMessage, courses=${_courses.length}');
     final colors = Theme.of(context).colorScheme;
     final user = AuthService.currentUser;
     final userName = user.fullName.isNotEmpty ? user.fullName : 'Phòng Đào tạo';
@@ -159,6 +160,15 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     final int totalCourses = _courses.length;
     final int totalStudents = _overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120;
     final int totalLecturers = _overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18;
+
+    return const Scaffold(
+      body: Center(
+        child: Text(
+          'HELLO PHONG DAO TAO TEST 123',
+          style: TextStyle(fontSize: 24, color: Colors.red, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
 
     return Scaffold(
       body: SafeArea(

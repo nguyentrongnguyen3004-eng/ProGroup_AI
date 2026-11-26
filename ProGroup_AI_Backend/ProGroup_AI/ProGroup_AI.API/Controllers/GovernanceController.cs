@@ -103,16 +103,46 @@ public sealed class GovernanceController : ControllerBase
             return BadRequest(new { message = "Giảng viên không tồn tại." });
         }
 
+        // 1. Vô hiệu hóa phân công cũ của các giảng viên khác trên lớp này và thông báo
+        var activeOthers = await _db.PhanCongGiangViens
+            .Include(p => p.GiangVien)
+            .Where(p => p.LopHocPhanId == request.LopHocPhanId && p.TrangThai && p.GiangVienId != request.GiangVienId)
+            .ToListAsync();
+
+        foreach (var old in activeOthers)
+        {
+            old.TrangThai = false;
+            if (old.GiangVien?.NguoiDungId != null)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = old.GiangVien.NguoiDungId,
+                    TieuDe = "Thay đổi phân công giảng dạy",
+                    NoiDung = $"Lớp học phần '{course.TenLopHocPhan ?? course.MaLopHocPhan}' ({course.MaLopHocPhan}) đã được chuyển giao cho giảng viên khác phụ trách.",
+                    LoaiThongBao = "Phân công",
+                    LienKetId = course.LopHocPhanId,
+                    LoaiLienKet = "LopHocPhan",
+                    DaDoc = false,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
+
+        // 2. Chuyển giao các đề tài của lớp học phần sang giảng viên mới
+        var courseTopics = await _db.DeTaiDoAns
+            .Where(t => t.DotDangKy != null && t.DotDangKy.LopHocPhanId == request.LopHocPhanId && t.GiangVienId != request.GiangVienId)
+            .ToListAsync();
+        foreach (var topic in courseTopics)
+        {
+            topic.GiangVienId = request.GiangVienId;
+            topic.UpdatedAt = DateTime.Now;
+        }
+
         var existingAssignment = await _db.PhanCongGiangViens
             .FirstOrDefaultAsync(p => p.LopHocPhanId == request.LopHocPhanId && p.GiangVienId == request.GiangVienId);
 
         if (existingAssignment is not null)
         {
-            if (existingAssignment.TrangThai)
-            {
-                return Conflict(new { message = "Giảng viên này đã được phân công vào lớp học phần này." });
-            }
-
             existingAssignment.TrangThai = true;
             existingAssignment.VaiTro = !string.IsNullOrWhiteSpace(request.VaiTro) ? request.VaiTro.Trim() : "Giảng viên phụ trách";
             existingAssignment.NgayPhanCong = DateTime.Now;
@@ -129,7 +159,7 @@ public sealed class GovernanceController : ControllerBase
             });
             await _db.SaveChangesAsync();
 
-            return Ok(new { success = true, message = "Đã kích hoạt lại phân công giảng viên." });
+            return Ok(new { success = true, message = "Đã cập nhật phân công giảng viên phụ trách lớp học phần." });
         }
 
         var assignment = new PhanCongGiangVien
@@ -191,11 +221,36 @@ public sealed class GovernanceController : ControllerBase
         if (newLecturer is null) return BadRequest(new { message = "Giảng viên mới không tồn tại." });
 
         var activeOthers = await _db.PhanCongGiangViens
+            .Include(p => p.GiangVien)
             .Where(p => p.LopHocPhanId == request.LopHocPhanId && p.TrangThai && p.GiangVienId != request.GiangVienId)
             .ToListAsync();
         foreach (var old in activeOthers)
         {
             old.TrangThai = false;
+            if (old.GiangVien?.NguoiDungId != null)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = old.GiangVien.NguoiDungId,
+                    TieuDe = "Thay đổi phân công giảng dạy",
+                    NoiDung = $"Lớp học phần '{course.TenLopHocPhan ?? course.MaLopHocPhan}' ({course.MaLopHocPhan}) đã được chuyển giao cho giảng viên khác phụ trách.",
+                    LoaiThongBao = "Phân công",
+                    LienKetId = course.LopHocPhanId,
+                    LoaiLienKet = "LopHocPhan",
+                    DaDoc = false,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
+
+        // Chuyển giao các đề tài của lớp học phần sang giảng viên mới
+        var courseTopics = await _db.DeTaiDoAns
+            .Where(t => t.DotDangKy != null && t.DotDangKy.LopHocPhanId == request.LopHocPhanId && t.GiangVienId != request.GiangVienId)
+            .ToListAsync();
+        foreach (var topic in courseTopics)
+        {
+            topic.GiangVienId = request.GiangVienId;
+            topic.UpdatedAt = DateTime.Now;
         }
 
         var target = await _db.PhanCongGiangViens

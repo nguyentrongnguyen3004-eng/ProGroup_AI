@@ -26,7 +26,7 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
     _loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -34,9 +34,9 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
 
     try {
       final results = await Future.wait([
-        GovernanceApiService.instance.fetchCourses(),
-        GovernanceApiService.instance.fetchLecturers(),
-        GovernanceApiService.instance.fetchAssignments(),
+        GovernanceApiService.instance.fetchCourses(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchLecturers(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchAssignments(forceRefresh: forceRefresh),
       ]);
 
       if (!mounted) return;
@@ -78,7 +78,7 @@ class _GovernanceAssignmentScreenState extends State<GovernanceAssignmentScreen>
           backgroundColor: Color(0xFF059669),
         ),
       );
-      _loadData();
+      _loadData(forceRefresh: true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
