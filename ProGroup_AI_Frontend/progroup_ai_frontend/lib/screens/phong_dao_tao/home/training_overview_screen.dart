@@ -92,7 +92,6 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('DEBUG_OVERVIEW: build called, _isLoading=$_isLoading, _errorMessage=$_errorMessage, courses=${_courses.length}');
     final colors = Theme.of(context).colorScheme;
     final user = AuthService.currentUser;
     final userName = user.fullName.isNotEmpty ? user.fullName : 'Phòng Đào tạo';
@@ -146,6 +145,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
+                      minimumSize: const Size(120, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -160,15 +160,6 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     final int totalCourses = _courses.length;
     final int totalStudents = _overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120;
     final int totalLecturers = _overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18;
-
-    return const Scaffold(
-      body: Center(
-        child: Text(
-          'HELLO PHONG DAO TAO TEST 123',
-          style: TextStyle(fontSize: 24, color: Colors.red, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
 
     return Scaffold(
       body: SafeArea(
@@ -657,7 +648,8 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2563EB),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: _showSemesterPicker,
@@ -866,13 +858,22 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 20),
-                  SizedBox(width: 8),
-                  Text('Tỷ lệ hoàn thành đồ án toàn trường', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
-                ],
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tỷ lệ hoàn thành đồ án toàn trường',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
@@ -1033,7 +1034,13 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                     onPressed: () {
                       setState(() => _isAiSimulateError = false);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1136,7 +1143,13 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
             children: [
               Icon(Icons.bar_chart_rounded, color: Color(0xFF2563EB), size: 20),
               SizedBox(width: 8),
-              Text('Báo cáo Tổng kết - Phổ điểm Đồ án Toàn trường', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
+              Expanded(
+                child: Text(
+                  'Báo cáo Tổng kết - Phổ điểm Toàn trường',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),

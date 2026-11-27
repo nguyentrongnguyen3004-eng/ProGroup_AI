@@ -67,7 +67,6 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
       animation: AppSettings.instance,
       builder: (context, _) {
         final lang = AppSettings.instance.language;
-        debugPrint('DEBUG_MAIN: TrainingMainScreen build, currentIndex: $_currentIndex, lang: $lang');
 
         final navItems = [
           UnifiedRoleNavItem(
