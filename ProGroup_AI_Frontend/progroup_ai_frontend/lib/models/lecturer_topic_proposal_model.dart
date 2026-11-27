@@ -38,7 +38,7 @@ class LecturerTopicProposalModel {
 
     return LecturerTopicProposalModel(
       id: json['id'] as int? ?? json['deTaiId'] as int? ?? 0,
-      courseId: json['courseId'] as int? ?? json['dotDangKyId'] as int? ?? 1,
+      courseId: json['courseId'] as int? ?? json['lopHocPhanId'] as int? ?? json['dotDangKyId'] as int? ?? 1,
       title: json['title'] as String? ?? json['tenDeTai'] as String? ?? '',
       description: json['description'] as String? ?? json['moTa'] as String? ?? '',
       objective: json['objective'] as String? ?? json['mucTieu'] as String? ?? '',

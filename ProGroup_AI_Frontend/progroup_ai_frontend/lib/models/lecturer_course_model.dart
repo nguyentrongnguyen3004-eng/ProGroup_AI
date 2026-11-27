@@ -17,6 +17,7 @@ class LecturerCourseModel {
   final int minMembers;
   final int maxMembers;
   final String status;
+  final DateTime? semesterEnd;
 
   const LecturerCourseModel({
     required this.id,
@@ -37,6 +38,7 @@ class LecturerCourseModel {
     required this.minMembers,
     required this.maxMembers,
     required this.status,
+    this.semesterEnd,
   });
 
   factory LecturerCourseModel.fromJson(Map<String, dynamic> json) {
@@ -141,6 +143,9 @@ class LecturerCourseModel {
       minMembers: minMembers,
       maxMembers: maxMembers,
       status: status,
+      semesterEnd: json['ngayKetThucHocKy'] != null
+          ? DateTime.tryParse(json['ngayKetThucHocKy'].toString())
+          : null,
     );
   }
 
@@ -176,6 +181,7 @@ class LecturerCourseModel {
       minMembers: minMembers ?? this.minMembers,
       maxMembers: maxMembers ?? this.maxMembers,
       status: status ?? this.status,
+      semesterEnd: semesterEnd,
     );
   }
 }

@@ -24,6 +24,11 @@ class ApiService {
   static http.Client _client = http.Client();
   static http.Client get client => _client;
 
+  @visibleForTesting
+  static void setTestClient(http.Client client) {
+    _client = client;
+  }
+
   static void resetClient() {
     try {
       _client.close();
@@ -275,7 +280,7 @@ class ApiService {
         String errorMessage = response.statusCode == 401
             ? 'Phiên đăng nhập đã hết hạn (401). Vui lòng đăng xuất và đăng nhập lại.'
             : 'Yêu cầu thất bại (${response.statusCode})';
-        if (responseBody.isNotEmpty && response.statusCode != 401) {
+        if (responseBody.isNotEmpty) {
           try {
             final errorJson = jsonDecode(responseBody);
             if (errorJson is Map) {

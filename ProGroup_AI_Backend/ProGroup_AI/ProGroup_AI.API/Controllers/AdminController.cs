@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -306,6 +307,20 @@ public sealed class AdminController : ControllerBase
             soDienThoai = phone;
         }
 
+        string? studentMssv = null;
+        if (role.MaVaiTro.Equals("SINHVIEN", StringComparison.OrdinalIgnoreCase))
+        {
+            studentMssv = !string.IsNullOrWhiteSpace(request.MSSV) ? request.MSSV.Trim() : username;
+            if (studentMssv.Length > 30)
+            {
+                return BadRequest(new { message = "MSSV (Tên đăng nhập sinh viên) tối đa 30 ký tự." });
+            }
+            if (await _db.SinhViens.AnyAsync(s => s.MSSV == studentMssv))
+            {
+                return Conflict(new { message = $"MSSV '{studentMssv}' đã tồn tại trong hệ thống." });
+            }
+        }
+
         var user = new NguoiDung
         {
             TenDangNhap = username,
@@ -314,7 +329,7 @@ public sealed class AdminController : ControllerBase
             HoTen = request.HoTen.Trim(),
             SoDienThoai = soDienThoai,
             VaiTroId = role.VaiTroId,
-            TrangThai = true,
+            TrangThai = request.TrangThai,
             CreatedAt = DateTime.Now
         };
 
@@ -323,11 +338,10 @@ public sealed class AdminController : ControllerBase
 
         if (role.MaVaiTro.Equals("SINHVIEN", StringComparison.OrdinalIgnoreCase))
         {
-            var mssv = !string.IsNullOrWhiteSpace(request.MSSV) ? request.MSSV.Trim() : username;
             var sinhVien = new SinhVien
             {
                 NguoiDungId = user.NguoiDungId,
-                MSSV = mssv,
+                MSSV = studentMssv!,
                 KhoaId = khoaId,
                 NgaySinh = request.NgaySinh,
                 GioiTinh = request.GioiTinh?.Trim(),
@@ -417,15 +431,16 @@ public sealed class AdminController : ControllerBase
             return NotFound(new { message = "Không tìm thấy người dùng." });
         }
 
-        if (request?.TrangThai.HasValue == true)
+        var targetStatus = request?.TrangThai ?? !user.TrangThai;
+        var currentAdminClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (int.TryParse(currentAdminClaim, out var currentAdminId)
+            && user.NguoiDungId == currentAdminId
+            && !targetStatus)
         {
-            user.TrangThai = request.TrangThai.Value;
-        }
-        else
-        {
-            user.TrangThai = !user.TrangThai;
+            return BadRequest(new { message = "Bạn không thể tự khóa tài khoản quản trị đang đăng nhập." });
         }
 
+        user.TrangThai = targetStatus;
         user.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
 
@@ -625,11 +640,25 @@ public sealed class AdminController : ControllerBase
                 continue;
             }
 
+            if (username.Length > 100)
+            {
+                failedCount++;
+                errors.Add($"Tài khoản '{username}': Tên đăng nhập tối đa 100 ký tự.");
+                continue;
+            }
+
             var email = item.Email?.Trim();
             if (string.IsNullOrWhiteSpace(email))
             {
                 failedCount++;
-                errors.Add($"Dòng {username}: Thiếu email.");
+                errors.Add($"Dòng '{username}': Thiếu email.");
+                continue;
+            }
+
+            if (email.Length > 150 || !System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                failedCount++;
+                errors.Add($"Dòng '{username}': Email '{email}' không hợp lệ.");
                 continue;
             }
 
@@ -643,16 +672,44 @@ public sealed class AdminController : ControllerBase
 
             var rawRoleCode = !string.IsNullOrWhiteSpace(item.MaVaiTro) ? item.MaVaiTro : item.VaiTro;
             var roleCode = (string.IsNullOrWhiteSpace(rawRoleCode) ? "SINHVIEN" : rawRoleCode).Trim().ToUpperInvariant();
-            var role = roles.FirstOrDefault(r => r.MaVaiTro.ToUpper() == roleCode || r.TenVaiTro.ToUpper().Contains(roleCode))
-                       ?? roles.FirstOrDefault(r => r.MaVaiTro == "SINHVIEN");
+            var role = roles.FirstOrDefault(r => r.MaVaiTro.ToUpper() == roleCode || r.TenVaiTro.ToUpper().Contains(roleCode));
+            if (role is null)
+            {
+                failedCount++;
+                errors.Add($"Tài khoản '{username}': Vai trò '{roleCode}' không hợp lệ.");
+                continue;
+            }
 
             string? phone = null;
             if (!string.IsNullOrWhiteSpace(item.SoDienThoai))
             {
                 var p = item.SoDienThoai.Trim();
-                if (System.Text.RegularExpressions.Regex.IsMatch(p, @"^[0-9]{10,11}$"))
+                if (!System.Text.RegularExpressions.Regex.IsMatch(p, @"^[0-9]{10,11}$"))
                 {
-                    phone = p;
+                    failedCount++;
+                    errors.Add($"Tài khoản '{username}': Số điện thoại phải từ 10-11 chữ số.");
+                    continue;
+                }
+                phone = p;
+            }
+
+            string? studentMssv = null;
+            if (role.MaVaiTro.Equals("SINHVIEN", StringComparison.OrdinalIgnoreCase))
+            {
+                studentMssv = !string.IsNullOrWhiteSpace(item.MSSV) ? item.MSSV.Trim() : username;
+                if (studentMssv.Length > 30)
+                {
+                    failedCount++;
+                    errors.Add($"Tài khoản '{username}': MSSV tối đa 30 ký tự.");
+                    continue;
+                }
+
+                var mssvExists = await _db.SinhViens.AnyAsync(s => s.MSSV == studentMssv);
+                if (mssvExists)
+                {
+                    failedCount++;
+                    errors.Add($"Tài khoản '{username}': MSSV '{studentMssv}' đã tồn tại trong hệ thống.");
+                    continue;
                 }
             }
 
@@ -663,8 +720,8 @@ public sealed class AdminController : ControllerBase
                 Email = email,
                 HoTen = string.IsNullOrWhiteSpace(item.HoTen) ? username : item.HoTen.Trim(),
                 SoDienThoai = phone,
-                VaiTroId = role?.VaiTroId ?? 1,
-                TrangThai = true,
+                VaiTroId = role.VaiTroId,
+                TrangThai = item.TrangThai,
                 CreatedAt = DateTime.Now
             };
 
@@ -681,12 +738,12 @@ public sealed class AdminController : ControllerBase
             }
             var targetKhoaId = targetKhoa?.KhoaId ?? defaultKhoaId;
 
-            if (role != null && role.MaVaiTro.Equals("SINHVIEN", StringComparison.OrdinalIgnoreCase))
+            if (role.MaVaiTro.Equals("SINHVIEN", StringComparison.OrdinalIgnoreCase))
             {
                 _db.SinhViens.Add(new SinhVien
                 {
                     NguoiDungId = user.NguoiDungId,
-                    MSSV = !string.IsNullOrWhiteSpace(item.MSSV) ? item.MSSV.Trim() : username,
+                    MSSV = studentMssv!,
                     KhoaId = targetKhoaId,
                     CreatedAt = DateTime.Now
                 });

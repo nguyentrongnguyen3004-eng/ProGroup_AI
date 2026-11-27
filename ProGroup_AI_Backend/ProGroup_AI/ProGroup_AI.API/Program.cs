@@ -157,6 +157,45 @@ builder.Services
 
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var idValue = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier)
+                              ?? context.Principal?.FindFirstValue("sub");
+                if (!int.TryParse(idValue, out var userId))
+                {
+                    context.Fail("Token không hợp lệ.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                var isActive = await db.NguoiDungs
+                    .AsNoTracking()
+                    .Where(u => u.NguoiDungId == userId)
+                    .Select(u => (bool?)u.TrangThai)
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+
+                if (isActive != true)
+                {
+                    context.Fail("Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động.");
+                }
+            },
+            OnChallenge = async context =>
+            {
+                if (context.AuthenticateFailure?.Message?.Contains("khóa", StringComparison.OrdinalIgnoreCase) == true
+                    && !context.Response.HasStarted)
+                {
+                    context.HandleResponse();
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsJsonAsync(new
+                    {
+                        message = context.AuthenticateFailure.Message
+                    });
+                }
+            }
+        };
     });
 
 

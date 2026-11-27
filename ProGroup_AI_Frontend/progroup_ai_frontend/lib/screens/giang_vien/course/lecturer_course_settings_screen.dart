@@ -35,6 +35,11 @@ class _LecturerCourseSettingsScreenState
     _groupEnd = _parse(widget.course.groupRegistrationEnd);
     _topicStart = _parse(widget.course.topicRegistrationStart);
     _topicEnd = _parse(widget.course.topicRegistrationEnd);
+    // Kết thúc lập nhóm phải sớm hơn kết thúc đăng ký đề tài
+    if (!_groupEnd.isBefore(_topicEnd)) {
+      final candidate = _topicEnd.subtract(const Duration(days: 1));
+      _groupEnd = candidate.isBefore(_groupStart) ? _groupStart : candidate;
+    }
   }
 
   @override
@@ -44,16 +49,19 @@ class _LecturerCourseSettingsScreenState
     super.dispose();
   }
 
-  Future<DateTime?> _pickDate(DateTime current, {DateTime? minDate}) {
+  Future<DateTime?> _pickDate(DateTime current, {DateTime? minDate, DateTime? maxDate}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final effectiveMin = minDate ?? today;
-    final initial = current.isBefore(effectiveMin) ? effectiveMin : current;
+    var effectiveMax = maxDate ?? DateTime(2100);
+    if (effectiveMax.isBefore(effectiveMin)) effectiveMax = effectiveMin;
+    var initial = current.isBefore(effectiveMin) ? effectiveMin : current;
+    if (initial.isAfter(effectiveMax)) initial = effectiveMax;
     return showDatePicker(
       context: context,
       initialDate: initial,
       firstDate: effectiveMin,
-      lastDate: DateTime(2100),
+      lastDate: effectiveMax,
     );
   }
 
@@ -61,39 +69,52 @@ class _LecturerCourseSettingsScreenState
     ValueChanged<DateTime> save,
     DateTime current, {
     DateTime? minDate,
+    DateTime? maxDate,
   }) async {
-    final selected = await _pickDate(current, minDate: minDate);
+    final selected = await _pickDate(current, minDate: minDate, maxDate: maxDate);
     if (selected != null && mounted) setState(() => save(selected));
+  }
+
+  DateTime? get _maxTopicEnd {
+    final end = widget.course.semesterEnd;
+    if (end == null) return null;
+    return DateTime(end.year, end.month, end.day).subtract(const Duration(days: 7));
   }
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    if (_groupStart.isBefore(today)) {
-      _message('Ngày bắt đầu lập nhóm không được ở trong quá khứ.');
+    final startChanged =
+        _format(_groupStart) != widget.course.groupRegistrationStart;
+    if (startChanged && _groupStart.isBefore(today)) {
+      _message('Ngày bắt đầu đăng ký nhóm phải là hiện tại hoặc tương lai.');
       return;
     }
-    if (!_groupStart.isBefore(_groupEnd)) {
+    if (!_groupStart.isBefore(_groupEnd) && _groupStart != _groupEnd) {
       _message('Ngày bắt đầu lập nhóm phải trước ngày kết thúc.');
       return;
     }
-    if (_topicStart.isBefore(today)) {
-      _message('Ngày bắt đầu đăng ký đề tài không được ở trong quá khứ.');
+    if (_topicStart.isBefore(_groupStart)) {
+      _message('Thời gian bắt đầu đăng ký đề tài không được sớm hơn thời gian bắt đầu đăng ký nhóm.');
       return;
     }
     if (!_topicStart.isBefore(_topicEnd)) {
       _message('Ngày bắt đầu đăng ký đề tài phải trước ngày kết thúc.');
       return;
     }
-    // TC_LEC_019: Đảm bảo tính nhất quán hợp lý giữa thời gian lập nhóm và đăng ký đề tài
-    if (_groupStart.isAfter(_topicStart)) {
-      _message('Thời gian bắt đầu lập nhóm phải trước hoặc bằng thời gian bắt đầu đăng ký đề tài.');
+    if (!_groupEnd.isBefore(_topicEnd)) {
+      _message('Thời gian đăng ký nhóm phải kết thúc sớm hơn thời gian kết thúc đăng ký đề tài.');
       return;
     }
-    if (_topicEnd.isBefore(_groupEnd)) {
-      _message('Thời gian đăng ký nhóm phải sớm hơn hoặc bằng thời gian đăng ký đề tài (không thể kết thúc đăng ký đề tài trước khi lập nhóm xong).');
-      return;
+    final semesterEnd = widget.course.semesterEnd;
+    if (semesterEnd != null) {
+      final limit = DateTime(semesterEnd.year, semesterEnd.month, semesterEnd.day)
+          .subtract(const Duration(days: 7));
+      if (_topicEnd.isAfter(limit)) {
+        _message('Kết thúc đăng ký đề tài phải sớm hơn ngày kết thúc học phần ít nhất 7 ngày (tối đa ${_format(limit)}).');
+        return;
+      }
     }
     final updated = widget.course.copyWith(
       groupRegistrationStart: _format(_groupStart),
@@ -233,7 +254,7 @@ class _LecturerCourseSettingsScreenState
                       _groupStart = v;
                       if (_groupEnd.isBefore(v)) _groupEnd = v.add(const Duration(days: 7));
                       if (_topicStart.isBefore(v)) _topicStart = v;
-                      if (_topicEnd.isBefore(_groupEnd)) _topicEnd = _groupEnd.add(const Duration(days: 7));
+                      if (!_topicEnd.isAfter(_groupEnd)) _topicEnd = _groupEnd.add(const Duration(days: 1));
                     }, _groupStart),
                   ),
                   _DateField(
@@ -242,7 +263,7 @@ class _LecturerCourseSettingsScreenState
                     iconColor: const Color(0xFF2563EB),
                     onTap: () => _chooseDate((v) {
                       _groupEnd = v;
-                      if (_topicEnd.isBefore(v)) _topicEnd = v;
+                      if (!_topicEnd.isAfter(v)) _topicEnd = v.add(const Duration(days: 1));
                     }, _groupEnd, minDate: _groupStart),
                   ),
                   const SizedBox(height: 6),
@@ -252,14 +273,16 @@ class _LecturerCourseSettingsScreenState
                     iconColor: const Color(0xFF8B5CF6),
                     onTap: () => _chooseDate((v) {
                       _topicStart = v;
-                      if (_topicEnd.isBefore(v)) _topicEnd = v.add(const Duration(days: 7));
+                      if (!_topicEnd.isAfter(v)) _topicEnd = v.add(const Duration(days: 1));
                     }, _topicStart, minDate: _groupStart),
                   ),
                   _DateField(
                     label: 'Kết thúc đăng ký đề tài',
                     value: _format(_topicEnd),
                     iconColor: const Color(0xFF8B5CF6),
-                    onTap: () => _chooseDate((v) => _topicEnd = v, _topicEnd, minDate: _groupEnd.isAfter(_topicStart) ? _groupEnd : _topicStart),
+                    onTap: () => _chooseDate((v) => _topicEnd = v, _topicEnd,
+                        minDate: (_groupEnd.isAfter(_topicStart) ? _groupEnd : _topicStart).add(const Duration(days: 1)),
+                        maxDate: _maxTopicEnd),
                   ),
                 ],
               ),

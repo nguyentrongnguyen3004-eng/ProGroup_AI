@@ -74,6 +74,8 @@ class _LecturerCourseDetailScreenState
                   groupRegistrationEnd: s2,
                   topicRegistrationStart: s1,
                   topicRegistrationEnd: s2,
+                  minMembers: activeDot['minMembers'] as int? ?? _course.minMembers,
+                  maxMembers: activeDot['maxMembers'] as int? ?? _course.maxMembers,
                   status: activeDot['trangThai']?.toString() ?? _course.status,
                 );
               }
@@ -99,7 +101,13 @@ class _LecturerCourseDetailScreenState
     final now = DateTime.now();
     DateTime startDate = DateTime(now.year, now.month, now.day);
     DateTime groupEndDate = startDate.add(const Duration(days: 7));
+    DateTime topicStartDate = groupEndDate.add(const Duration(days: 1));
     DateTime topicEndDate = startDate.add(const Duration(days: 14));
+    // Kết thúc đăng ký đề tài phải sớm hơn kết thúc học phần ít nhất 7 ngày
+    final DateTime? maxTopicEnd = _course.semesterEnd == null
+        ? null
+        : DateTime(_course.semesterEnd!.year, _course.semesterEnd!.month, _course.semesterEnd!.day)
+            .subtract(const Duration(days: 7));
     bool isSubmitting = false;
 
     String fmt(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -174,7 +182,10 @@ class _LecturerCourseDetailScreenState
                         if (groupEndDate.isBefore(startDate)) {
                           groupEndDate = startDate.add(const Duration(days: 7));
                         }
-                        if (topicEndDate.isBefore(groupEndDate)) {
+                        if (topicStartDate.isBefore(startDate)) {
+                          topicStartDate = startDate;
+                        }
+                        if (!topicEndDate.isAfter(groupEndDate)) {
                           topicEndDate = groupEndDate.add(const Duration(days: 7));
                         }
                       });
@@ -196,8 +207,30 @@ class _LecturerCourseDetailScreenState
                     if (picked != null) {
                       setDialogState(() {
                         groupEndDate = picked;
-                        if (topicEndDate.isBefore(groupEndDate)) {
-                          topicEndDate = groupEndDate;
+                        if (!topicEndDate.isAfter(groupEndDate)) {
+                          topicEndDate = groupEndDate.add(const Duration(days: 1));
+                        }
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Bắt đầu đăng ký đề tài', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text(fmt(topicStartDate)),
+                  trailing: const Icon(Icons.play_circle_outline_rounded, color: Color(0xFF8B5CF6)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: topicStartDate.isBefore(startDate) ? startDate : topicStartDate,
+                      firstDate: startDate,
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        topicStartDate = picked;
+                        if (!topicEndDate.isAfter(topicStartDate)) {
+                          topicEndDate = topicStartDate.add(const Duration(days: 7));
                         }
                       });
                     }
@@ -209,11 +242,18 @@ class _LecturerCourseDetailScreenState
                   subtitle: Text(fmt(topicEndDate)),
                   trailing: const Icon(Icons.event_available_rounded, color: Color(0xFF10B981)),
                   onTap: () async {
+                    final minEnd = groupEndDate.isAfter(topicStartDate) ? groupEndDate : topicStartDate;
+                    final firstDate = minEnd.add(const Duration(days: 1));
+                    final lastDate = (maxTopicEnd != null && !maxTopicEnd.isBefore(firstDate))
+                        ? maxTopicEnd
+                        : DateTime(2100);
                     final picked = await showDatePicker(
                       context: ctx,
-                      initialDate: topicEndDate.isBefore(startDate) ? startDate : topicEndDate,
-                      firstDate: startDate,
-                      lastDate: DateTime(2100),
+                      initialDate: topicEndDate.isBefore(firstDate)
+                          ? firstDate
+                          : (topicEndDate.isAfter(lastDate) ? lastDate : topicEndDate),
+                      firstDate: firstDate,
+                      lastDate: lastDate,
                     );
                     if (picked != null) {
                       setDialogState(() => topicEndDate = picked);
@@ -236,44 +276,41 @@ class _LecturerCourseDetailScreenState
                         );
                         return;
                       }
+                      void fail(String msg) {
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                        );
+                      }
+
                       final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
                       if (startDate.isBefore(today)) {
-                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                          const SnackBar(content: Text('Ngày bắt đầu không được ở trong quá khứ.'), backgroundColor: Colors.red),
-                        );
+                        fail('Ngày bắt đầu đăng ký nhóm phải là hiện tại hoặc tương lai.');
                         return;
                       }
                       if (groupEndDate.isBefore(startDate)) {
-                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                          const SnackBar(content: Text('Hạn lập nhóm phải sau hoặc bằng ngày bắt đầu.'), backgroundColor: Colors.red),
-                        );
+                        fail('Hạn lập nhóm phải sau hoặc bằng ngày bắt đầu.');
                         return;
                       }
-                      if (topicEndDate.isBefore(startDate)) {
-                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                          const SnackBar(content: Text('Hạn đăng ký đề tài phải sau hoặc bằng ngày bắt đầu.'), backgroundColor: Colors.red),
-                        );
+                      if (!groupEndDate.isBefore(topicEndDate)) {
+                        fail('Thời gian đăng ký nhóm phải kết thúc sớm hơn thời gian kết thúc đăng ký đề tài.');
                         return;
                       }
-                      // TC_LEC_019: Thời gian đăng ký nhóm phải sớm hơn hoặc bằng thời gian đăng ký đề tài
-                      if (groupEndDate.isAfter(topicEndDate)) {
-                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                          const SnackBar(
-                            content: Text('Thời gian đăng ký nhóm phải sớm hơn hoặc bằng thời gian đăng ký đề tài.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                      if (topicStartDate.isBefore(startDate)) {
+                        fail('Thời gian bắt đầu đăng ký đề tài không được sớm hơn thời gian bắt đầu đăng ký nhóm.');
                         return;
                       }
-                      final minMembers = int.tryParse(minMembersController.text.trim()) ?? 2;
-                      final maxMembers = int.tryParse(maxMembersController.text.trim()) ?? 4;
-                      if (minMembers <= 0 || maxMembers < minMembers) {
-                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                          const SnackBar(
-                            content: Text('Số lượng thành viên không hợp lệ (Min > 0 và Max >= Min).'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                      if (!topicStartDate.isBefore(topicEndDate)) {
+                        fail('Ngày bắt đầu đăng ký đề tài phải trước hạn đăng ký đề tài.');
+                        return;
+                      }
+                      if (maxTopicEnd != null && topicEndDate.isAfter(maxTopicEnd)) {
+                        fail('Hạn đăng ký đề tài phải sớm hơn ngày kết thúc học phần ít nhất 7 ngày (tối đa ${fmt(maxTopicEnd)}).');
+                        return;
+                      }
+                      final minMembers = int.tryParse(minMembersController.text.trim());
+                      final maxMembers = int.tryParse(maxMembersController.text.trim());
+                      if (minMembers == null || maxMembers == null || minMembers <= 0 || maxMembers < minMembers) {
+                        fail('Số lượng thành viên không hợp lệ (Min > 0 và Max >= Min).');
                         return;
                       }
 
@@ -284,6 +321,8 @@ class _LecturerCourseDetailScreenState
                           lopHocPhanId: _course.id,
                           ngayBatDau: startDate,
                           ngayKetThuc: topicEndDate,
+                          ngayKetThucLapNhom: groupEndDate,
+                          ngayBatDauDangKyDeTai: topicStartDate,
                           minMembers: minMembers,
                           maxMembers: maxMembers,
                         );
@@ -616,7 +655,7 @@ class _LecturerCourseDetailScreenState
                                 label: AppLocalizations.text('Quy mô mỗi nhóm', en: 'Group size'),
                                 value: '${_course.minMembers} – ${_course.maxMembers} ${AppLocalizations.text('thành viên', en: 'members')}',
                               ),
-                              if (_periods.isNotEmpty) ...[
+                              ...[
                                 const SizedBox(height: 14),
                                 Divider(height: 1, color: colors.outlineVariant.withValues(alpha: 0.4)),
                                 const SizedBox(height: 12),

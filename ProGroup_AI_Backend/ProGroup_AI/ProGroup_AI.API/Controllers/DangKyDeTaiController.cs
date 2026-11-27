@@ -115,6 +115,11 @@ public sealed class DangKyDeTaiController : ControllerBase
             return Conflict(new { message = $"Nhóm của bạn chưa đủ số thành viên tối thiểu (yêu cầu tối thiểu {period.MinMembers} thành viên)." });
         }
 
+        if (period.MaxMembers > 0 && activeMemberCount > period.MaxMembers)
+        {
+            return Conflict(new { message = $"Nhóm của bạn vượt quá số thành viên tối đa (tối đa {period.MaxMembers} thành viên)." });
+        }
+
         var hasActiveReg = await _db.DangKyDeTais.AnyAsync(r => r.NhomId == group.NhomId &&
             (r.TrangThai == "Chờ duyệt" || r.TrangThai == "Đã duyệt"));
 
@@ -380,7 +385,15 @@ public sealed class DangKyDeTaiController : ControllerBase
 
         if (registration.DeTai is not null)
         {
-            registration.DeTai.TrangThai = "Chưa sử dụng";
+            var hasOtherActiveReg = await _db.DangKyDeTais.AnyAsync(r =>
+                r.DeTaiId == registration.DeTaiId &&
+                r.DangKyDeTaiId != registration.DangKyDeTaiId &&
+                (r.TrangThai == "Chờ duyệt" || r.TrangThai == "Đã duyệt"));
+
+            if (!hasOtherActiveReg)
+            {
+                registration.DeTai.TrangThai = "Chưa sử dụng";
+            }
         }
 
         _db.DangKyDeTais.Remove(registration);

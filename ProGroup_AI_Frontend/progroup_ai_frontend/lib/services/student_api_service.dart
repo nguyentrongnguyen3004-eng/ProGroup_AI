@@ -264,6 +264,7 @@ class StudentApiService {
   /// Đề xuất đề tài mới từ sinh viên
   Future<void> proposeTopic({
     required int dotDangKyId,
+    int? lopHocPhanId,
     required String tenDeTai,
     String? moTa,
     String? mucTieu,
@@ -272,6 +273,8 @@ class StudentApiService {
   }) async {
     await ApiService.instance.post('/api/de-tai/de-xuat', {
       'dotDangKyId': dotDangKyId,
+      if (lopHocPhanId != null && lopHocPhanId > 0)
+        'lopHocPhanId': lopHocPhanId,
       'tenDeTai': tenDeTai,
       'moTa': moTa,
       'mucTieu': mucTieu,

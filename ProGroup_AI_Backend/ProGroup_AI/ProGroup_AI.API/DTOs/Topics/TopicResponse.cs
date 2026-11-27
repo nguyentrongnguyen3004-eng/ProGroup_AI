@@ -22,6 +22,10 @@ public sealed class TopicResponse
     public int? SinhVienDeXuatId { get; set; }
     public string? TenSinhVienDeXuat { get; set; }
     public string? MSSVDeXuat { get; set; }
+    public string? TenNhom { get; set; }
+
+    [JsonPropertyName("groupName")]
+    public string? GroupName => TenNhom;
     public string TrangThai { get; set; } = string.Empty;
     public string TrangThaiDuyet { get; set; } = string.Empty;
     public string? LyDoTuChoi { get; set; }

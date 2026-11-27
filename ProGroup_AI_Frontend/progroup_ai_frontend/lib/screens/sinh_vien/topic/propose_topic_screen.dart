@@ -59,8 +59,10 @@ class _ProposeTopicScreenState extends State<ProposeTopicScreen> {
 
     try {
       final dotId = widget.initialValues?['dotDangKyId'] as int? ?? 0;
+      final lopId = widget.initialValues?['lopHocPhanId'] as int?;
       await StudentApiService.instance.proposeTopic(
         dotDangKyId: dotId,
+        lopHocPhanId: lopId,
         tenDeTai: title,
         moTa: descriptionController.text.trim(),
         mucTieu: objectiveController.text.trim(),

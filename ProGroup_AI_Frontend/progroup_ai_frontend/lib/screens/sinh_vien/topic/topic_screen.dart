@@ -29,7 +29,7 @@ class _TopicScreenState extends State<TopicScreen> {
     _loadTopics();
   }
 
-  Future<void> _loadTopics() async {
+  Future<void> _loadTopics({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -38,6 +38,7 @@ class _TopicScreenState extends State<TopicScreen> {
     try {
       final data = await StudentApiService.instance.fetchTopics(
         lopHocPhanId: widget.course?.id,
+        forceRefresh: forceRefresh,
       );
       if (!mounted) return;
       setState(() {
@@ -112,10 +113,12 @@ class _TopicScreenState extends State<TopicScreen> {
             onPressed: () async {
               final result = await Navigator.push<Object?>(
                 context,
-                MaterialPageRoute(builder: (_) => const AiTopicScreen()),
+                MaterialPageRoute(
+                  builder: (_) => AiTopicScreen(initialCourse: widget.course),
+                ),
               );
               if (result is Map && result['submitted'] == true) {
-                _loadTopics();
+                _loadTopics(forceRefresh: true);
               }
             },
           ),
@@ -241,7 +244,7 @@ class _TopicScreenState extends State<TopicScreen> {
                                           course: widget.course ?? currentCourse,
                                         ),
                                       ),
-                                    );
+                                    ).then((_) => _loadTopics(forceRefresh: true));
                                   },
                                 );
                               },
@@ -285,7 +288,9 @@ class _TopicScreenState extends State<TopicScreen> {
                   subtitle: const Text('Nhập ý tưởng và thông tin đề tài.'),
                   onTap: () => _openProposalScreen(
                     sheetContext,
-                    const ProposeTopicScreen(),
+                    ProposeTopicScreen(
+                      initialValues: {'lopHocPhanId': currentCourse.id},
+                    ),
                   ),
                 ),
                 ListTile(
@@ -295,8 +300,10 @@ class _TopicScreenState extends State<TopicScreen> {
                   ),
                   title: const Text('AI hỗ trợ đề xuất'),
                   subtitle: const Text('AI hỗ trợ phát triển ý tưởng đề tài.'),
-                  onTap: () =>
-                      _openProposalScreen(sheetContext, const AiTopicScreen()),
+                  onTap: () => _openProposalScreen(
+                    sheetContext,
+                    AiTopicScreen(initialCourse: widget.course),
+                  ),
                 ),
               ],
             ),
@@ -330,13 +337,14 @@ class _TopicScreenState extends State<TopicScreen> {
 
     if (result['submitted'] == true) {
       _showProposalMessage('Đã gửi đề xuất đến giảng viên để xem xét.');
-      _loadTopics();
+      _loadTopics(forceRefresh: true);
       return;
     }
 
     try {
       await StudentApiService.instance.proposeTopic(
-        dotDangKyId: currentCourse.id,
+        dotDangKyId: 0,
+        lopHocPhanId: currentCourse.id,
         tenDeTai: title,
         moTa: value('description'),
         mucTieu: value('objective'),
@@ -344,7 +352,7 @@ class _TopicScreenState extends State<TopicScreen> {
         congNgheDuKien: value('technology'),
       );
       _showProposalMessage('Đã gửi đề xuất đến giảng viên để xem xét.');
-      _loadTopics();
+      _loadTopics(forceRefresh: true);
     } catch (e) {
       _showProposalMessage(
         'Lỗi khi gửi đề xuất: ${e.toString()}',

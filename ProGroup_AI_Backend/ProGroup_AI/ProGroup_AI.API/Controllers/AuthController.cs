@@ -106,8 +106,8 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Email không được để trống." });
 
         var cleanEmail = request.Email.Trim();
-        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId);
-        if (user is null) return NotFound(new { message = "Không tìm thấy tài khoản." });
+        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId && x.TrangThai);
+        if (user is null) return Unauthorized(new { message = "Tài khoản của bạn đã bị khóa hoặc không tồn tại." });
 
         var emailExists = await _context.NguoiDungs.AnyAsync(x => x.Email == cleanEmail && x.NguoiDungId != userId);
         if (emailExists)
@@ -128,8 +128,8 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
             return BadRequest(new { message = "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới." });
 
-        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId);
-        if (user is null) return NotFound(new { message = "Không tìm thấy tài khoản." });
+        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId && x.TrangThai);
+        if (user is null) return Unauthorized(new { message = "Tài khoản của bạn đã bị khóa hoặc không tồn tại." });
 
         if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.MatKhauHash))
             return BadRequest(new { message = "Mật khẩu hiện tại không chính xác." });

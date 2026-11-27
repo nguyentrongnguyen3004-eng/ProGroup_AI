@@ -22,4 +22,10 @@ public sealed class CreateDotDangKyRequest
 
     [Range(1, int.MaxValue, ErrorMessage = "Số thành viên tối đa phải lớn hơn 0.")]
     public int MaxMembers { get; set; } = 5;
+
+    /// <summary>Ngày kết thúc lập nhóm (tùy chọn, dùng để kiểm tra logic; phải sớm hơn NgayKetThuc đăng ký đề tài).</summary>
+    public DateTime? NgayKetThucLapNhom { get; set; }
+
+    /// <summary>Ngày bắt đầu đăng ký đề tài (tùy chọn, không được sớm hơn NgayBatDau lập nhóm).</summary>
+    public DateTime? NgayBatDauDangKyDeTai { get; set; }
 }

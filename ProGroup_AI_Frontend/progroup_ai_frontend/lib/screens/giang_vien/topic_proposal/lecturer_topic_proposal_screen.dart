@@ -61,10 +61,13 @@ class _LecturerTopicProposalScreenState
 
   LecturerCourseModel? _findCourse(int courseId) {
     for (final c in _courses) {
-      if (c.courseId == courseId) return c;
+      if (c.id == courseId) return c;
     }
     return null;
   }
+
+  static bool _isRejected(String status) =>
+      status == 'Từ chối' || status == 'Đã từ chối';
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +75,7 @@ class _LecturerTopicProposalScreenState
 
     final filteredProposals = _proposals.where((item) {
       if (_status == 'Tất cả') return true;
-      if (_status == 'Đã từ chối') {
-        return item.status == 'Từ chối' || item.status == 'Đã từ chối';
-      }
+      if (_status == 'Đã từ chối') return _isRejected(item.status);
       return item.status == _status;
     }).toList();
 
@@ -149,7 +150,9 @@ class _LecturerTopicProposalScreenState
                   final isSelected = _status == opt;
                   final count = opt == 'Tất cả'
                       ? _proposals.length
-                      : _proposals.where((p) => p.status == opt).length;
+                      : opt == 'Đã từ chối'
+                          ? _proposals.where((p) => _isRejected(p.status)).length
+                          : _proposals.where((p) => p.status == opt).length;
 
                   return FilterChip(
                     selected: isSelected,

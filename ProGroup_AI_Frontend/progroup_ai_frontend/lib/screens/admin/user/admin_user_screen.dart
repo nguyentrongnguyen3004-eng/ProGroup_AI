@@ -72,6 +72,15 @@ class _AdminUserScreenState extends State<AdminUserScreen> {
     final id = user['nguoiDungId'] ?? user['NguoiDungId'] ?? user['id'];
     if (id == null) return;
     final int userId = id is int ? id : int.tryParse('$id') ?? 0;
+    if (userId == widget.currentAdminId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không thể tự khóa tài khoản quản trị đang đăng nhập.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
     final currentStatus = user['trangThai'] == true;
 
     final actionText = currentStatus ? 'khóa' : 'kích hoạt';
@@ -558,14 +567,21 @@ class _AdminUserScreenState extends State<AdminUserScreen> {
                         icon: const Icon(Icons.lock_reset_rounded, color: Color(0xFFF59E0B)),
                         onPressed: () => _resetPassword(u),
                       ),
-                      IconButton(
-                        tooltip: isActive ? 'Khóa tài khoản' : 'Mở khóa',
-                        icon: Icon(
-                          isActive ? Icons.lock_open_rounded : Icons.lock_rounded,
-                          color: isActive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                      if ((int.tryParse('${u['nguoiDungId'] ?? u['NguoiDungId'] ?? u['id'] ?? ''}') ?? -1) == widget.currentAdminId)
+                        const IconButton(
+                          tooltip: 'Tài khoản đang đăng nhập',
+                          icon: Icon(Icons.verified_user_rounded, color: Color(0xFF94A3B8)),
+                          onPressed: null,
+                        )
+                      else
+                        IconButton(
+                          tooltip: isActive ? 'Khóa tài khoản' : 'Mở khóa',
+                          icon: Icon(
+                            isActive ? Icons.lock_open_rounded : Icons.lock_rounded,
+                            color: isActive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                          ),
+                          onPressed: () => _toggleStatus(u),
                         ),
-                        onPressed: () => _toggleStatus(u),
-                      ),
                     ],
                   ),
                 ),

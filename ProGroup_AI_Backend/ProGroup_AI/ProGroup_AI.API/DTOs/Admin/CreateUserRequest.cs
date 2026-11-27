@@ -27,6 +27,7 @@ public sealed class CreateUserRequest
 
     public int? VaiTroId { get; set; }
     public string? MaVaiTro { get; set; }
+    public bool TrangThai { get; set; } = true;
 
     public int? KhoaId { get; set; }
 

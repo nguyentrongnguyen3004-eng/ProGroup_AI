@@ -195,6 +195,7 @@ public sealed class ProjectsController : ControllerBase
         var activeMembers = group.ThanhVienNhoms.Count(x => x.TrangThai == "Đã tham gia");
         if (!group.ThanhVienNhoms.Any(x => x.SinhVienId == group.TruongNhomId && x.TrangThai == "Đã tham gia")) activeMembers++;
         if (activeMembers < period.MinMembers) return Conflict(new { message = $"Nhóm của bạn chưa đủ số thành viên tối thiểu (yêu cầu tối thiểu {period.MinMembers} thành viên)." });
+        if (period.MaxMembers > 0 && activeMembers > period.MaxMembers) return Conflict(new { message = $"Nhóm của bạn vượt quá số thành viên tối đa (tối đa {period.MaxMembers} thành viên)." });
 
         var hasRegistration = await _db.DangKyDeTais.AnyAsync(x => x.NhomId == group.NhomId &&
             (x.TrangThai == "Chờ duyệt" || x.TrangThai == "Đã duyệt"));

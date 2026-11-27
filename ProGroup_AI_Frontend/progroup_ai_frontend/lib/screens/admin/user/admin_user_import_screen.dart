@@ -25,6 +25,7 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
   String? _statusMessage;
 
   List<Map<String, dynamic>> _parsedUsers = [];
+  List<String> _importErrors = [];
 
   static const List<String> _headers = [
     'Tên đăng nhập',
@@ -36,38 +37,42 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
     'Trạng thái',
   ];
 
+  static const List<List<String>> _sampleRows = [
+    [
+      '22110001',
+      '123456',
+      'Nguyễn Văn A',
+      '22110001@school.edu.vn',
+      '0912345678',
+      'SINHVIEN',
+      'true',
+    ],
+    [
+      'gv_tranthib',
+      '123456',
+      'Trần Thị B',
+      'thib@school.edu.vn',
+      '0987654321',
+      'GIANGVIEN',
+      'true',
+    ],
+    [
+      'giaovu_cntt',
+      '123456',
+      'Lê Văn C',
+      'giaovu@school.edu.vn',
+      '0901234567',
+      'GIAOVUKHOA',
+      'true',
+    ],
+  ];
+
   Future<void> _downloadTemplate() async {
     try {
       if (_selectedFormat == 'csv') {
         final records = <List<String>>[
           _headers,
-          [
-            'sv_nguyenvana',
-            '123456',
-            'Nguyễn Văn A',
-            'vana@school.edu.vn',
-            '0912345678',
-            'SINHVIEN',
-            'true',
-          ],
-          [
-            'gv_tranthib',
-            '123456',
-            'Trần Thị B',
-            'thib@school.edu.vn',
-            '0987654321',
-            'GIANGVIEN',
-            'true',
-          ],
-          [
-            'giaovu_cntt',
-            '123456',
-            'Lê Văn C',
-            'giaovu@school.edu.vn',
-            '0901234567',
-            'GIAOVUKHOA',
-            'true',
-          ],
+          ..._sampleRows,
         ];
 
         final csvData = csv.encode(records);
@@ -107,12 +112,12 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
         }
 
         // Sample rows
-        final sample1 = ['sv_nguyenvana', '123456', 'Nguyễn Văn A', 'vana@school.edu.vn', '0912345678', 'SINHVIEN', 'true'];
-        final sample2 = ['gv_tranthib', '123456', 'Trần Thị B', 'thib@school.edu.vn', '0987654321', 'GIANGVIEN', 'true'];
-
-        for (var col = 0; col < sample1.length; col++) {
-          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 1)).value = excel.TextCellValue(sample1[col]);
-          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 2)).value = excel.TextCellValue(sample2[col]);
+        for (var r = 0; r < _sampleRows.length; r++) {
+          final sample = _sampleRows[r];
+          for (var col = 0; col < sample.length; col++) {
+            sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: r + 1)).value =
+                excel.TextCellValue(sample[col]);
+          }
         }
 
         final encoded = workbook.encode();
@@ -158,6 +163,7 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
         _isProcessing = true;
         _selectedFileName = file.name;
         _parsedUsers = [];
+        _importErrors = [];
         _statusMessage = null;
       });
 
@@ -178,6 +184,93 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
     }
   }
 
+  bool _isValidHeaderCols(List<String> headerCols) {
+    return headerCols.length >= 4 &&
+        (headerCols[0].contains('đăng nhập') || headerCols[0].contains('tendangnhap') || headerCols[0].contains('username') || headerCols[0].contains('mssv')) &&
+        (headerCols[2].contains('họ') || headerCols[2].contains('hoten') || headerCols[2].contains('name'));
+  }
+
+  void _processParsedRows(List<List<String>> dataRows, String emptyLabel) {
+    final List<Map<String, dynamic>> users = [];
+    final List<String> errors = [];
+    final seenUsernames = <String>{};
+    final seenEmails = <String>{};
+
+    for (var i = 0; i < dataRows.length; i++) {
+      final cols = dataRows[i];
+      if (cols.isEmpty || cols.every((c) => c.trim().isEmpty)) continue;
+
+      final rowNumber = i + 2; // 1-based including header row
+      final tenDangNhap = cols.isNotEmpty ? cols[0].trim() : '';
+      final matKhau = cols.length > 1 ? cols[1].trim() : '';
+      final hoTen = cols.length > 2 ? cols[2].trim() : '';
+      final email = cols.length > 3 ? cols[3].trim() : '';
+      final rawPhone = cols.length > 4 ? cols[4].trim() : '';
+      final soDienThoai = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      final vaiTroRaw = cols.length > 5 ? cols[5].trim().toUpperCase() : '';
+      final maVaiTro = vaiTroRaw.isNotEmpty ? vaiTroRaw : 'SINHVIEN';
+      final trangThaiRaw = cols.length > 6 ? cols[6].trim().toLowerCase() : '';
+
+      final bool trangThai = trangThaiRaw.isEmpty ||
+          trangThaiRaw == 'true' ||
+          trangThaiRaw == '1' ||
+          trangThaiRaw.contains('hoạt động');
+
+      if (tenDangNhap.isEmpty || hoTen.isEmpty) {
+        errors.add('Dòng $rowNumber: Thiếu tên đăng nhập hoặc họ và tên.');
+        continue;
+      }
+
+      if (maVaiTro == 'SINHVIEN' && tenDangNhap.length > 30) {
+        errors.add('Dòng $rowNumber ($tenDangNhap): MSSV tối đa 30 ký tự.');
+        continue;
+      }
+
+      if (email.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+        errors.add('Dòng $rowNumber ($tenDangNhap): Email trống hoặc không hợp lệ.');
+        continue;
+      }
+
+      if (rawPhone.isNotEmpty && !RegExp(r'^[0-9]{10,11}$').hasMatch(soDienThoai)) {
+        errors.add('Dòng $rowNumber ($tenDangNhap): Số điện thoại phải gồm 10-11 chữ số.');
+        continue;
+      }
+
+      final uKey = tenDangNhap.toLowerCase();
+      final eKey = email.toLowerCase();
+      if (!seenUsernames.add(uKey)) {
+        errors.add('Dòng $rowNumber ($tenDangNhap): Trùng tên đăng nhập trong file.');
+        continue;
+      }
+      if (!seenEmails.add(eKey)) {
+        errors.add('Dòng $rowNumber ($tenDangNhap): Trùng email "$email" trong file.');
+        continue;
+      }
+
+      users.add({
+        'tenDangNhap': tenDangNhap,
+        'matKhau': matKhau.isNotEmpty ? matKhau : '123456',
+        'hoTen': hoTen,
+        'email': email,
+        'soDienThoai': soDienThoai,
+        'maVaiTro': maVaiTro,
+        'trangThai': trangThai,
+      });
+    }
+
+    setState(() {
+      _parsedUsers = users;
+      _importErrors = errors;
+      if (users.isEmpty) {
+        _statusMessage = errors.isNotEmpty
+            ? 'Không có dòng hợp lệ (${errors.length} dòng lỗi).'
+            : emptyLabel;
+      } else if (errors.isNotEmpty) {
+        _statusMessage = 'Tìm thấy ${users.length} dòng hợp lệ và ${errors.length} dòng lỗi bị bỏ qua.';
+      }
+    });
+  }
+
   void _parseCsv(String content) {
     try {
       final rows = csv.decode(content);
@@ -187,53 +280,20 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
       }
 
       final headerCols = rows.first.map((c) => c.toString().trim().toLowerCase()).toList();
-      final validHeader = headerCols.length >= 4 &&
-          (headerCols[0].contains('đăng nhập') || headerCols[0].contains('tendangnhap') || headerCols[0].contains('username')) &&
-          (headerCols[2].contains('họ') || headerCols[2].contains('hoten') || headerCols[2].contains('name'));
-      if (!validHeader) {
+      if (!_isValidHeaderCols(headerCols)) {
         setState(() {
           _parsedUsers = [];
+          _importErrors = [];
           _statusMessage = 'Cấu trúc file không đúng định dạng. Vui lòng tải file mẫu để kiểm tra.';
         });
         return;
       }
 
-      final List<Map<String, dynamic>> users = [];
-      // Bỏ qua dòng header
-      for (var i = 1; i < rows.length; i++) {
-        final row = rows[i];
-        if (row.isEmpty || row.every((c) => c.toString().trim().isEmpty)) continue;
-
-        final tenDangNhap = row.isNotEmpty ? row[0].toString().trim() : '';
-        final matKhau = row.length > 1 ? row[1].toString().trim() : '123456';
-        final hoTen = row.length > 2 ? row[2].toString().trim() : '';
-        final email = row.length > 3 ? row[3].toString().trim() : '';
-        final rawPhone = row.length > 4 ? row[4].toString().trim() : '';
-        final soDienThoai = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
-        final vaiTro = row.length > 5 ? row[5].toString().trim().toUpperCase() : 'SINHVIEN';
-        final trangThaiRaw = row.length > 6 ? row[6].toString().trim().toLowerCase() : 'true';
-
-        final bool trangThai = trangThaiRaw == 'true' || trangThaiRaw == '1' || trangThaiRaw.contains('hoạt động');
-
-        if (tenDangNhap.isNotEmpty && hoTen.isNotEmpty) {
-          users.add({
-            'tenDangNhap': tenDangNhap,
-            'matKhau': matKhau.isNotEmpty ? matKhau : '123456',
-            'hoTen': hoTen,
-            'email': email,
-            'soDienThoai': soDienThoai,
-            'maVaiTro': vaiTro.isNotEmpty ? vaiTro : 'SINHVIEN',
-            'trangThai': trangThai,
-          });
-        }
-      }
-
-      setState(() {
-        _parsedUsers = users;
-        if (users.isEmpty) {
-          _statusMessage = 'Không tìm thấy dòng người dùng hợp lệ trong file.';
-        }
-      });
+      final dataRows = rows
+          .skip(1)
+          .map((row) => row.map((c) => c.toString()).toList())
+          .toList();
+      _processParsedRows(dataRows, 'Không tìm thấy dòng người dùng hợp lệ trong file.');
     } catch (e) {
       setState(() => _statusMessage = 'Lỗi phân tích file CSV: $e');
     }
@@ -252,59 +312,20 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
 
       final headerRow = table.rows.first;
       final headerCols = headerRow.map((c) => (c?.value?.toString() ?? '').trim().toLowerCase()).toList();
-      final validHeader = headerCols.length >= 4 &&
-          (headerCols[0].contains('đăng nhập') || headerCols[0].contains('tendangnhap') || headerCols[0].contains('username')) &&
-          (headerCols[2].contains('họ') || headerCols[2].contains('hoten') || headerCols[2].contains('name'));
-      if (!validHeader) {
+      if (!_isValidHeaderCols(headerCols)) {
         setState(() {
           _parsedUsers = [];
+          _importErrors = [];
           _statusMessage = 'Cấu trúc file không đúng định dạng. Vui lòng tải file mẫu để kiểm tra.';
         });
         return;
       }
 
-      final List<Map<String, dynamic>> users = [];
-      for (var i = 1; i < table.rows.length; i++) {
-        final row = table.rows[i];
-        if (row.isEmpty) continue;
-
-        String getVal(int index) {
-          if (index < row.length && row[index] != null) {
-            return row[index]!.value?.toString().trim() ?? '';
-          }
-          return '';
-        }
-
-        final tenDangNhap = getVal(0);
-        final matKhau = getVal(1);
-        final hoTen = getVal(2);
-        final email = getVal(3);
-        final rawPhone = getVal(4);
-        final soDienThoai = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
-        final vaiTro = getVal(5).toUpperCase();
-        final trangThaiRaw = getVal(6).toLowerCase();
-
-        final bool trangThai = trangThaiRaw == 'true' || trangThaiRaw == '1' || trangThaiRaw.contains('hoạt động');
-
-        if (tenDangNhap.isNotEmpty && hoTen.isNotEmpty) {
-          users.add({
-            'tenDangNhap': tenDangNhap,
-            'matKhau': matKhau.isNotEmpty ? matKhau : '123456',
-            'hoTen': hoTen,
-            'email': email,
-            'soDienThoai': soDienThoai,
-            'maVaiTro': vaiTro.isNotEmpty ? vaiTro : 'SINHVIEN',
-            'trangThai': trangThai,
-          });
-        }
-      }
-
-      setState(() {
-        _parsedUsers = users;
-        if (users.isEmpty) {
-          _statusMessage = 'Không tìm thấy dòng người dùng hợp lệ trong file Excel.';
-        }
-      });
+      final dataRows = table.rows
+          .skip(1)
+          .map((row) => row.map((cell) => cell?.value?.toString() ?? '').toList())
+          .toList();
+      _processParsedRows(dataRows, 'Không tìm thấy dòng người dùng hợp lệ trong file Excel.');
     } catch (e) {
       setState(() => _statusMessage = 'Lỗi phân tích file Excel: $e');
     }
@@ -316,17 +337,26 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
     setState(() {
       _isImporting = true;
       _importProgress = 0.0;
+      _importErrors = [];
       _statusMessage = null;
     });
 
     int successCount = 0;
     int failCount = 0;
+    final List<String> errors = [];
 
     try {
       setState(() => _importProgress = 0.25);
       final batchRes = await AdminApiService.instance.importUsersBatch(_parsedUsers);
       successCount = (batchRes['successCount'] as num?)?.toInt() ?? 0;
       failCount = (batchRes['failedCount'] as num?)?.toInt() ?? 0;
+      final rawErrors = batchRes['errors'];
+      if (rawErrors is List) {
+        for (final item in rawErrors) {
+          final text = item?.toString().trim() ?? '';
+          if (text.isNotEmpty) errors.add(text);
+        }
+      }
       if (mounted) {
         setState(() => _importProgress = 1.0);
       }
@@ -336,8 +366,10 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
         try {
           await AdminApiService.instance.createUser(user);
           successCount++;
-        } catch (_) {
+        } catch (e) {
           failCount++;
+          final msg = e.toString().replaceFirst('Exception: ', '').trim();
+          errors.add('${user['tenDangNhap']}: $msg');
         }
         if (mounted) {
           setState(() {
@@ -350,17 +382,46 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
     if (!mounted) return;
     setState(() {
       _isImporting = false;
+      _importErrors = errors;
       _statusMessage = 'Hoàn tất import: $successCount thành công, $failCount thất bại.';
     });
 
-    if (successCount > 0) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Kết quả nhập người dùng', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Text('Đã nhập thành công $successCount/${_parsedUsers.length} tài khoản người dùng.'),
-          actions: [
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Kết quả nhập người dùng', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Thành công: $successCount/${_parsedUsers.length} | Thất bại: $failCount'),
+              if (errors.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                const Text('Chi tiết lỗi:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: errors
+                          .map((err) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text('• $err', style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          if (successCount > 0)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
@@ -372,11 +433,15 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
                 Navigator.pop(context, true);
               },
               child: const Text('Đóng & Tải lại danh sách'),
+            )
+          else
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Đóng'),
             ),
-          ],
-        ),
-      );
-    }
+        ],
+      ),
+    );
   }
 
   @override
@@ -474,6 +539,8 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
                               _selectedFormat = 'csv';
                               _selectedFileName = null;
                               _parsedUsers = [];
+                              _importErrors = [];
+                              _statusMessage = null;
                             });
                           },
                         ),
@@ -490,13 +557,28 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
                               _selectedFormat = 'xlsx';
                               _selectedFileName = null;
                               _parsedUsers = [];
+                              _importErrors = [];
+                              _statusMessage = null;
                             });
                           },
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Thứ tự cột chuẩn: Tên đăng nhập (SV dùng MSSV) | Mật khẩu | Họ và tên | Email | Số điện thoại | Vai trò | Trạng thái',
+                      style: TextStyle(fontSize: 11.5, color: Color(0xFF1E3A8A), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -569,8 +651,40 @@ class _AdminUserImportScreenState extends State<AdminUserImportScreen> {
                       _statusMessage!,
                       style: TextStyle(
                         fontSize: 12.5,
-                        color: _statusMessage!.contains('Lỗi') ? Colors.red : const Color(0xFF059669),
+                        color: (_statusMessage!.contains('Lỗi') || _importErrors.isNotEmpty)
+                            ? Colors.red
+                            : const Color(0xFF059669),
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  if (_importErrors.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ..._importErrors.take(8).map(
+                                (err) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 3),
+                                  child: Text(
+                                    '• $err',
+                                    style: const TextStyle(fontSize: 11.5, color: Color(0xFFDC2626)),
+                                  ),
+                                ),
+                              ),
+                          if (_importErrors.length > 8)
+                            Text(
+                              '... và ${_importErrors.length - 8} lỗi khác',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
+                            ),
+                        ],
                       ),
                     ),
                   ],

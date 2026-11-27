@@ -13,6 +13,7 @@ public sealed class LecturerCourseResponse
     public int HocKyId { get; set; }
     public string TenHocKy { get; set; } = string.Empty;
     public string NamHoc { get; set; } = string.Empty;
+    public DateTime? NgayKetThucHocKy { get; set; }
     public int? SoLuongToiDa { get; set; }
     public int SoSinhVien { get; set; }
     public int SoNhom { get; set; }

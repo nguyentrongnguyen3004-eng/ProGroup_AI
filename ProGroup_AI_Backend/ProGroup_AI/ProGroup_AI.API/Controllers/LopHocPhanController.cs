@@ -389,34 +389,48 @@ public sealed class LopHocPhanController : ControllerBase
     {
         var course = await _db.LopHocPhans
             .Include(l => l.DotDangKyDoAns)
+            .Include(l => l.HocKy)
             .FirstOrDefaultAsync(l => l.LopHocPhanId == id);
 
         if (course == null) return NotFound(new { message = "Không tìm thấy lớp học phần." });
+
+        if (request.MinMembers.HasValue && request.MinMembers.Value <= 0)
+            return BadRequest(new { message = "Số thành viên tối thiểu phải lớn hơn 0." });
+        if (request.MinMembers.HasValue && request.MaxMembers.HasValue && request.MaxMembers.Value < request.MinMembers.Value)
+            return BadRequest(new { message = "Số thành viên tối đa phải lớn hơn hoặc bằng số tối thiểu." });
 
         if (request.SoLuongToiDa.HasValue && request.SoLuongToiDa.Value > 0)
         {
             course.SoLuongToiDa = request.SoLuongToiDa.Value;
         }
 
-        var topicStart = TryParseDate(request.TopicRegistrationStart) ?? TryParseDate(request.GroupRegistrationStart);
-        var topicEnd = TryParseDate(request.TopicRegistrationEnd) ?? TryParseDate(request.GroupRegistrationEnd);
+        var groupStart = TryParseDate(request.GroupRegistrationStart);
+        var groupEnd = TryParseDate(request.GroupRegistrationEnd);
+        var topicStart = TryParseDate(request.TopicRegistrationStart);
+        var topicEnd = TryParseDate(request.TopicRegistrationEnd);
 
         var period = course.DotDangKyDoAns.OrderByDescending(d => d.DotDangKyId).FirstOrDefault();
         var isNewPeriod = period == null;
         var previousStatus = period?.TrangThai;
 
+        var effectiveStart = groupStart ?? topicStart ?? period?.NgayBatDau ?? DateTime.Today;
+        var effectiveEnd = topicEnd ?? period?.NgayKetThuc ?? DateTime.Today.AddMonths(1);
+
+        // Chỉ chặn ngày quá khứ khi thực sự thay đổi ngày bắt đầu
+        var startChanged = isNewPeriod || (period != null && effectiveStart.Date != period.NgayBatDau.Date);
+        var scheduleError = DotDangKyController.ValidateSchedule(
+            effectiveStart, effectiveEnd, groupEnd, topicStart, course.HocKy?.NgayKetThuc,
+            allowPastStart: !startChanged);
+        if (scheduleError is not null) return BadRequest(new { message = scheduleError });
+
         if (period == null)
         {
-            var start = topicStart ?? DateTime.Today;
-            var end = topicEnd ?? DateTime.Today.AddMonths(1);
-            if (end <= start) return BadRequest(new { message = "Ngày kết thúc phải sau ngày bắt đầu." });
-
             period = new DotDangKyDoAn
             {
                 LopHocPhanId = id,
                 TenDot = $"Đợt đăng ký - {course.TenLopHocPhan ?? course.MaLopHocPhan}",
-                NgayBatDau = start,
-                NgayKetThuc = end,
+                NgayBatDau = effectiveStart,
+                NgayKetThuc = effectiveEnd,
                 MinMembers = request.MinMembers ?? 2,
                 MaxMembers = request.MaxMembers ?? 5,
                 TrangThai = "Đang mở",
@@ -426,14 +440,14 @@ public sealed class LopHocPhanController : ControllerBase
         }
         else
         {
-            if (request.MinMembers.HasValue && request.MinMembers.Value > 0)
-                period.MinMembers = request.MinMembers.Value;
-            if (request.MaxMembers.HasValue && request.MaxMembers.Value >= period.MinMembers)
-                period.MaxMembers = request.MaxMembers.Value;
-            if (topicStart.HasValue)
-                period.NgayBatDau = topicStart.Value;
-            if (topicEnd.HasValue)
-                period.NgayKetThuc = topicEnd.Value;
+            var newMin = request.MinMembers ?? period.MinMembers;
+            var newMax = request.MaxMembers ?? period.MaxMembers;
+            if (newMax < newMin)
+                return BadRequest(new { message = "Số thành viên tối đa phải lớn hơn hoặc bằng số tối thiểu." });
+            period.MinMembers = newMin;
+            period.MaxMembers = newMax;
+            period.NgayBatDau = effectiveStart;
+            period.NgayKetThuc = effectiveEnd;
             if (period.NgayKetThuc <= period.NgayBatDau)
                 return BadRequest(new { message = "Ngày kết thúc phải sau ngày bắt đầu." });
             period.TrangThai = "Đang mở";

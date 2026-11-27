@@ -51,6 +51,7 @@ public sealed class LecturerController : ControllerBase
                 HocKyId = c.HocKyId,
                 TenHocKy = c.HocKy != null ? c.HocKy.TenHocKy : string.Empty,
                 NamHoc = c.HocKy != null ? c.HocKy.NamHoc : string.Empty,
+                NgayKetThucHocKy = c.HocKy != null ? (DateTime?)c.HocKy.NgayKetThuc : null,
                 SoLuongToiDa = c.SoLuongToiDa,
                 SoSinhVien = c.SinhVienLopHocPhans.Count(s => s.TrangThai),
                 SoNhom = c.DotDangKyDoAns.SelectMany(d => d.NhomDoAns).Count(n => n.TrangThai != "Đã hủy"),

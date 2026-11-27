@@ -81,10 +81,23 @@ public sealed class DotDangKyController : ControllerBase
             return BadRequest(new { message = "Số lượng thành viên không hợp lệ (Min > 0 và Max >= Min)." });
         }
 
-        var course = await _db.LopHocPhans.AsNoTracking().FirstOrDefaultAsync(c => c.LopHocPhanId == request.LopHocPhanId);
+        var course = await _db.LopHocPhans.AsNoTracking()
+            .Include(c => c.HocKy)
+            .FirstOrDefaultAsync(c => c.LopHocPhanId == request.LopHocPhanId);
         if (course is null)
         {
             return BadRequest(new { message = "Lớp học phần không tồn tại." });
+        }
+
+        var scheduleError = ValidateSchedule(
+            request.NgayBatDau,
+            request.NgayKetThuc,
+            request.NgayKetThucLapNhom,
+            request.NgayBatDauDangKyDeTai,
+            course.HocKy?.NgayKetThuc);
+        if (scheduleError is not null)
+        {
+            return BadRequest(new { message = scheduleError });
         }
 
         var status = (DateTime.Now >= request.NgayBatDau && DateTime.Now <= request.NgayKetThuc)
@@ -155,6 +168,46 @@ public sealed class DotDangKyController : ControllerBase
             .FirstAsync();
 
         return Ok(updated);
+    }
+
+    /// <summary>
+    /// Quy tắc: bắt đầu >= hôm nay; kết thúc lập nhóm sớm hơn kết thúc đăng ký đề tài;
+    /// đăng ký đề tài không bắt đầu sớm hơn lập nhóm; kết thúc đăng ký đề tài sớm hơn kết thúc học phần >= 7 ngày.
+    /// </summary>
+    public static string? ValidateSchedule(
+        DateTime start,
+        DateTime end,
+        DateTime? groupEnd,
+        DateTime? topicStart,
+        DateTime? semesterEnd,
+        bool allowPastStart = false)
+    {
+        if (!allowPastStart && start.Date < DateTime.Today)
+            return "Ngày bắt đầu đăng ký nhóm không được ở trong quá khứ.";
+
+        if (end <= start)
+            return "Ngày kết thúc phải sau ngày bắt đầu.";
+
+        if (groupEnd.HasValue)
+        {
+            if (groupEnd.Value.Date < start.Date)
+                return "Ngày kết thúc lập nhóm phải sau hoặc bằng ngày bắt đầu.";
+            if (groupEnd.Value.Date >= end.Date)
+                return "Thời gian đăng ký nhóm phải kết thúc sớm hơn thời gian kết thúc đăng ký đề tài.";
+        }
+
+        if (topicStart.HasValue)
+        {
+            if (topicStart.Value.Date < start.Date)
+                return "Thời gian bắt đầu đăng ký đề tài không được sớm hơn thời gian bắt đầu đăng ký nhóm.";
+            if (topicStart.Value.Date >= end.Date)
+                return "Ngày bắt đầu đăng ký đề tài phải trước ngày kết thúc đăng ký đề tài.";
+        }
+
+        if (semesterEnd.HasValue && end.Date > semesterEnd.Value.Date.AddDays(-7))
+            return $"Thời điểm kết thúc đăng ký đề tài phải sớm hơn ngày kết thúc học phần ({semesterEnd.Value:dd/MM/yyyy}) ít nhất 7 ngày.";
+
+        return null;
     }
 
     private async Task NotifyStaffOnPeriodActivatedAsync(DotDangKyDoAn period, LopHocPhan course)

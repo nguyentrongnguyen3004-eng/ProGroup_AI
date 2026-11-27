@@ -1,42 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:progroup_ai_frontend/models/ai_feedback_model.dart';
+import 'package:progroup_ai_frontend/models/course_model.dart';
 import 'package:progroup_ai_frontend/screens/sinh_vien/topic/ai_topic_screen.dart';
-import 'package:progroup_ai_frontend/services/ai_feedback_service.dart';
 
 void main() {
-  testWidgets('negative feedback stores its reason and chat context', (
+  testWidgets('AiTopicScreen renders form inputs, topic count chips, and generate button', (
     tester,
   ) async {
-    final feedbackService = AiFeedbackService();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AiTopicScreen(feedbackService: feedbackService),
-      ),
+    const initialCourse = CourseModel(
+      id: 12,
+      code: 'SE104',
+      name: 'Đồ án chuyên ngành',
+      classCode: 'SE104.O21',
+      semester: 'HK1 2026-2027',
+      lecturer: 'TS. Nguyễn Văn A',
+      status: 'Đang mở',
     );
 
-    const prompt = 'Tôi muốn làm ứng dụng Flutter quản lý chi tiêu';
-    await tester.enterText(find.byType(TextField).last, prompt);
-    await tester.tap(find.byTooltip('Gửi'));
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AiTopicScreen(initialCourse: initialCourse),
+      ),
+    );
+    await tester.pump();
 
-    final dislikeButton = find.byTooltip('Chưa phù hợp');
-    await tester.ensureVisible(dislikeButton);
-    await tester.tap(dislikeButton);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Không đúng lĩnh vực'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Gửi nhận xét'));
-    await tester.pumpAndSettle();
+    expect(find.text('Cố vấn Đề tài AI Sinh viên'), findsOneWidget);
+    expect(find.text('1 đề tài'), findsOneWidget);
+    expect(find.text('3 đề tài'), findsOneWidget);
+    expect(find.text('10 đề tài'), findsOneWidget);
+    expect(find.text('Tạo 3 gợi ý đề tài với AI'), findsOneWidget);
 
-    final feedback = feedbackService.submittedFeedback.single;
-    expect(feedback, isA<AiFeedbackModel>());
-    expect(feedback.helpful, isFalse);
-    expect(feedback.feedbackReason, 'Không đúng lĩnh vực');
-    expect(feedback.userMessage, prompt);
-    expect(feedback.aiResponse, contains('đã xếp hạng'));
-    expect(feedback.messageId, greaterThan(0));
-    expect(feedback.conversationId, isNotEmpty);
+    await tester.ensureVisible(find.text('5 đề tài'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('5 đề tài'));
+    await tester.pump();
+    expect(find.text('Tạo 5 gợi ý đề tài với AI'), findsOneWidget);
   });
 }

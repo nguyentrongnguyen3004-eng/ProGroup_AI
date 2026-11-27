@@ -161,10 +161,19 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
                       const SizedBox(height: 14),
                       _inputField(
                         controller: _username,
-                        label: adminText('Tên đăng nhập', 'Username'),
+                        label: _role == 'SINHVIEN'
+                            ? adminText('Tên đăng nhập (MSSV)', 'Username (Student ID)')
+                            : adminText('Tên đăng nhập', 'Username'),
                         icon: Icons.account_circle_outlined,
                         colors: colors,
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Vui lòng nhập tên đăng nhập' : null,
+                        validator: (v) {
+                          final val = v?.trim() ?? '';
+                          if (val.isEmpty) return 'Vui lòng nhập tên đăng nhập';
+                          if (_role == 'SINHVIEN' && val.length > 30) {
+                            return 'MSSV (Tên đăng nhập sinh viên) tối đa 30 ký tự';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 14),
                       _inputField(

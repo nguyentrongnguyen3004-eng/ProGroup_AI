@@ -459,22 +459,16 @@ class LecturerApiService {
   /// 12. Duyệt đề xuất từ sinh viên
   /// PUT /api/de-tai/{id}/duyet
   Future<void> approveTopicProposal(int id, bool chapNhan, {String? lyDo}) async {
-    try {
-      await ApiService.instance.put('/api/de-tai/$id/duyet', {
-        'chapNhan': chapNhan,
-        'lyDo': lyDo,
-        'lyDoTuChoi': lyDo,
-        'ghiChu': lyDo,
-        'reason': lyDo,
-        'feedback': lyDo,
-      });
-    } catch (_) {
-      await ApiService.instance.put('/api/de-tai/$id', {
-        'trangThaiDuyet': chapNhan ? 'Đã duyệt' : 'Từ chối',
-        'lyDo': lyDo,
-        'lyDoTuChoi': lyDo,
-      });
-    }
+    // Backend trả lỗi nghiệp vụ (403/409/400...) -> hiển thị đúng cho giảng viên, không fallback.
+    await ApiService.instance.put('/api/de-tai/$id/duyet', {
+      'chapNhan': chapNhan,
+      'lyDo': lyDo,
+      'lyDoTuChoi': lyDo,
+      'ghiChu': lyDo,
+      'reason': lyDo,
+      'feedback': lyDo,
+    });
+    DataCacheService.instance.invalidatePrefix('lecturer_topics');
   }
 
   /// 13. Tải hồ sơ giảng viên
@@ -577,6 +571,8 @@ class LecturerApiService {
     required int lopHocPhanId,
     required DateTime ngayBatDau,
     required DateTime ngayKetThuc,
+    DateTime? ngayKetThucLapNhom,
+    DateTime? ngayBatDauDangKyDeTai,
     int minMembers = 1,
     int maxMembers = 5,
   }) async {
@@ -585,6 +581,10 @@ class LecturerApiService {
       'lopHocPhanId': lopHocPhanId,
       'ngayBatDau': ngayBatDau.toIso8601String(),
       'ngayKetThuc': ngayKetThuc.toIso8601String(),
+      if (ngayKetThucLapNhom != null)
+        'ngayKetThucLapNhom': ngayKetThucLapNhom.toIso8601String(),
+      if (ngayBatDauDangKyDeTai != null)
+        'ngayBatDauDangKyDeTai': ngayBatDauDangKyDeTai.toIso8601String(),
       'minMembers': minMembers,
       'maxMembers': maxMembers,
     });

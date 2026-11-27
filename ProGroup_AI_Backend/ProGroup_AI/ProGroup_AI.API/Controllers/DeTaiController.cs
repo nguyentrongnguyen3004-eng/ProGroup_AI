@@ -147,7 +147,49 @@ public sealed class DeTaiController : ControllerBase
             .OrderByDescending(t => t.CreatedAt)
             .ToList();
 
+        await PopulateProposerGroupNamesAsync(list);
+
         return Ok(list);
+    }
+
+    private async Task PopulateProposerGroupNamesAsync(List<TopicResponse> list)
+    {
+        var proposerIds = list.Where(t => t.SinhVienDeXuatId.HasValue)
+            .Select(t => t.SinhVienDeXuatId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (proposerIds.Count == 0) return;
+
+        var dotIds = list.Select(t => t.DotDangKyId).Distinct().ToList();
+        var studentGroups = await _db.NhomDoAns.AsNoTracking()
+            .Where(g => dotIds.Contains(g.DotDangKyId) && g.TrangThai != "Đã hủy" &&
+                        (proposerIds.Contains(g.TruongNhomId) ||
+                         g.ThanhVienNhoms.Any(m => proposerIds.Contains(m.SinhVienId) && m.TrangThai == "Đã tham gia")))
+            .Select(g => new
+            {
+                g.DotDangKyId,
+                g.TenNhom,
+                g.TruongNhomId,
+                MemberIds = g.ThanhVienNhoms
+                    .Where(m => m.TrangThai == "Đã tham gia")
+                    .Select(m => m.SinhVienId)
+                    .ToList()
+            })
+            .ToListAsync();
+
+        foreach (var item in list)
+        {
+            if (!item.SinhVienDeXuatId.HasValue) continue;
+            var svId = item.SinhVienDeXuatId.Value;
+            var grp = studentGroups.FirstOrDefault(g =>
+                g.DotDangKyId == item.DotDangKyId &&
+                (g.TruongNhomId == svId || g.MemberIds.Contains(svId)));
+            if (grp != null)
+            {
+                item.TenNhom = grp.TenNhom;
+            }
+        }
     }
 
     [HttpGet("{id:int}")]
@@ -390,29 +432,40 @@ public sealed class DeTaiController : ControllerBase
         }
 
         DotDangKyDoAn? period = null;
-        if (request.DotDangKyId > 0)
-        {
-            period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId);
-            if (period is null)
-            {
-                period = await _db.DotDangKyDoAns.FirstOrDefaultAsync(d => d.LopHocPhanId == request.DotDangKyId && d.TrangThai == "Đang mở");
-            }
-        }
-        if (period is null && request.LopHocPhanId.HasValue && request.LopHocPhanId.Value > 0)
+        if (request.LopHocPhanId.HasValue && request.LopHocPhanId.Value > 0)
         {
             period = await _db.DotDangKyDoAns
                 .OrderByDescending(d => d.TrangThai == "Đang mở")
                 .ThenByDescending(d => d.DotDangKyId)
                 .FirstOrDefaultAsync(d => d.LopHocPhanId == request.LopHocPhanId.Value);
         }
-        if (period is null)
+        if (period is null && request.DotDangKyId > 0)
         {
-            period = await _db.DotDangKyDoAns.OrderByDescending(d => d.DotDangKyId).FirstOrDefaultAsync(d => d.TrangThai == "Đang mở")
-                ?? await _db.DotDangKyDoAns.OrderByDescending(d => d.DotDangKyId).FirstOrDefaultAsync();
+            period = await _db.DotDangKyDoAns.FindAsync(request.DotDangKyId);
+            if (period is null)
+            {
+                period = await _db.DotDangKyDoAns
+                    .OrderByDescending(d => d.TrangThai == "Đang mở")
+                    .ThenByDescending(d => d.DotDangKyId)
+                    .FirstOrDefaultAsync(d => d.LopHocPhanId == request.DotDangKyId);
+            }
+        }
+        if (period is null && (!request.LopHocPhanId.HasValue || request.LopHocPhanId.Value <= 0) && request.DotDangKyId <= 0)
+        {
+            var enrolledClassIds = await _db.SinhVienLopHocPhans
+                .Where(s => s.SinhVienId == studentId.Value && s.TrangThai)
+                .Select(s => s.LopHocPhanId)
+                .ToListAsync();
+
+            period = await _db.DotDangKyDoAns
+                .Where(d => enrolledClassIds.Contains(d.LopHocPhanId))
+                .OrderByDescending(d => d.TrangThai == "Đang mở")
+                .ThenByDescending(d => d.DotDangKyId)
+                .FirstOrDefaultAsync();
         }
         if (period is null)
         {
-            return BadRequest(new { message = "Đợt đăng ký không tồn tại." });
+            return BadRequest(new { message = "Không tìm thấy đợt đăng ký phù hợp cho lớp học phần đã chọn." });
         }
 
         var assignedLecturer = await _db.PhanCongGiangViens.AsNoTracking()
@@ -420,6 +473,25 @@ public sealed class DeTaiController : ControllerBase
             .OrderByDescending(p => p.NgayPhanCong)
             .Select(p => new { p.GiangVienId, p.GiangVien!.NguoiDungId })
             .FirstOrDefaultAsync();
+
+        var studentGroupIds = await _db.NhomDoAns
+            .Where(g => g.DotDangKyId == period.DotDangKyId && g.TrangThai == "Đang hoạt động" &&
+                        (g.TruongNhomId == studentId.Value ||
+                         g.ThanhVienNhoms.Any(m => m.SinhVienId == studentId.Value && m.TrangThai == "Đã tham gia")))
+            .Select(g => g.NhomId)
+            .ToListAsync();
+
+        if (studentGroupIds.Count > 0)
+        {
+            var groupHasActiveTopic = await _db.DangKyDeTais.AnyAsync(r =>
+                studentGroupIds.Contains(r.NhomId) &&
+                (r.TrangThai == "Chờ duyệt" || r.TrangThai == "Đã duyệt"));
+
+            if (groupHasActiveTopic)
+            {
+                return BadRequest(new { message = "Nhóm của bạn đã có đề tài đang chờ duyệt hoặc đã được duyệt trong đợt này." });
+            }
+        }
 
         var hasActiveProposal = await _db.DeTaiDoAns.AnyAsync(t =>
             t.SinhVienDeXuatId == studentId.Value &&
@@ -486,6 +558,26 @@ public sealed class DeTaiController : ControllerBase
 
         int? lecturerId = await GetCurrentLecturerIdAsync();
 
+        // Chỉ giảng viên phụ trách đề tài / lớp học phần (hoặc ADMIN) mới được duyệt
+        if (!User.IsInRole("ADMIN"))
+        {
+            if (lecturerId is null) return Forbid();
+            var topicPeriod = await _db.DotDangKyDoAns.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.DotDangKyId == topic.DotDangKyId);
+            var isAssigned = topic.GiangVienId == lecturerId ||
+                (topicPeriod != null && await _db.PhanCongGiangViens.AnyAsync(p =>
+                    p.GiangVienId == lecturerId.Value && p.TrangThai && p.LopHocPhanId == topicPeriod.LopHocPhanId));
+            if (!isAssigned)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "Bạn không phụ trách lớp học phần của đề tài này." });
+            }
+        }
+
+        if (topic.TrangThaiDuyet != "Chờ duyệt")
+        {
+            return BadRequest(new { message = $"Đề tài đã ở trạng thái '{topic.TrangThaiDuyet}', không thể xử lý lại." });
+        }
+
         var path = Request.Path.Value ?? string.Empty;
         var isExplicitReject = path.Contains("tu-choi", StringComparison.OrdinalIgnoreCase)
             || path.Contains("reject", StringComparison.OrdinalIgnoreCase);
@@ -497,18 +589,38 @@ public sealed class DeTaiController : ControllerBase
         if (topic.SinhVienDeXuatId.HasValue)
         {
             var proposingSvId = topic.SinhVienDeXuatId.Value;
+            // Chỉ tìm nhóm trong đúng đợt đăng ký của đề tài (không fallback sang lớp/đợt khác)
             group = await _db.NhomDoAns
+                .Include(g => g.DotDangKy)
                 .Include(g => g.ThanhVienNhoms)
                 .FirstOrDefaultAsync(g => (g.TruongNhomId == proposingSvId || g.ThanhVienNhoms.Any(m => m.SinhVienId == proposingSvId && m.TrangThai == "Đã tham gia"))
                                          && g.DotDangKyId == topic.DotDangKyId
                                          && g.TrangThai == "Đang hoạt động");
+        }
 
-            if (group == null)
+        if (isApproved && group != null)
+        {
+            var memberCount = group.ThanhVienNhoms.Count(m => m.TrangThai == "Đã tham gia");
+            if (!group.ThanhVienNhoms.Any(m => m.SinhVienId == group.TruongNhomId && m.TrangThai == "Đã tham gia"))
+                memberCount++;
+
+            var min = group.DotDangKy?.MinMembers ?? 0;
+            var max = group.DotDangKy?.MaxMembers ?? 0;
+            if (memberCount < min)
             {
-                group = await _db.NhomDoAns
-                    .Include(g => g.ThanhVienNhoms)
-                    .FirstOrDefaultAsync(g => (g.TruongNhomId == proposingSvId || g.ThanhVienNhoms.Any(m => m.SinhVienId == proposingSvId && m.TrangThai == "Đã tham gia"))
-                                             && g.TrangThai == "Đang hoạt động");
+                return Conflict(new { message = $"Nhóm của sinh viên đề xuất chưa đủ số thành viên tối thiểu ({memberCount}/{min}). Không thể duyệt đề xuất." });
+            }
+            if (max > 0 && memberCount > max)
+            {
+                return Conflict(new { message = $"Nhóm của sinh viên đề xuất vượt quá số thành viên tối đa ({memberCount}/{max}). Không thể duyệt đề xuất." });
+            }
+
+            var hasOtherActiveReg = await _db.DangKyDeTais.AnyAsync(r =>
+                r.NhomId == group.NhomId && r.DeTaiId != topic.DeTaiId &&
+                (r.TrangThai == "Chờ duyệt" || r.TrangThai == "Đã duyệt"));
+            if (hasOtherActiveReg)
+            {
+                return Conflict(new { message = "Nhóm đã có đề tài khác đang chờ duyệt hoặc đã được duyệt. Cần hủy đăng ký đó trước khi duyệt đề xuất này." });
             }
         }
 
@@ -528,7 +640,7 @@ public sealed class DeTaiController : ControllerBase
                 topic.TrangThai = "Đã đăng ký";
 
                 var existingReg = await _db.DangKyDeTais
-                    .FirstOrDefaultAsync(r => r.NhomId == group.NhomId);
+                    .FirstOrDefaultAsync(r => r.NhomId == group.NhomId && r.DeTaiId == topic.DeTaiId);
 
                 if (existingReg != null)
                 {
@@ -705,6 +817,9 @@ public sealed class DeTaiController : ControllerBase
 
         if (activeMembers < period.MinMembers)
             return Conflict(new { message = $"Nhóm của bạn chưa đủ số thành viên tối thiểu (yêu cầu tối thiểu {period.MinMembers} thành viên)." });
+
+        if (period.MaxMembers > 0 && activeMembers > period.MaxMembers)
+            return Conflict(new { message = $"Nhóm của bạn vượt quá số thành viên tối đa (tối đa {period.MaxMembers} thành viên)." });
 
         var hasRegistration = await _db.DangKyDeTais.AnyAsync(x => x.NhomId == group.NhomId &&
             (x.TrangThai == "Chờ duyệt" || x.TrangThai == "Đã duyệt"));

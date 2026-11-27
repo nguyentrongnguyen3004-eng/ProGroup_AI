@@ -16,6 +16,7 @@ public sealed class ImportUserItemDto
     public string? SoDienThoai { get; set; }
     public string VaiTro { get; set; } = "SINHVIEN";
     public string? MaVaiTro { get; set; }
+    public bool TrangThai { get; set; } = true;
     public string? Khoa { get; set; }
     public string? MSSV { get; set; }
     public string? MaGiangVien { get; set; }

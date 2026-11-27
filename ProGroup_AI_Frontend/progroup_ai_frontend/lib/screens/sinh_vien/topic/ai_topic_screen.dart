@@ -20,6 +20,8 @@ import 'propose_topic_screen.dart';
 
 class AiTopicScreen extends StatefulWidget {
 
+  final CourseModel? initialCourse;
+
   final dynamic recommendationService;
 
   final dynamic feedbackService;
@@ -29,6 +31,8 @@ class AiTopicScreen extends StatefulWidget {
   const AiTopicScreen({
 
     super.key,
+
+    this.initialCourse,
 
     this.recommendationService,
 
@@ -101,6 +105,8 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
 
     super.initState();
 
+    _selectedCourse = widget.initialCourse;
+
     _loadCourses();
 
   }
@@ -121,7 +127,23 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
 
         if (courses.isNotEmpty) {
 
-          _selectedCourse = courses.first;
+          final preferredId = widget.initialCourse?.id;
+
+          if (preferredId != null) {
+
+            _selectedCourse = courses.firstWhere(
+
+              (c) => c.id == preferredId,
+
+              orElse: () => courses.first,
+
+            );
+
+          } else {
+
+            _selectedCourse ??= courses.first;
+
+          }
 
         }
 
@@ -260,7 +282,8 @@ class _AiTopicScreenState extends State<AiTopicScreen> {
       MaterialPageRoute(
         builder: (_) => ProposeTopicScreen(
           initialValues: {
-            'dotDangKyId': _selectedCourse?.id ?? 0,
+            'dotDangKyId': 0,
+            'lopHocPhanId': _selectedCourse?.id ?? 0,
             'title': suggestion.title,
             'description': suggestion.description,
             'objective': suggestion.objective,

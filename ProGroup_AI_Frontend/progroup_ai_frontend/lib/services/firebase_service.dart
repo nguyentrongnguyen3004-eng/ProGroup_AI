@@ -9,6 +9,7 @@ class FirebaseService {
 
   bool _initialized = false;
   bool get isInitialized => _initialized;
+  Future<void>? _initFuture;
 
   FirebaseFirestore? _firestore;
   FirebaseFirestore get firestore {
@@ -25,8 +26,26 @@ class FirebaseService {
   String? _fcmToken;
   String? get fcmToken => _fcmToken;
 
+  /// Đợi tiến trình khởi tạo Firebase đang chạy (nếu có) hoàn tất
+  Future<bool> ensureInitialized() async {
+    if (_initialized) return true;
+    if (_initFuture != null) {
+      try {
+        await _initFuture;
+      } catch (_) {}
+    }
+    return _initialized;
+  }
+
   /// Khởi tạo Firebase Core và Cloud Messaging
-  Future<void> initialize() async {
+  Future<void> initialize() {
+    if (_initialized) return Future.value();
+    if (_initFuture != null) return _initFuture!;
+    _initFuture = _initializeImpl();
+    return _initFuture!;
+  }
+
+  Future<void> _initializeImpl() async {
     if (_initialized) return;
     try {
       await Firebase.initializeApp();

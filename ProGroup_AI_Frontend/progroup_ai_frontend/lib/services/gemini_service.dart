@@ -319,7 +319,7 @@ Hãy gợi ý chính xác $topicCount đề tài đồ án/khóa luận thực t
 - Lĩnh vực nghiên cứu/ứng dụng: ${field.isEmpty ? 'Công nghệ phần mềm & Hệ thống thông tin' : field}
 - Công nghệ định hướng: ${technology.isEmpty ? 'Flutter, Node.js, Spring Boot, AI, Cloud' : technology}
 - Từ khóa chính: ${keywords.isEmpty ? 'Ứng dụng thực tế' : keywords}
-- Nhu cầu/mô tả bổ sung của giảng viên: ${description.isEmpty ? 'Đề tài đáp ứng tính khả thi trong học kỳ, có sản phẩm demo cụ thể.' : description}
+- Nhu cầu/mô tả bổ sung: ${description.isEmpty ? 'Đề tài đáp ứng tính khả thi trong học kỳ, có sản phẩm demo cụ thể.' : description}
 
 QUY ĐỊNH BẮT BUỘC VỀ ĐỊNH DẠNG ĐẦU RA:
 - Chỉ trả về DUY NHẤT một chuỗi JSON chuẩn (Array of Objects), KHÔNG kèm bất kỳ lời chào, lời dẫn hay văn bản giải thích nào khác.

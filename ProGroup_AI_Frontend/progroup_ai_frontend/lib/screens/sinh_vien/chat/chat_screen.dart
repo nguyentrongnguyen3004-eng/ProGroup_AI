@@ -104,8 +104,12 @@ class _ChatScreenState extends State<ChatScreen> {
       _scrollToBottom();
     }
 
-    // 2. Nếu Firebase đã khởi tạo, lắng nghe Firestore Stream để đồng bộ tin nhắn realtime
-    if (FirebaseService.instance.isInitialized) {
+    // 2. Nếu Firebase đã (hoặc đang) khởi tạo, đợi hoàn tất rồi lắng nghe Firestore Stream để đồng bộ tin nhắn realtime
+    final firebaseReady = FirebaseService.instance.isInitialized ||
+        await FirebaseService.instance.ensureInitialized();
+    if (!mounted) return;
+
+    if (firebaseReady) {
       await _messagesSubscription?.cancel();
       _messagesSubscription = FirebaseService.instance
           .getGroupMessagesStream(roomId)
@@ -117,8 +121,10 @@ class _ChatScreenState extends State<ChatScreen> {
               final senderId = m['senderId']?.toString() ?? '';
               final isMe = senderId == _currentUserId;
               final rawCreated = m['createdAt'];
+              final meta = m['metadata'] is Map ? m['metadata'] as Map : null;
               return {
                 'id': m['id'] ?? '',
+                'clientMsgId': meta?['clientMsgId']?.toString() ?? '',
                 'senderId': senderId,
                 'type': m['type'] ?? 'text',
                 'name': m['senderName'] ?? '',
@@ -126,10 +132,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 'me': isMe,
                 'createdAt': rawCreated,
                 'time': _formatMessageTime(rawCreated),
-                'studentName': m['metadata']?['studentName'] ?? m['senderName'] ?? '',
-                'studentMssv': m['metadata']?['studentMssv'] ?? '',
-                'status': m['metadata']?['status'] ?? 'Chờ duyệt',
-                'requestId': m['metadata']?['requestId'],
+                'studentName': meta?['studentName'] ?? m['senderName'] ?? '',
+                'studentMssv': meta?['studentMssv'] ?? '',
+                'status': meta?['status'] ?? 'Chờ duyệt',
+                'requestId': meta?['requestId'],
               };
             }).toList();
 
@@ -182,9 +188,13 @@ class _ChatScreenState extends State<ChatScreen> {
       final isPending = local['pendingSync'] == true;
       if (isPending) {
         final localText = local['message']?.toString() ?? '';
-        final alreadySyncedInRemote = remoteMsgs.any(
-          (r) => r['me'] == true && r['message']?.toString() == localText,
-        );
+        final alreadySyncedInRemote = remoteMsgs.any((r) {
+          final remoteClientId = r['clientMsgId']?.toString() ?? '';
+          if (id.isNotEmpty && remoteClientId.isNotEmpty) {
+            return remoteClientId == id;
+          }
+          return r['me'] == true && r['message']?.toString() == localText;
+        });
         if (!alreadySyncedInRemote) {
           result.add(local);
           if (id.isNotEmpty) existingIds.add(id);
@@ -238,12 +248,13 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _resolveGroupAndJoinRequests() async {
-    if (_effectiveGroupId == null || _effectiveGroupId! <= 0) {
+    if ((_effectiveGroupId == null || _effectiveGroupId! <= 0) &&
+        !widget.groupName.startsWith('Lớp ')) {
       try {
         final groups = await StudentApiService.instance.fetchMyGroups();
         if (mounted && groups.isNotEmpty) {
           for (final g in groups) {
-            if (g.name == widget.groupName || widget.groupName.contains(g.name)) {
+            if (g.name == widget.groupName) {
               final oldRoomId = _chatRoomId;
               _effectiveGroupId = g.id;
               if (_chatRoomId != oldRoomId) {
@@ -360,6 +371,7 @@ class _ChatScreenState extends State<ChatScreen> {
           senderName: _currentUserName,
           content: text,
           type: 'text',
+          metadata: {'clientMsgId': localMsg['id']},
         ).timeout(const Duration(seconds: 4));
 
         // Đánh dấu đã đồng bộ thành công lên Firestore

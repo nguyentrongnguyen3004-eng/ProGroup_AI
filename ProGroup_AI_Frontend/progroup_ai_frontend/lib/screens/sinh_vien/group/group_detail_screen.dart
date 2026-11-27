@@ -38,6 +38,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Future<void> _fetchLiveDetails() async {
     setState(() => _isLoading = true);
+    _topicRegistration = null;
+    _registeredTopic = null;
     try {
       final regData = await StudentApiService.instance.fetchGroupTopicRegistration(widget.group.id);
       if (regData != null) {
@@ -58,7 +60,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         );
 
         if (deTaiId > 0) {
-          _registeredTopic = await StudentApiService.instance.fetchTopicById(deTaiId);
+          _registeredTopic = await StudentApiService.instance.fetchTopicById(
+            deTaiId,
+            forceRefresh: true,
+          );
           if (_registeredTopic == null && regData['tenDeTai'] != null) {
             _registeredTopic = TopicModel(
               id: deTaiId,
@@ -75,7 +80,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         }
       }
 
-      final myCourses = await StudentApiService.instance.fetchMyCourses();
+      final myCourses = await StudentApiService.instance.fetchMyCourses(
+        forceRefresh: true,
+      );
       for (final c in myCourses) {
         if (c.id == widget.group.courseId) {
           _course = c;
@@ -103,7 +110,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           status: 'Đang mở',
         );
 
-    Navigator.pushNamed(context, AppRoutes.topic, arguments: course);
+    Navigator.pushNamed(context, AppRoutes.topic, arguments: course)
+        .then((_) => _fetchLiveDetails());
   }
 
   void _showMessage(String message) {
@@ -819,12 +827,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     ),
                     const SizedBox(height: 16),
                     if (isLeader) ...[
-                      Container(
-                        decoration: BoxDecoration(
-                          color: colors.surface,
+                      Material(
+                        color: colors.surface,
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
+                          side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
                         ),
+                        clipBehavior: Clip.antiAlias,
                         child: Column(
                           children: [
                             ListTile(
