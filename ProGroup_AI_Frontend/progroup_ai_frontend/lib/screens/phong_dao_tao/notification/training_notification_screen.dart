@@ -5,7 +5,9 @@ import '../../../services/admin_api_service.dart';
 import '../../../widgets/common/common_notification_detail_screen.dart';
 
 class TrainingNotificationScreen extends StatefulWidget {
-  const TrainingNotificationScreen({super.key});
+  final VoidCallback? onNotificationsUpdated;
+
+  const TrainingNotificationScreen({super.key, this.onNotificationsUpdated});
 
   @override
   State<TrainingNotificationScreen> createState() => _TrainingNotificationScreenState();
@@ -20,22 +22,23 @@ class _TrainingNotificationScreenState extends State<TrainingNotificationScreen>
   @override
   void initState() {
     super.initState();
-    _loadNotifications();
+    _loadNotifications(forceRefresh: true);
   }
 
-  Future<void> _loadNotifications() async {
+  Future<void> _loadNotifications({bool forceRefresh = true}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final list = await AdminApiService.instance.fetchNotifications();
+      final list = await AdminApiService.instance.fetchNotifications(forceRefresh: forceRefresh);
       if (!mounted) return;
       setState(() {
         _notifications = list;
         _isLoading = false;
       });
+      widget.onNotificationsUpdated?.call();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -47,6 +50,7 @@ class _TrainingNotificationScreenState extends State<TrainingNotificationScreen>
 
   Future<void> _markRead(int id) async {
     await AdminApiService.instance.markNotificationAsRead(id);
+    if (!mounted) return;
     setState(() {
       for (final n in _notifications) {
         if ((n['id'] ?? n['thongBaoId']) == id) {
@@ -55,6 +59,7 @@ class _TrainingNotificationScreenState extends State<TrainingNotificationScreen>
         }
       }
     });
+    widget.onNotificationsUpdated?.call();
   }
 
   Future<void> _markAllRead() async {
@@ -64,12 +69,14 @@ class _TrainingNotificationScreenState extends State<TrainingNotificationScreen>
         await AdminApiService.instance.markNotificationAsRead(id is int ? id : int.tryParse('$id') ?? 0);
       }
     }
+    if (!mounted) return;
     setState(() {
       for (final n in _notifications) {
         n['isRead'] = true;
         n['daDoc'] = true;
       }
     });
+    widget.onNotificationsUpdated?.call();
   }
 
   @override

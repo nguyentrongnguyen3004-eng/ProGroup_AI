@@ -1197,6 +1197,25 @@ public sealed class GovernanceController : ControllerBase
         return Ok(new { success = true, message = "Đã hủy phân công giảng viên. Lớp học phần quay về trạng thái chưa phân công." });
     }
 
+    [HttpGet("khoas")]
+    public async Task<IActionResult> GetKhoas()
+    {
+        var list = await _db.Khoas.AsNoTracking()
+            .Where(k => k.TrangThai)
+            .OrderBy(k => k.KhoaId)
+            .Select(k => new
+            {
+                k.KhoaId,
+                k.MaKhoa,
+                k.TenKhoa,
+                SoSinhVien = k.SinhViens.Count(),
+                SoGiangVien = k.GiangViens.Count(),
+                SoLopHocPhan = k.LopHocPhans.Count(l => l.TrangThai)
+            })
+            .ToListAsync();
+        return Ok(list);
+    }
+
     [HttpGet("students")]
     public async Task<IActionResult> GetStudents(
         [FromQuery] int? khoaId,
@@ -1246,7 +1265,8 @@ public sealed class GovernanceController : ControllerBase
                 Email = s.NguoiDung != null ? s.NguoiDung.Email : string.Empty,
                 SoDienThoai = s.NguoiDung != null ? s.NguoiDung.SoDienThoai : null,
                 s.KhoaId,
-                MaKhoa = s.Khoa != null ? s.Khoa.MaKhoa : "CNTT",
+                HasKhoa = s.Khoa != null,
+                MaKhoa = s.Khoa != null ? s.Khoa.MaKhoa : string.Empty,
                 TenKhoa = s.Khoa != null ? s.Khoa.TenKhoa : string.Empty,
                 s.NgaySinh,
                 s.GioiTinh,
@@ -1263,10 +1283,13 @@ public sealed class GovernanceController : ControllerBase
             s.Email,
             s.SoDienThoai,
             s.KhoaId,
+            CoKhoaHopLe = s.HasKhoa && s.KhoaId > 0,
             s.MaKhoa,
             s.TenKhoa,
             KhoaHoc = ResolveKhoaHoc(s.MSSV, s.NgaySinh),
-            LopNienChe = ResolveLopNienChe(s.MSSV, s.NgaySinh, s.MaKhoa),
+            LopNienChe = s.HasKhoa && !string.IsNullOrWhiteSpace(s.MaKhoa)
+                ? ResolveLopNienChe(s.MSSV, s.NgaySinh, s.MaKhoa)
+                : "Chưa gán khoa",
             s.NgaySinh,
             s.GioiTinh,
             s.TrangThai

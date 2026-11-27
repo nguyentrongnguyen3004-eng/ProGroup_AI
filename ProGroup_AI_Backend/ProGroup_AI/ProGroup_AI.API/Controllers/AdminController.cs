@@ -133,11 +133,13 @@ public sealed class AdminController : ControllerBase
             Rot = grades.Count(g => g < 5.0)
         };
 
-        var activeSemester = await _db.HocKys.AsNoTracking()
+        var activeSemesterEntity = await _db.HocKys.AsNoTracking()
             .Where(h => h.TrangThai)
             .OrderByDescending(h => h.HocKyId)
-            .Select(h => $"{h.TenHocKy} ({h.NamHoc})")
-            .FirstOrDefaultAsync() ?? "Học kỳ 1 (2026-2027)";
+            .Select(h => new { h.HocKyId, Name = $"{h.TenHocKy} ({h.NamHoc})" })
+            .FirstOrDefaultAsync();
+        var activeSemester = activeSemesterEntity?.Name ?? "Học kỳ 1 (2026-2027)";
+        var orphanStudents = await _db.SinhViens.AsNoTracking().CountAsync(s => s.Khoa == null);
 
         var departments = await _db.Khoas.AsNoTracking().Select(k => new DepartmentStatItem
         {
@@ -164,7 +166,9 @@ public sealed class AdminController : ControllerBase
             DotDangKyDangMo = openPeriods,
             TongKhoa = totalFaculties,
             TongSinhVienLamDoAn = activeStudentsDoingThesis > 0 ? activeStudentsDoingThesis : totalStudents,
+            SoSinhVienChuaGanKhoa = orphanStudents,
             TyLeHoanThanh = completionRate,
+            HocKyHienTaiId = activeSemesterEntity?.HocKyId,
             HocKyHienTai = activeSemester,
             ThongKeTheoKhoa = departments,
             PhoDiem = gradeDistribution
@@ -604,7 +608,8 @@ public sealed class AdminController : ControllerBase
         }
 
         var roles = await _db.VaiTros.ToListAsync();
-        var defaultKhoa = await _db.Khoas.FirstOrDefaultAsync();
+        var khoas = await _db.Khoas.AsNoTracking().ToListAsync();
+        var defaultKhoa = khoas.FirstOrDefault(k => k.MaKhoa.Equals("CNTT", StringComparison.OrdinalIgnoreCase)) ?? khoas.FirstOrDefault();
         var defaultKhoaId = defaultKhoa?.KhoaId ?? 1;
 
         int successCount = 0;
@@ -666,13 +671,23 @@ public sealed class AdminController : ControllerBase
             _db.NguoiDungs.Add(user);
             await _db.SaveChangesAsync();
 
+            var targetKhoa = defaultKhoa;
+            if (!string.IsNullOrWhiteSpace(item.Khoa))
+            {
+                var kw = item.Khoa.Trim();
+                targetKhoa = khoas.FirstOrDefault(k =>
+                    k.MaKhoa.Equals(kw, StringComparison.OrdinalIgnoreCase) ||
+                    k.TenKhoa.Contains(kw, StringComparison.OrdinalIgnoreCase)) ?? defaultKhoa;
+            }
+            var targetKhoaId = targetKhoa?.KhoaId ?? defaultKhoaId;
+
             if (role != null && role.MaVaiTro.Equals("SINHVIEN", StringComparison.OrdinalIgnoreCase))
             {
                 _db.SinhViens.Add(new SinhVien
                 {
                     NguoiDungId = user.NguoiDungId,
                     MSSV = !string.IsNullOrWhiteSpace(item.MSSV) ? item.MSSV.Trim() : username,
-                    KhoaId = defaultKhoaId,
+                    KhoaId = targetKhoaId,
                     CreatedAt = DateTime.Now
                 });
             }
@@ -682,7 +697,7 @@ public sealed class AdminController : ControllerBase
                 {
                     NguoiDungId = user.NguoiDungId,
                     MaGiangVien = !string.IsNullOrWhiteSpace(item.MaGiangVien) ? item.MaGiangVien.Trim() : "GV_" + username,
-                    KhoaId = defaultKhoaId,
+                    KhoaId = targetKhoaId,
                     HocVi = !string.IsNullOrWhiteSpace(item.HocVi) ? item.HocVi.Trim() : "ThS.",
                     ChuyenMon = !string.IsNullOrWhiteSpace(item.ChuyenMon) ? item.ChuyenMon.Trim() : "Công nghệ phần mềm",
                     CreatedAt = DateTime.Now
@@ -700,7 +715,7 @@ public sealed class AdminController : ControllerBase
                     {
                         NguoiDungId = gvkId,
                         TieuDe = "Bổ sung giảng viên mới",
-                        NoiDung = $"Tài khoản Giảng viên {user.HoTen} vừa được kích hoạt thuộc {defaultKhoa?.TenKhoa ?? "Khoa"}.",
+                        NoiDung = $"Tài khoản Giảng viên {user.HoTen} vừa được kích hoạt thuộc {targetKhoa?.TenKhoa ?? "Khoa"}.",
                         LoaiThongBao = "Hệ thống",
                         LienKetId = gv.GiangVienId,
                         LoaiLienKet = "GiangVien",

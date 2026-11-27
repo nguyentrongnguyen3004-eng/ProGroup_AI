@@ -34,9 +34,9 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
     });
   }
 
-  Future<void> _loadUnread() async {
+  Future<void> _loadUnread({bool forceRefresh = false}) async {
     try {
-      final list = await AdminApiService.instance.fetchNotifications();
+      final list = await AdminApiService.instance.fetchNotifications(forceRefresh: forceRefresh);
       if (!mounted) return;
       setState(() {
         _unreadCount = list.where((n) => n['isRead'] != true && n['daDoc'] != true).length;
@@ -50,7 +50,7 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
       _initializedTabs.add(index);
       _currentIndex = index;
     });
-    if (index == 2) _loadUnread();
+    _loadUnread(forceRefresh: index == 2);
   }
 
   void _openManagement(TrainingDataKind kind) {
@@ -114,7 +114,10 @@ class _TrainingMainScreenState extends State<TrainingMainScreen> {
                     )
                   : const SizedBox.shrink(),
               _initializedTabs.contains(2)
-                  ? TrainingNotificationScreen(key: ValueKey('train_notif_$lang'))
+                  ? TrainingNotificationScreen(
+                      key: ValueKey('train_notif_$lang'),
+                      onNotificationsUpdated: () => _loadUnread(forceRefresh: false),
+                    )
                   : const SizedBox.shrink(),
               _initializedTabs.contains(3)
                   ? TrainingProfileScreen(key: ValueKey('train_prof_$lang'))

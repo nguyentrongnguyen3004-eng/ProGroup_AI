@@ -165,6 +165,8 @@ public sealed class NotificationsController : ControllerBase
                 t.TieuDe,
                 t.NoiDung,
                 t.DaDoc,
+                t.LienKetId,
+                t.LoaiLienKet,
                 t.CreatedAt
             })
             .ToListAsync();
@@ -478,8 +480,14 @@ public sealed class NotificationsController : ControllerBase
             })
             .ToListAsync();
 
+        var dbPeriodIds = userDbNotifs
+            .Where(tb => tb.LoaiLienKet == "DotDangKyDoAn" && tb.LienKetId.HasValue)
+            .Select(tb => tb.LienKetId!.Value)
+            .ToHashSet();
+
         foreach (var period in periods)
         {
+            if (dbPeriodIds.Contains(period.DotDangKyId)) continue;
             var lhp = period.TenLopHocPhan ?? "học phần";
             var eventTime = period.CreatedAt != default ? period.CreatedAt : period.NgayBatDau;
             var (timeDiff, localCreated) = countOnly ? (TimeSpan.Zero, eventTime) : CalculateTimeDifference(eventTime);
@@ -491,7 +499,7 @@ public sealed class NotificationsController : ControllerBase
                 id = id,
                 type = "Hệ thống",
                 title = $"Đợt đăng ký đang mở: {period.TenDot}",
-                content = $"Đợt đăng ký {period.TenDot} cho {lhp} đang tiếp nhận đăng ký đến {period.NgayKetThuc:dd/MM/yyyy}.",
+                content = $"Đợt đăng ký đồ án cho LHP {lhp} vừa được kích hoạt (tiếp nhận đến {period.NgayKetThuc:dd/MM/yyyy}).",
                 time = countOnly ? string.Empty : FormatTimeAgo(timeDiff),
                 isRead = isRead,
                 read = isRead,

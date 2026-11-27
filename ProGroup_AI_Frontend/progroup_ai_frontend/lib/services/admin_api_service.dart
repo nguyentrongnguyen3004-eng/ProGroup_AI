@@ -152,6 +152,7 @@ class AdminApiService {
   Future<void> markNotificationAsRead(int notificationId) async {
     try {
       await ApiService.instance.put('/api/notifications/$notificationId/read');
+      DataCacheService.instance.invalidateKey('admin_notifications');
     } catch (_) {}
   }
 

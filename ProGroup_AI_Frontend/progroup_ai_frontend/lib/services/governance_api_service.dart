@@ -16,6 +16,22 @@ class GovernanceApiService {
     dataVersion.value = dataVersion.value + 1;
   }
 
+  Future<List<Map<String, dynamic>>> fetchKhoas({bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<List<Map<String, dynamic>>>(
+      'gov_khoas',
+      () async {
+        try {
+          final res = await ApiService.instance.get('/api/governance/khoas');
+          if (res is List) {
+            return res.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          }
+        } catch (_) {}
+        return [];
+      },
+      forceRefresh: forceRefresh,
+    );
+  }
+
   Future<List<Map<String, dynamic>>> fetchCourses({bool forceRefresh = false}) async {
     return DataCacheService.instance.getOrFetch<List<Map<String, dynamic>>>(
       'gov_courses',

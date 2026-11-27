@@ -108,25 +108,7 @@ public sealed class DotDangKyController : ControllerBase
 
         if (status == "Đang mở")
         {
-            var staffUserIds = await _db.NguoiDungs.AsNoTracking()
-                .Where(u => u.TrangThai && u.VaiTro != null && (u.VaiTro.MaVaiTro == "PHONGDAOTAO" || u.VaiTro.MaVaiTro == "GIAOVUKHOA"))
-                .Select(u => u.NguoiDungId)
-                .ToListAsync();
-            foreach (var uid in staffUserIds)
-            {
-                _db.ThongBaos.Add(new ThongBao
-                {
-                    NguoiDungId = uid,
-                    TieuDe = $"Đợt đăng ký đồ án mới: {period.TenDot}",
-                    NoiDung = $"Đợt đăng ký đồ án cho LHP {course.TenLopHocPhan ?? course.MaLopHocPhan} vừa được kích hoạt.",
-                    LoaiThongBao = "Hệ thống",
-                    LienKetId = period.DotDangKyId,
-                    LoaiLienKet = "DotDangKyDoAn",
-                    DaDoc = false,
-                    CreatedAt = DateTime.Now
-                });
-            }
-            if (staffUserIds.Count > 0) await _db.SaveChangesAsync();
+            await NotifyStaffOnPeriodActivatedAsync(period, course);
         }
 
         var created = await _db.DotDangKyDoAns.AsNoTracking()
@@ -153,8 +135,19 @@ public sealed class DotDangKyController : ControllerBase
             return BadRequest(new { message = "Trạng thái không hợp lệ. Phải là 'Chưa mở', 'Đang mở' hoặc 'Đã đóng'." });
         }
 
+        var wasOpen = period.TrangThai == "Đang mở";
         period.TrangThai = request.TrangThai;
         await _db.SaveChangesAsync();
+
+        if (!wasOpen && request.TrangThai == "Đang mở")
+        {
+            var course = await _db.LopHocPhans.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.LopHocPhanId == period.LopHocPhanId);
+            if (course != null)
+            {
+                await NotifyStaffOnPeriodActivatedAsync(period, course);
+            }
+        }
 
         var updated = await _db.DotDangKyDoAns.AsNoTracking()
             .Where(d => d.DotDangKyId == id)
@@ -162,6 +155,39 @@ public sealed class DotDangKyController : ControllerBase
             .FirstAsync();
 
         return Ok(updated);
+    }
+
+    private async Task NotifyStaffOnPeriodActivatedAsync(DotDangKyDoAn period, LopHocPhan course)
+    {
+        var tenLhp = string.IsNullOrWhiteSpace(course.TenLopHocPhan)
+            ? course.MaLopHocPhan
+            : course.TenLopHocPhan;
+
+        var staffUserIds = await _db.NguoiDungs.AsNoTracking()
+            .Where(u => u.TrangThai && u.VaiTro != null &&
+                        (u.VaiTro.MaVaiTro == "PHONGDAOTAO" || u.VaiTro.MaVaiTro == "GIAOVUKHOA"))
+            .Select(u => u.NguoiDungId)
+            .ToListAsync();
+
+        foreach (var uid in staffUserIds)
+        {
+            _db.ThongBaos.Add(new ThongBao
+            {
+                NguoiDungId = uid,
+                TieuDe = $"Đợt đăng ký đồ án mới: {period.TenDot}",
+                NoiDung = $"Đợt đăng ký đồ án cho LHP {tenLhp} vừa được kích hoạt.",
+                LoaiThongBao = "Hệ thống",
+                LienKetId = period.DotDangKyId,
+                LoaiLienKet = "DotDangKyDoAn",
+                DaDoc = false,
+                CreatedAt = DateTime.Now
+            });
+        }
+
+        if (staffUserIds.Count > 0)
+        {
+            await _db.SaveChangesAsync();
+        }
     }
 
     private static System.Linq.Expressions.Expression<Func<DotDangKyDoAn, DotDangKyResponse>> ToResponse() => d => new DotDangKyResponse

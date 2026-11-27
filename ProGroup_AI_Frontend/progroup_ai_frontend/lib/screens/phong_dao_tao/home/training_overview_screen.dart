@@ -32,9 +32,9 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
 
   Map<String, dynamic> _overview = {};
   List<Map<String, dynamic>> _courses = [];
-  String _activeSemester = 'Học kỳ 1 (2026-2027)';
+  String _activeSemester = 'Đang tải...';
+  List<Map<String, dynamic>> _semesterList = [];
   List<Map<String, dynamic>> _notifications = [];
-  bool _isAiSimulateError = false;
 
   @override
   void initState() {
@@ -55,6 +55,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
         AdminApiService.instance.fetchOverview(forceRefresh: forceRefresh),
         GovernanceApiService.instance.fetchCourses(forceRefresh: forceRefresh),
         AdminApiService.instance.fetchNotifications(forceRefresh: forceRefresh),
+        ApiService.instance.get('/api/lop-hoc-phan/hoc-ky'),
       ]);
 
       // Đồng bộ ảnh đại diện từ hồ sơ cá nhân phòng đào tạo
@@ -65,13 +66,32 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
       }).catchError((_) {});
 
       if (!mounted) return;
+
+      // Parse danh sách học kỳ thực từ API
+      final rawSemesters = results[3];
+      List<Map<String, dynamic>> semesterList = [];
+      if (rawSemesters is List) {
+        semesterList = rawSemesters.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+
+      // Học kỳ active = TrangThai == true
+      final activeSem = semesterList.firstWhere(
+        (s) => s['trangThai'] == true,
+        orElse: () => semesterList.isNotEmpty ? semesterList.first : {},
+      );
+      String activeSemName = 'Chưa thiết lập';
+      if (activeSem.isNotEmpty) {
+        final tenHk = activeSem['tenHocKy'] ?? '';
+        final namHoc = activeSem['namHoc'] ?? '';
+        activeSemName = namHoc.isNotEmpty ? '$tenHk ($namHoc)' : tenHk;
+      }
+
       setState(() {
         _overview = results[0] as Map<String, dynamic>;
         _courses = results[1] as List<Map<String, dynamic>>;
         _notifications = results[2] as List<Map<String, dynamic>>;
-        if (_overview['hocKyHienTai'] != null) {
-          _activeSemester = _overview['hocKyHienTai'].toString();
-        }
+        _semesterList = semesterList;
+        _activeSemester = activeSemName.isNotEmpty ? activeSemName : (_overview['hocKyHienTai']?.toString() ?? 'Chưa thiết lập');
         _isLoading = false;
       });
     } catch (e) {
@@ -231,7 +251,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                                 builder: (_) => const TrainingNotificationScreen(),
                               ),
                             );
-                            _loadData();
+                            _loadData(forceRefresh: true);
                           },
                       child: Container(
                         width: 44,
@@ -431,13 +451,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
               _buildCompletionRateCard(colors),
               const SizedBox(height: 18),
 
-              // Khung thời gian kế hoạch đồ án toàn trường (TC_PDT_006)
-              _buildTimelineScheduleCard(colors),
-              const SizedBox(height: 18),
 
-              // AI Gemini Dự báo đào tạo & Công nghệ (TC_PDT_011, TC_PDT_012, TC_PDT_013)
-              _buildAiForecastCard(colors),
-              const SizedBox(height: 18),
 
               // Phổ điểm đồ án toàn trường (TC_PDT_016)
               _buildGradeDistributionCard(colors),
@@ -660,61 +674,165 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     );
   }
 
-  void _showSemesterPicker() {
-    final semesters = [
-      {'id': 1, 'name': 'Học kỳ 1 (2026-2027)'},
-      {'id': 2, 'name': 'Học kỳ 2 (2026-2027)'},
-      {'id': 3, 'name': 'Học kỳ Hè (2026-2027)'},
-    ];
+  Future<void> _showSemesterPicker() async {
+    var list = _semesterList;
+    if (list.isEmpty) {
+      try {
+        final raw = await ApiService.instance.get('/api/lop-hoc-phan/hoc-ky');
+        if (raw is List) {
+          list = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (mounted) {
+            setState(() => _semesterList = list);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Không thể tải danh sách học kỳ: ${e.toString().replaceAll("Exception: ", "")}'),
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    if (list.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chưa có dữ liệu học kỳ trong hệ thống.'),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
+      );
+      return;
+    }
+
+    String formatRange(dynamic start, dynamic end) {
+      final d1 = DateTime.tryParse((start ?? '').toString());
+      final d2 = DateTime.tryParse((end ?? '').toString());
+      if (d1 == null || d2 == null) return '';
+      String f(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+      return '${f(d1)} - ${f(d2)}';
+    }
 
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 12),
-              const Text('Chọn Học kỳ áp dụng toàn trường', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              ...semesters.map((s) => ListTile(
-                leading: const Icon(Icons.school_outlined, color: Color(0xFF2563EB)),
-                title: Text(s['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
-                trailing: _activeSemester == s['name'] ? const Icon(Icons.check_circle, color: Color(0xFF10B981)) : null,
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final semId = s['id'] as int;
-                  final semName = s['name'] as String;
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 12),
+                const Text('Chọn Học kỳ áp dụng toàn trường', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(
+                  'Chỉ có duy nhất 1 học kỳ Đang mở tại một thời điểm',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 12),
+                ...list.map((s) {
+                  final semId = s['hocKyId'] as int? ?? 0;
+                  final ten = (s['tenHocKy'] ?? '').toString();
+                  final nam = (s['namHoc'] ?? '').toString();
+                  final semName = nam.isNotEmpty ? '$ten ($nam)' : ten;
+                  final isActive = s['trangThai'] == true;
+                  final statusText = (s['trangThaiText'] ?? (isActive ? 'Đang mở' : 'Đã đóng')).toString();
+                  final range = formatRange(s['ngayBatDau'], s['ngayKetThuc']);
 
-                  try {
-                    await ApiService.instance.put('/api/lop-hoc-phan/hoc-ky/$semId/active');
-                    if (mounted) {
-                      setState(() => _activeSemester = semName);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Đã thiết lập "$semName" làm Học kỳ hiện tại áp dụng toàn trường thành công.'),
-                          backgroundColor: const Color(0xFF10B981),
+                  return ListTile(
+                    leading: Icon(
+                      Icons.school_outlined,
+                      color: isActive ? const Color(0xFF10B981) : const Color(0xFF2563EB),
+                    ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(semName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? const Color(0xFF10B981).withValues(alpha: 0.14)
+                                : Colors.grey.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isActive ? const Color(0xFF059669) : Colors.grey.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: range.isNotEmpty ? Text(range, style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)) : null,
+                    trailing: isActive ? const Icon(Icons.check_circle, color: Color(0xFF10B981)) : null,
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      if (isActive) return;
+
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (dCtx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          title: const Text('Xác nhận đổi Học kỳ hiện tại'),
+                          content: Text(
+                            'Thiết lập "$semName" làm Học kỳ hiện tại áp dụng toàn trường? Các học kỳ khác sẽ tự động chuyển sang trạng thái Đã đóng.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dCtx, false),
+                              child: const Text('Hủy'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(dCtx, true),
+                              child: const Text('Xác nhận'),
+                            ),
+                          ],
                         ),
                       );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      setState(() => _activeSemester = semName);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Đã thiết lập "$semName" làm Học kỳ hiện tại áp dụng toàn trường.'),
-                          backgroundColor: const Color(0xFF10B981),
-                        ),
-                      );
-                    }
-                  }
-                },
-              )),
-              const SizedBox(height: 16),
-            ],
+                      if (confirmed != true || !mounted) return;
+
+                      try {
+                        final res = await ApiService.instance.put('/api/lop-hoc-phan/hoc-ky/$semId/active');
+                        GovernanceApiService.instance.notifyDataChanged();
+                        await _loadData(forceRefresh: true);
+                        if (mounted) {
+                          final msg = (res is Map && res['message'] != null)
+                              ? res['message'].toString()
+                              : 'Đã thiết lập "$semName" làm Học kỳ hiện tại áp dụng toàn trường thành công.';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(msg),
+                              backgroundColor: const Color(0xFF10B981),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Không thể thiết lập học kỳ: ${e.toString().replaceAll("Exception: ", "")}'),
+                              backgroundColor: const Color(0xFFEF4444),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  );
+                }),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         );
       },
@@ -773,7 +891,7 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'Tỷ lệ phân bổ số lượng đề tài liên khoa (CSDL thật)',
+                      'Tỷ lệ phân bổ số lượng đề tài liên khoa ',
                       style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
                     ),
                   ],
@@ -901,214 +1019,9 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     );
   }
 
-  // ======================================================
-  // TIMELINE SCHEDULE (TC_PDT_006)
-  // ======================================================
-  Widget _buildTimelineScheduleCard(ColorScheme colors) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.timeline_rounded, color: Color(0xFF2563EB), size: 20),
-              SizedBox(width: 8),
-              Text('Khung thời gian Kế hoạch Đồ án', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _timelineStep('Tuần 1 - 2', 'Mở đợt đăng ký LHP và thành lập nhóm đồ án', true),
-          _timelineStep('Tuần 3 - 4', 'Đăng ký đề tài & Phê duyệt đề tài cấp khoa', true),
-          _timelineStep('Tuần 5 - 10', 'Thực hiện đồ án & Nộp báo cáo tiến độ định kỳ', true),
-          _timelineStep('Tuần 11 - 13', 'Hoàn thiện sản phẩm & Nộp báo cáo phản biện', false),
-          _timelineStep('Tuần 14 - 15', 'Tổ chức Hội đồng Bảo vệ Đồ án Tốt nghiệp', false),
-        ],
-      ),
-    );
-  }
+ 
 
-  Widget _timelineStep(String week, String task, bool isCurrent) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isCurrent ? const Color(0xFF2563EB).withValues(alpha: 0.12) : Colors.grey.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(week, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isCurrent ? const Color(0xFF2563EB) : Colors.grey.shade700)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(child: Text(task, style: TextStyle(fontSize: 12.5, color: isCurrent ? Colors.black87 : Colors.grey.shade600, fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal))),
-        ],
-      ),
-    );
-  }
-
-  // ======================================================
-  // AI FORECAST CARD & ERROR SIMULATION (TC_PDT_011, 012, 013)
-  // ======================================================
-  Widget _buildAiForecastCard(ColorScheme colors) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)]),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.psychology_rounded, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('AI Dự báo Đào tạo & Xu hướng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                    Text('Gemini 2.5 Flash • Xếp hạng công nghệ & phân bổ phòng lab', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
-                  ],
-                ),
-              ),
-              // Error simulation trigger button
-              IconButton(
-                icon: Icon(_isAiSimulateError ? Icons.wifi_off_rounded : Icons.wifi_rounded, color: _isAiSimulateError ? Colors.red : Colors.grey, size: 18),
-                tooltip: 'Mô phỏng mất mạng',
-                onPressed: () => setState(() => _isAiSimulateError = !_isAiSimulateError),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          if (_isAiSimulateError) ...[
-            // Network Error banner with Retry button (TC_PDT_013)
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Không thể kết nối máy chủ AI Gemini',
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Đã xảy ra sự cố mất kết nối mạng đột ngột. Vui lòng kiểm tra đường truyền và thử lại.',
-                    style: TextStyle(color: Colors.black87, fontSize: 12),
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(0, 36),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () {
-                      setState(() => _isAiSimulateError = false);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã kết nối lại AI Gemini thành công!'), backgroundColor: Color(0xFF10B981)),
-                      );
-                    },
-                    icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Thử lại', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            // Hot technologies ranking (TC_PDT_012)
-            const Text('Xếp hạng công nghệ sinh viên quan tâm:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _techBar('Trí tuệ nhân tạo (AI & LLMs)', 40, const Color(0xFF8B5CF6)),
-            const SizedBox(height: 6),
-            _techBar('Lập trình Di động (Flutter & Kotlin)', 30, const Color(0xFF2563EB)),
-            const SizedBox(height: 6),
-            _techBar('Điện toán đám mây & Web (Cloud/FastAPI)', 20, const Color(0xFF10B981)),
-            const SizedBox(height: 6),
-            _techBar('An toàn thông tin & Mạng', 10, const Color(0xFFF59E0B)),
-            const SizedBox(height: 12),
-
-            // Lab allocation recommendation (TC_PDT_011)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF7C3AED), size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Khuyến nghị đào tạo: Mở thêm 2 lớp chuyên đề AI & Flutter; ưu tiên phân bổ 35 máy trạm phòng Lab A3 để phục vụ sinh viên thực hiện đồ án.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF5B21B6), height: 1.35),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _techBar(String name, int pct, Color color) {
-    return Row(
-      children: [
-        Expanded(flex: 5, child: Text(name, style: const TextStyle(fontSize: 11.5))),
-        Expanded(
-          flex: 4,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: pct / 100, minHeight: 7, backgroundColor: Colors.grey.shade200, color: color),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text('$pct%', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: color)),
-      ],
-    );
-  }
-
+ 
   // ======================================================
   // GRADE DISTRIBUTION CARD (TC_PDT_016)
   // ======================================================
@@ -1453,9 +1366,13 @@ class _CourseSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final name = course['tenLopHocPhan'] ?? course['tenHocPhan'] ?? 'Lớp học phần';
-    final code = course['maLopHocPhan'] ?? course['maHocPhan'] ?? 'Mã LHP';
+    final name = (course['tenLopHocPhan'] ?? course['tenHocPhan'] ?? 'Lớp học phần').toString();
+    final code = (course['maLopHocPhan'] ?? course['maHocPhan'] ?? 'Mã LHP').toString();
     final maxStudents = course['soLuongToiDa'] ?? 45;
+    final faculty = (course['tenKhoa'] ?? course['maKhoa'] ?? '').toString();
+    final semName = (course['tenHocKy'] ?? '').toString();
+    final dotStatus = (course['trangThaiDotDangKy'] ?? 'Chưa mở').toString();
+    final isOpen = dotStatus == 'Đang mở';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1511,10 +1428,30 @@ class _CourseSummaryCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Sĩ số tối đa: $maxStudents',
+                        [
+                          if (faculty.isNotEmpty) faculty,
+                          if (semName.isNotEmpty) semName,
+                          'Tối đa: $maxStudents',
+                        ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: (isOpen ? const Color(0xFF10B981) : const Color(0xFFF59E0B)).withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        dotStatus,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isOpen ? const Color(0xFF059669) : const Color(0xFFB45309),
+                        ),
                       ),
                     ),
                   ],

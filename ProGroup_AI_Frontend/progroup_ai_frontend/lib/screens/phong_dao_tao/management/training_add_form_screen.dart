@@ -6,7 +6,7 @@ import '../../../models/course_model.dart';
 import '../../../models/governance_student_model.dart';
 import '../../../models/lecturer_model.dart';
 import '../../../models/training_subject_model.dart';
-import '../../../services/api_service.dart';
+import '../../../services/governance_api_service.dart';
 import 'training_data_management_screen.dart';
 
 class TrainingAddFormScreen extends StatefulWidget {
@@ -37,6 +37,8 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
   late String _status;
   String? _selectedSubjectCode;
   String _selectedLecturerCode = '';
+  List<Map<String, dynamic>> _khoas = [];
+  String? _selectedKhoaCode;
 
   bool get _isStudent => widget.kind == TrainingDataKind.students;
   bool get _isLecturer => widget.kind == TrainingDataKind.lecturers;
@@ -91,6 +93,7 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
   @override
   void initState() {
     super.initState();
+    _loadKhoas();
     final data = MockTrainingData.instance;
     final existingStatus = switch (widget.kind) {
       TrainingDataKind.students => _existingStudent?.status,
@@ -142,6 +145,23 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
     }
   }
 
+  Future<void> _loadKhoas() async {
+    final list = await GovernanceApiService.instance.fetchKhoas();
+    if (!mounted) return;
+    setState(() {
+      _khoas = list.isNotEmpty
+          ? list
+          : [
+              {'khoaId': 1, 'maKhoa': 'CNTT', 'tenKhoa': 'Công nghệ thông tin'},
+              {'khoaId': 2, 'maKhoa': 'QTKD', 'tenKhoa': 'Quản trị kinh doanh'},
+              {'khoaId': 3, 'maKhoa': 'KTL', 'tenKhoa': 'Kinh tế luật'},
+            ];
+      if (_selectedKhoaCode == null && _khoas.isNotEmpty) {
+        _selectedKhoaCode = (_khoas.first['maKhoa'] ?? 'CNTT').toString();
+      }
+    });
+  }
+
   String _initialStatus(MockTrainingData data) {
     final statuses = switch (widget.kind) {
       TrainingDataKind.students => data.students.map((item) => item.status),
@@ -188,17 +208,22 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
         status: _status,
       );
       if (existing == null) {
-        data.addStudents([student]);
         try {
-          await ApiService.instance.post('/api/admin/users', {
-            'username': code,
-            'userCode': code,
-            'fullName': _nameController.text.trim(),
+          await GovernanceApiService.instance.createStudent({
+            'mssv': code,
+            'hoTen': _nameController.text.trim(),
             'email': _emailController.text.trim(),
-            'role': 'SINHVIEN',
-            'password': 'Password@123',
+            'khoa': _selectedKhoaCode ?? 'CNTT',
+            'matKhau': '123456aA@',
           });
-        } catch (_) {}
+          data.addStudents([student]);
+        } catch (e) {
+          _showMessage(
+            e.toString().replaceAll('Exception: ', ''),
+            error: true,
+          );
+          return;
+        }
       } else {
         data.updateStudent(student);
       }
@@ -214,17 +239,25 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
         avatar: existing?.avatar ?? '',
       );
       if (existing == null) {
-        data.addLecturers([lecturer], statuses: {code: _status});
         try {
-          await ApiService.instance.post('/api/admin/users', {
-            'username': code,
-            'userCode': code,
-            'fullName': _nameController.text.trim(),
+          await GovernanceApiService.instance.createLecturer({
+            'maGiangVien': code,
+            'hoTen': _nameController.text.trim(),
             'email': _emailController.text.trim(),
-            'role': 'GIANGVIEN',
-            'password': 'Password@123',
+            'khoa': _facultyController.text.trim().isNotEmpty
+                ? _facultyController.text.trim()
+                : (_selectedKhoaCode ?? 'CNTT'),
+            'chuyenMon': _departmentController.text.trim(),
+            'matKhau': '123456aA@',
           });
-        } catch (_) {}
+          data.addLecturers([lecturer], statuses: {code: _status});
+        } catch (e) {
+          _showMessage(
+            e.toString().replaceAll('Exception: ', ''),
+            error: true,
+          );
+          return;
+        }
       } else {
         data.updateLecturer(lecturer, status: _status);
       }
@@ -271,16 +304,27 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
         status: _status,
       );
       if (existing == null) {
-        data.addCourseClasses([courseClass]);
+        final matchedKhoa = _khoas.firstWhere(
+          (k) => (k['maKhoa'] ?? '').toString() == _selectedKhoaCode,
+          orElse: () => {},
+        );
+        final khoaId = matchedKhoa['khoaId'] as int?;
         try {
-          await ApiService.instance.post('/api/lop-hoc-phan', {
+          await GovernanceApiService.instance.createCourseClass({
             'maLopHocPhan': code,
             'maHocPhan': subject.code,
             'tenLopHocPhan': subject.name,
-            'namHoc': '2026-2027',
+            'khoaId': ?khoaId,
             'soLuongToiDa': 50,
           });
-        } catch (_) {}
+          data.addCourseClasses([courseClass]);
+        } catch (e) {
+          _showMessage(
+            e.toString().replaceAll('Exception: ', ''),
+            error: true,
+          );
+          return;
+        }
       } else {
         data.updateCourseClass(courseClass);
       }
@@ -498,6 +542,32 @@ class _TrainingAddFormScreenState extends State<TrainingAddFormScreen> {
                         label: _text('Lớp', 'Class'),
                         icon: Icons.school_outlined,
                       ),
+                      if (_khoas.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedKhoaCode,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: _text('Khoa *', 'Faculty *'),
+                            prefixIcon: const Icon(Icons.account_balance_outlined),
+                          ),
+                          items: _khoas
+                              .map(
+                                (k) => DropdownMenuItem<String>(
+                                  value: (k['maKhoa'] ?? '').toString(),
+                                  child: Text(
+                                    '${k['tenKhoa'] ?? k['maKhoa']} (${k['maKhoa']})',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) => setState(() => _selectedKhoaCode = value),
+                          validator: (value) => value == null || value.isEmpty
+                              ? _text('Vui lòng chọn Khoa cho sinh viên.', 'Select faculty for student.')
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                      ],
                     ] else if (_isLecturer) ...[
                       _textField(
                         controller: _codeController,

@@ -36,6 +36,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
   List<Map<String, dynamic>> _courses = [];
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _lecturers = [];
+  List<Map<String, dynamic>> _khoas = [];
 
   String _query = '';
   String _selectedFaculty = 'Tất cả Khoa';
@@ -47,7 +48,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
     _loadAllData();
   }
 
-  Future<void> _loadAllData() async {
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -55,9 +56,10 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
 
     try {
       final results = await Future.wait([
-        GovernanceApiService.instance.fetchCourses(),
-        GovernanceApiService.instance.fetchStudents(),
-        GovernanceApiService.instance.fetchLecturers(),
+        GovernanceApiService.instance.fetchCourses(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchStudents(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchLecturers(forceRefresh: forceRefresh),
+        GovernanceApiService.instance.fetchKhoas(forceRefresh: forceRefresh),
       ]);
 
       if (!mounted) return;
@@ -65,6 +67,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
         _courses = results[0];
         _students = results[1];
         _lecturers = results[2];
+        _khoas = results[3];
         _isLoading = false;
       });
     } catch (e) {
@@ -74,6 +77,46 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
         _isLoading = false;
       });
     }
+  }
+
+  List<String> _facultyOptions() {
+    final names = <String>{'Tất cả Khoa'};
+    for (final k in _khoas) {
+      final ten = (k['tenKhoa'] ?? k['TenKhoa'] ?? '').toString().trim();
+      final ma = (k['maKhoa'] ?? k['MaKhoa'] ?? '').toString().trim();
+      if (ten.isNotEmpty) {
+        names.add(ten);
+      } else if (ma.isNotEmpty) {
+        names.add(ma);
+      }
+    }
+    if (names.length == 1) {
+      for (final item in [..._courses, ..._students, ..._lecturers]) {
+        final ten = (item['tenKhoa'] ?? item['TenKhoa'] ?? '').toString().trim();
+        if (ten.isNotEmpty) names.add(ten);
+      }
+    }
+    return names.toList();
+  }
+
+  bool _matchesFacultyFilter(Map<String, dynamic> item) {
+    if (_selectedFaculty == 'Tất cả Khoa') return true;
+    final sel = _selectedFaculty.trim().toLowerCase();
+    final ten = (item['tenKhoa'] ?? item['TenKhoa'] ?? item['khoa'] ?? '').toString().trim().toLowerCase();
+    final ma = (item['maKhoa'] ?? item['MaKhoa'] ?? '').toString().trim().toLowerCase();
+    if (ten == sel || ma == sel) return true;
+    final cleanSel = sel.replaceFirst('khoa ', '').trim();
+    return (ten.isNotEmpty && (ten.contains(cleanSel) || cleanSel.contains(ten))) ||
+        (ma.isNotEmpty && ma == cleanSel);
+  }
+
+  bool _studentHasValidKhoa(Map<String, dynamic> sv) {
+    if (sv['coKhoaHopLe'] == false) return false;
+    final khoaId = sv['khoaId'] ?? sv['KhoaId'];
+    final hasId = khoaId is int ? khoaId > 0 : (int.tryParse('$khoaId') ?? 0) > 0;
+    final maKhoa = (sv['maKhoa'] ?? sv['MaKhoa'] ?? '').toString().trim();
+    final tenKhoa = (sv['tenKhoa'] ?? sv['TenKhoa'] ?? '').toString().trim();
+    return hasId && (tenKhoa.isNotEmpty || maKhoa.isNotEmpty);
   }
 
   @override
@@ -89,16 +132,10 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
           final code = (item['maLopHocPhan'] ?? item['MaLopHocPhan'] ?? '').toString().toLowerCase();
           final name = (item['tenLopHocPhan'] ?? item['TenLopHocPhan'] ?? item['tenHocPhan'] ?? item['TenHocPhan'] ?? '').toString().toLowerCase();
           final lecturer = (item['giangVienTen'] ?? item['GiangVienTen'] ?? '').toString().toLowerCase();
-          final faculty = (item['tenKhoa'] ?? item['khoa'] ?? 'Khoa Công nghệ thông tin').toString().toLowerCase();
           final periodStatus = (item['trangThaiDotDangKy'] ?? 'Chưa mở').toString().toLowerCase();
 
           final matchesQuery = query.isEmpty || code.contains(query) || name.contains(query) || lecturer.contains(query);
-          
-          final matchesFaculty = _selectedFaculty == 'Tất cả Khoa' ||
-              (_selectedFaculty == 'Khoa CNTT' && (faculty.contains('cntt') || faculty.contains('công nghệ thông tin'))) ||
-              (_selectedFaculty == 'Khoa Điện tử' && faculty.contains('điện')) ||
-              (_selectedFaculty == 'Khoa Kinh tế' && faculty.contains('kinh tế')) ||
-              faculty.contains(_selectedFaculty.toLowerCase().replaceAll('khoa ', ''));
+          final matchesFaculty = _matchesFacultyFilter(item);
 
           final matchesStatus = _selectedPeriodStatus == 'Tất cả đợt' ||
               (_selectedPeriodStatus == 'Chưa mở đợt' && (periodStatus.contains('chưa') || periodStatus.contains('đóng'))) ||
@@ -108,18 +145,21 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
         }).toList();
       case TrainingDataKind.students:
         currentList = _students.where((item) {
+          if (!_matchesFacultyFilter(item)) return false;
           if (query.isEmpty) return true;
           final code = (item['studentCode'] ?? item['mssv'] ?? item['MSSV'] ?? '').toString().toLowerCase();
           final name = (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? '').toString().toLowerCase();
           final email = (item['email'] ?? item['Email'] ?? '').toString().toLowerCase();
-          return code.contains(query) || name.contains(query) || email.contains(query);
+          final khoa = (item['tenKhoa'] ?? item['maKhoa'] ?? '').toString().toLowerCase();
+          return code.contains(query) || name.contains(query) || email.contains(query) || khoa.contains(query);
         }).toList();
       case TrainingDataKind.lecturers:
         currentList = _lecturers.where((item) {
+          if (!_matchesFacultyFilter(item)) return false;
           if (query.isEmpty) return true;
           final code = (item['lecturerCode'] ?? item['maGiangVien'] ?? item['MaGiangVien'] ?? '').toString().toLowerCase();
           final name = (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? '').toString().toLowerCase();
-          final dept = (item['department'] ?? item['boMon'] ?? item['tenBoMon'] ?? '').toString().toLowerCase();
+          final dept = (item['department'] ?? item['chuyenMon'] ?? item['tenKhoa'] ?? '').toString().toLowerCase();
           return code.contains(query) || name.contains(query) || dept.contains(query);
         }).toList();
       case TrainingDataKind.subjects:
@@ -145,7 +185,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   tooltip: 'Tải lại',
-                  onPressed: _loadAllData,
+                  onPressed: () => _loadAllData(forceRefresh: true),
                 ),
               ],
             )
@@ -228,7 +268,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
                     ),
                     IconButton(
                       icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                      onPressed: _loadAllData,
+                      onPressed: () => _loadAllData(forceRefresh: true),
                       tooltip: 'Tải lại',
                     ),
                   ],
@@ -276,7 +316,11 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
                   Expanded(
                     child: _TabPill(
                       label: 'Môn học',
-                      count: _courses.length,
+                      count: _courses
+                          .map((c) => (c['maHocPhan'] ?? c['MaHocPhan'] ?? c['maLopHocPhan'] ?? '').toString())
+                          .where((s) => s.isNotEmpty)
+                          .toSet()
+                          .length,
                       color: const Color(0xFFF59E0B),
                       icon: Icons.auto_stories_rounded,
                       isSelected: _kind == TrainingDataKind.subjects,
@@ -287,46 +331,95 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
               ),
             ),
 
-            // Data Integrity Badge (TC_PDT_014)
+            // Data Integrity Badge (TC_PDT_014) - Kiểm tra toàn vẹn Sinh viên - Khoa thực tế từ CSDL
             if (_kind == TrainingDataKind.students)
-              Container(
-                margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 20),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Toàn vẹn dữ liệu: 100% sinh viên đều được gán đúng vào Khoa cụ thể (0 sinh viên mồ côi).',
-                        style: TextStyle(color: Color(0xFF065F46), fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              Builder(builder: (context) {
+                final orphanCount = _students.where((sv) => !_studentHasValidKhoa(sv)).length;
+                final total = _students.length;
+                final isOk = orphanCount == 0;
+                final pct = total > 0
+                    ? ((total - orphanCount) / total * 100).toStringAsFixed(1)
+                    : '0.0';
 
-            // Lọc LHP theo Khoa (TC_PDT_008) & Trạng thái đợt (TC_PDT_009)
-            if (_kind == TrainingDataKind.courseClasses) ...[
+                final byFaculty = <String, int>{};
+                for (final sv in _students) {
+                  if (!_studentHasValidKhoa(sv)) continue;
+                  final key = (sv['maKhoa'] ?? sv['tenKhoa'] ?? 'Khác').toString().trim();
+                  if (key.isNotEmpty) {
+                    byFaculty[key] = (byFaculty[key] ?? 0) + 1;
+                  }
+                }
+                final summary = byFaculty.entries.map((e) => '${e.key}: ${e.value}').join(' · ');
+
+                return Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: (isOk ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: (isOk ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
+                          .withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        isOk ? Icons.verified_user_rounded : Icons.warning_amber_rounded,
+                        color: isOk ? const Color(0xFF059669) : const Color(0xFFB45309),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isOk
+                                  ? 'Toàn vẹn dữ liệu: $pct% ($total/$total) sinh viên được gán đúng vào Khoa (0 sinh viên mồ côi).'
+                                  : 'Cảnh báo toàn vẹn: $orphanCount/$total sinh viên chưa được gán vào Khoa hợp lệ!',
+                              style: TextStyle(
+                                color: isOk ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (summary.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                'Phân bổ theo Khoa: $summary',
+                                style: TextStyle(
+                                  color: isOk ? const Color(0xFF047857) : const Color(0xFF92400E),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+
+            // Lọc theo Khoa (động từ DB cho LHP, Sinh viên & Giảng viên)
+            if (_kind != TrainingDataKind.subjects) ...[
               SizedBox(
                 height: 38,
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
-                  children: [
-                    _facChip('Tất cả Khoa'),
-                    _facChip('Khoa CNTT'),
-                    _facChip('Khoa Điện tử'),
-                    _facChip('Khoa Kinh tế'),
-                  ],
+                  children: _facultyOptions().map(_facChip).toList(),
                 ),
               ),
               const SizedBox(height: 6),
+            ],
+
+            // Lọc LHP theo Trạng thái đợt (TC_PDT_009)
+            if (_kind == TrainingDataKind.courseClasses) ...[
               SizedBox(
                 height: 38,
                 child: ListView(
@@ -465,7 +558,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
     }
 
     return RefreshIndicator(
-      onRefresh: _loadAllData,
+      onRefresh: () => _loadAllData(forceRefresh: true),
       color: const Color(0xFF2563EB),
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
@@ -488,30 +581,47 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
 
     switch (_kind) {
       case TrainingDataKind.courseClasses:
-        title = item['tenLopHocPhan'] ?? item['TenLopHocPhan'] ?? item['tenHocPhan'] ?? 'Lớp học phần';
-        subtitle = 'GV: ${item['giangVienTen'] ?? item['GiangVienTen'] ?? 'Chưa phân công'}';
-        tag1 = item['maLopHocPhan'] ?? item['MaLopHocPhan'] ?? '';
-        tag2 = 'Tối đa: ${item['soLuongToiDa'] ?? 45} SV';
+        title = (item['tenLopHocPhan'] ?? item['TenLopHocPhan'] ?? item['tenHocPhan'] ?? 'Lớp học phần').toString();
+        final gv = (item['giangVienTen'] ?? item['GiangVienTen'] ?? 'Chưa phân công').toString();
+        final khoa = (item['tenKhoa'] ?? item['maKhoa'] ?? '').toString();
+        final hk = (item['tenHocKy'] ?? '').toString();
+        subtitle = [
+          'GV: $gv',
+          if (khoa.isNotEmpty) khoa,
+          if (hk.isNotEmpty) hk,
+        ].join(' · ');
+        tag1 = (item['maLopHocPhan'] ?? item['MaLopHocPhan'] ?? '').toString();
+        final dotStatus = (item['trangThaiDotDangKy'] ?? 'Chưa mở').toString();
+        tag2 = '$dotStatus · Tối đa ${item['soLuongToiDa'] ?? 45} SV';
         icon = Icons.school_rounded;
-        color = const Color(0xFF2563EB);
+        color = dotStatus == 'Đang mở' ? const Color(0xFF10B981) : const Color(0xFF2563EB);
       case TrainingDataKind.students:
-        title = item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? 'Sinh viên';
-        subtitle = 'Email: ${item['email'] ?? item['Email'] ?? 'Chưa có'}';
-        tag1 = item['studentCode'] ?? item['mssv'] ?? item['MSSV'] ?? '';
-        tag2 = 'Lớp: ${item['classCode'] ?? item['maLop'] ?? 'CNTT'}';
+        title = (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? 'Sinh viên').toString();
+        final email = (item['email'] ?? item['Email'] ?? 'Chưa có').toString();
+        final lopNienChe = (item['lopNienChe'] ?? item['classCode'] ?? '').toString();
+        subtitle = lopNienChe.isNotEmpty ? '$email · $lopNienChe' : 'Email: $email';
+        tag1 = (item['studentCode'] ?? item['mssv'] ?? item['MSSV'] ?? '').toString();
+        final hasKhoa = _studentHasValidKhoa(item);
+        final tenKhoa = (item['tenKhoa'] ?? item['TenKhoa'] ?? '').toString().trim();
+        final maKhoa = (item['maKhoa'] ?? item['MaKhoa'] ?? '').toString().trim();
+        tag2 = hasKhoa
+            ? 'Khoa: ${tenKhoa.isNotEmpty ? tenKhoa : maKhoa}'
+            : 'Chưa gán khoa';
         icon = Icons.people_rounded;
-        color = const Color(0xFF10B981);
+        color = hasKhoa ? const Color(0xFF10B981) : const Color(0xFFEF4444);
       case TrainingDataKind.lecturers:
-        title = item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? 'Giảng viên';
-        subtitle = 'Bộ môn: ${item['department'] ?? item['boMon'] ?? 'Công nghệ phần mềm'}';
-        tag1 = item['lecturerCode'] ?? item['maGiangVien'] ?? item['MaGiangVien'] ?? '';
-        tag2 = item['email'] ?? item['Email'];
+        title = (item['fullName'] ?? item['hoTen'] ?? item['HoTen'] ?? 'Giảng viên').toString();
+        final chuyenMon = (item['chuyenMon'] ?? item['department'] ?? item['boMon'] ?? 'Chưa cập nhật').toString();
+        final tenKhoaGv = (item['tenKhoa'] ?? item['maKhoa'] ?? '').toString();
+        subtitle = tenKhoaGv.isNotEmpty ? '$tenKhoaGv · $chuyenMon' : 'Chuyên môn: $chuyenMon';
+        tag1 = (item['lecturerCode'] ?? item['maGiangVien'] ?? item['MaGiangVien'] ?? '').toString();
+        tag2 = (item['email'] ?? item['Email'])?.toString();
         icon = Icons.badge_rounded;
         color = const Color(0xFF6366F1);
       case TrainingDataKind.subjects:
-        title = item['tenHocPhan'] ?? item['TenHocPhan'] ?? item['tenLopHocPhan'] ?? 'Học phần';
+        title = (item['tenHocPhan'] ?? item['TenHocPhan'] ?? item['tenLopHocPhan'] ?? 'Học phần').toString();
         subtitle = 'Hệ số tín chỉ: ${item['soTinChi'] ?? 3} TC';
-        tag1 = item['maHocPhan'] ?? item['MaHocPhan'] ?? '';
+        tag1 = (item['maHocPhan'] ?? item['MaHocPhan'] ?? '').toString();
         tag2 = 'Bắt buộc';
         icon = Icons.auto_stories_rounded;
         color = const Color(0xFFF59E0B);
@@ -629,7 +739,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => TrainingAddFormScreen(kind: _kind)),
-                    ).then((_) => _loadAllData());
+                    ).then((_) => _loadAllData(forceRefresh: true));
                   },
                 ),
                 const Divider(),
@@ -649,7 +759,7 @@ class _TrainingDataManagementScreenState extends State<TrainingDataManagementScr
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const TrainingImportScreen()),
-                    ).then((_) => _loadAllData());
+                    ).then((_) => _loadAllData(forceRefresh: true));
                   },
                 ),
               ],

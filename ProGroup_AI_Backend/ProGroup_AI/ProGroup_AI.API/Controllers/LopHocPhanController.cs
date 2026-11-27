@@ -264,6 +264,7 @@ public sealed class LopHocPhanController : ControllerBase
     }
 
     [HttpGet("hoc-ky")]
+    [HttpGet("/api/semesters")]
     public async Task<IActionResult> GetSemesters()
     {
         var list = await _db.HocKys.AsNoTracking()
@@ -273,9 +274,11 @@ public sealed class LopHocPhanController : ControllerBase
                 h.HocKyId,
                 h.TenHocKy,
                 h.NamHoc,
+                TenDayDu = $"{h.TenHocKy} ({h.NamHoc})",
                 h.NgayBatDau,
                 h.NgayKetThuc,
-                h.TrangThai
+                h.TrangThai,
+                TrangThaiText = h.TrangThai ? "Đang mở" : "Đã đóng"
             })
             .ToListAsync();
         return Ok(list);
@@ -283,6 +286,7 @@ public sealed class LopHocPhanController : ControllerBase
 
     [Authorize(Roles = "ADMIN,PHONGDAOTAO,GIAOVUKHOA")]
     [HttpPut("hoc-ky/{id:int}/active")]
+    [HttpPut("/api/semesters/{id:int}/active")]
     public async Task<IActionResult> SetActiveSemester(int id)
     {
         var target = await _db.HocKys.FindAsync(id);
@@ -300,7 +304,7 @@ public sealed class LopHocPhanController : ControllerBase
             success = true,
             hocKyId = target.HocKyId,
             tenHocKy = $"{target.TenHocKy} ({target.NamHoc})",
-            message = $"Đã thiết lập '{target.TenHocKy} - {target.NamHoc}' làm Học kỳ hiện tại áp dụng toàn trường."
+            message = $"Đã thiết lập '{target.TenHocKy} ({target.NamHoc})' làm Học kỳ hiện tại áp dụng toàn trường."
         });
     }
 
@@ -331,7 +335,20 @@ public sealed class LopHocPhanController : ControllerBase
             await _db.SaveChangesAsync();
         }
 
-        var hocKy = await _db.HocKys.OrderByDescending(k => k.HocKyId).FirstOrDefaultAsync();
+        HocKy? hocKy = null;
+        if (request.HocKyId.HasValue)
+        {
+            hocKy = await _db.HocKys.FirstOrDefaultAsync(k => k.HocKyId == request.HocKyId.Value);
+        }
+        if (hocKy == null && !string.IsNullOrWhiteSpace(request.TenHocKy))
+        {
+            var tenHk = request.TenHocKy.Trim();
+            var namHoc = request.NamHoc?.Trim();
+            hocKy = await _db.HocKys.FirstOrDefaultAsync(k =>
+                k.TenHocKy == tenHk && (string.IsNullOrEmpty(namHoc) || k.NamHoc == namHoc));
+        }
+        hocKy ??= await _db.HocKys.Where(k => k.TrangThai).OrderByDescending(k => k.HocKyId).FirstOrDefaultAsync()
+            ?? await _db.HocKys.OrderByDescending(k => k.HocKyId).FirstOrDefaultAsync();
         if (hocKy == null)
         {
             hocKy = new HocKy
@@ -385,6 +402,9 @@ public sealed class LopHocPhanController : ControllerBase
         var topicEnd = TryParseDate(request.TopicRegistrationEnd) ?? TryParseDate(request.GroupRegistrationEnd);
 
         var period = course.DotDangKyDoAns.OrderByDescending(d => d.DotDangKyId).FirstOrDefault();
+        var isNewPeriod = period == null;
+        var previousStatus = period?.TrangThai;
+
         if (period == null)
         {
             var start = topicStart ?? DateTime.Today;
@@ -420,6 +440,35 @@ public sealed class LopHocPhanController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
+
+        // Gửi thông báo cho PHONGDAOTAO + GIAOVUKHOA khi đợt mới được tạo hoặc vừa chuyển sang Đang mở
+        if (period.TrangThai == "Đang mở" && (isNewPeriod || previousStatus != "Đang mở"))
+        {
+            var tenLhp = string.IsNullOrWhiteSpace(course.TenLopHocPhan)
+                ? course.MaLopHocPhan
+                : course.TenLopHocPhan;
+            var staffUserIds = await _db.NguoiDungs.AsNoTracking()
+                .Where(u => u.TrangThai && u.VaiTro != null &&
+                            (u.VaiTro.MaVaiTro == "PHONGDAOTAO" || u.VaiTro.MaVaiTro == "GIAOVUKHOA"))
+                .Select(u => u.NguoiDungId)
+                .ToListAsync();
+
+            foreach (var uid in staffUserIds)
+            {
+                _db.ThongBaos.Add(new ThongBao
+                {
+                    NguoiDungId = uid,
+                    TieuDe = $"Đợt đăng ký đồ án mới: {period.TenDot}",
+                    NoiDung = $"Đợt đăng ký đồ án cho LHP {tenLhp} vừa được kích hoạt.",
+                    LoaiThongBao = "Hệ thống",
+                    LienKetId = period.DotDangKyId,
+                    LoaiLienKet = "DotDangKyDoAn",
+                    DaDoc = false,
+                    CreatedAt = DateTime.Now
+                });
+            }
+            if (staffUserIds.Count > 0) await _db.SaveChangesAsync();
+        }
 
         return Ok(new
         {

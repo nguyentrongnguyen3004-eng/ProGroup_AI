@@ -13,7 +13,9 @@ public sealed class AdminOverviewResponse
     public int DotDangKyDangMo { get; set; }
     public int TongKhoa { get; set; }
     public int TongSinhVienLamDoAn { get; set; }
+    public int SoSinhVienChuaGanKhoa { get; set; }
     public double TyLeHoanThanh { get; set; }
+    public int? HocKyHienTaiId { get; set; }
     public string HocKyHienTai { get; set; } = "Học kỳ 1 (2026-2027)";
     public IReadOnlyList<DepartmentStatItem> ThongKeTheoKhoa { get; set; } = Array.Empty<DepartmentStatItem>();
     public GradeDistributionDto PhoDiem { get; set; } = new();

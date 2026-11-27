@@ -17,6 +17,7 @@ import '../../../models/lecturer_model.dart';
 import '../../../models/training_import_record_model.dart';
 import '../../../models/training_subject_model.dart';
 import '../../../services/api_service.dart';
+import '../../../services/governance_api_service.dart';
 import 'training_data_management_screen.dart';
 
 class TrainingImportScreen extends StatefulWidget {
@@ -989,11 +990,13 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
                 'hoTen': row.cells[1],
                 'email': row.cells[2],
                 'mssv': row.cells[0],
+                'khoa': row.cells[3].split(RegExp(r'[-_\s]')).first.trim(),
                 'vaiTro': 'SINHVIEN',
                 'matKhau': '123456aA@',
               }
           ];
           await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+          GovernanceApiService.instance.notifyDataChanged();
         } catch (_) {}
       case TrainingDataKind.lecturers:
         final firstId = data.nextLecturerId;
@@ -1021,11 +1024,14 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
                 'hoTen': row.cells[1],
                 'email': row.cells[2],
                 'maGiangVien': row.cells[0],
+                'khoa': row.cells[3],
+                'chuyenMon': row.cells[4],
                 'vaiTro': 'GIANGVIEN',
                 'matKhau': '123456aA@',
               }
           ];
           await ApiService.instance.post('/api/admin/users/import', {'users': usersToImport});
+          GovernanceApiService.instance.notifyDataChanged();
         } catch (_) {}
       case TrainingDataKind.courseClasses:
         final firstId = data.nextCourseClassId;
@@ -1048,11 +1054,11 @@ class _TrainingImportScreenState extends State<TrainingImportScreen> {
               'maLopHocPhan': row.cells[0],
               'maHocPhan': row.cells[1],
               'tenLopHocPhan': row.cells[2],
-              'namHoc': '2026-2027',
               'soLuongToiDa': 50,
             });
           } catch (_) {}
         }
+        GovernanceApiService.instance.notifyDataChanged();
       case TrainingDataKind.subjects:
         data.addSubjects([
           for (final row in _validRows)

@@ -40,6 +40,7 @@ public sealed class CreateClassRequest
     public int? SoTinChi { get; set; }
     public string? TenHocKy { get; set; }
     public string? NamHoc { get; set; }
+    public int? HocKyId { get; set; }
     public int? SoLuongToiDa { get; set; }
     public int? KhoaId { get; set; }
 }
