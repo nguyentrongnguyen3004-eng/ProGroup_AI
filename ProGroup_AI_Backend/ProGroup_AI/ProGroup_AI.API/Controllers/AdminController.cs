@@ -824,6 +824,26 @@ public sealed class AdminController : ControllerBase
             await _db.Database.ExecuteSqlRawAsync(sql);
 
             var fileInfo = new System.IO.FileInfo(backupPath);
+
+            // Xoay vòng bản sao lưu: Giữ lại tối đa 7 bản gần nhất (chỉ áp dụng cho các file có timestamp, bảo toàn ProjectRegistrationDB_latest.bak)
+            try
+            {
+                var dirInfo = new DirectoryInfo(backupDir);
+                var oldFiles = dirInfo.GetFiles("ProjectRegistrationDB_backup_*.bak")
+                                      .OrderByDescending(f => f.CreationTime)
+                                      .Skip(7)
+                                      .ToList();
+
+                foreach (var file in oldFiles)
+                {
+                    file.Delete();
+                }
+            }
+            catch
+            {
+                // Bỏ qua lỗi dọn dẹp để không chặn tiến trình trả về kết quả sao lưu thành công
+            }
+
             return Ok(new
             {
                 success = true,
