@@ -14,6 +14,11 @@ public class ForgotPasswordSendOtpRequest
     public string Email { get; set; } = string.Empty;
 }
 
+public class ChangeEmailSendOtpRequest
+{
+    public string Email { get; set; } = string.Empty;
+}
+
 public class VerifyOtpRequest
 {
     public string Email { get; set; } = string.Empty;
@@ -113,9 +118,96 @@ public class AuthController : ControllerBase
         if (emailExists)
             return Conflict(new { message = "Email này đã được sử dụng bởi tài khoản khác." });
 
+        // Nếu có mã OTP gửi lên thì kiểm tra mã xác thực OTP
+        if (!string.IsNullOrWhiteSpace(request.Otp))
+        {
+            var validOtp = await _context.PasswordResetOtps
+                .Where(x => x.NguoiDungId == user.NguoiDungId && !x.IsUsed && x.ExpiredAt > DateTime.Now)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (validOtp is null)
+                return BadRequest(new { message = "Mã OTP đã hết hạn hoặc không tồn tại. Vui lòng gửi lại mã mới." });
+
+            if (!BCrypt.Net.BCrypt.Verify(request.Otp.Trim(), validOtp.OtpCodeHash))
+            {
+                validOtp.SoLanThu++;
+                if (validOtp.SoLanThu >= 5) validOtp.IsUsed = true;
+                await _context.SaveChangesAsync();
+                return BadRequest(new { message = "Mã OTP không chính xác. Vui lòng kiểm tra lại." });
+            }
+
+            validOtp.IsUsed = true;
+        }
+
         user.Email = cleanEmail;
         await _context.SaveChangesAsync();
-        return Ok(new { success = true, email = user.Email });
+        return Ok(new { success = true, email = user.Email, message = "Đổi địa chỉ email thành công." });
+    }
+
+    /// <summary>
+    /// Gửi mã OTP xác thực đổi địa chỉ email mới qua Gmail SMTP
+    /// </summary>
+    [Authorize]
+    [HttpPost("change-email/send-otp")]
+    public async Task<IActionResult> SendChangeEmailOtp([FromBody] ChangeEmailSendOtpRequest request)
+    {
+        var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idValue, out var userId)) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest(new { success = false, message = "Địa chỉ email không được để trống." });
+
+        var cleanEmail = request.Email.Trim();
+        var user = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == userId && x.TrangThai);
+        if (user is null) return Unauthorized(new { success = false, message = "Tài khoản không tồn tại hoặc đã bị khóa." });
+
+        if (string.Equals(user.Email, cleanEmail, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { success = false, message = "Email mới phải khác với email hiện tại." });
+
+        var emailExists = await _context.NguoiDungs.AnyAsync(x => x.Email == cleanEmail && x.NguoiDungId != userId);
+        if (emailExists)
+            return Conflict(new { success = false, message = "Email này đã được sử dụng bởi tài khoản khác." });
+
+        // Sinh mã OTP 6 chữ số
+        var otpCode = Random.Shared.Next(100000, 999999).ToString();
+        var otpHash = BCrypt.Net.BCrypt.HashPassword(otpCode);
+
+        // Hủy các OTP cũ chưa dùng của người dùng này
+        var oldOtps = await _context.PasswordResetOtps
+            .Where(x => x.NguoiDungId == user.NguoiDungId && !x.IsUsed)
+            .ToListAsync();
+        foreach (var old in oldOtps)
+        {
+            old.IsUsed = true;
+        }
+
+        // Tạo bản ghi OTP mới (hạn dùng 5 phút)
+        var otpRecord = new PasswordResetOtp
+        {
+            NguoiDungId = user.NguoiDungId,
+            OtpCodeHash = otpHash,
+            ExpiredAt = DateTime.Now.AddMinutes(5),
+            CreatedAt = DateTime.Now,
+            IsUsed = false,
+            SoLanThu = 0
+        };
+        _context.PasswordResetOtps.Add(otpRecord);
+        await _context.SaveChangesAsync();
+
+        // Gửi email thật qua Gmail SMTP đến địa chỉ email mới để xác thực quyền sở hữu
+        var sent = await _emailService.SendOtpEmailAsync(cleanEmail, otpCode, user.HoTen);
+        if (!sent)
+        {
+            return StatusCode(500, new { success = false, message = "Không thể gửi email OTP qua máy chủ Gmail. Vui lòng kiểm tra lại cấu hình kết nối mạng." });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            message = $"Mã OTP đã được gửi đến email mới {cleanEmail}. Vui lòng kiểm tra hộp thư để xác thực.",
+            email = cleanEmail
+        });
     }
 
     [Authorize]
