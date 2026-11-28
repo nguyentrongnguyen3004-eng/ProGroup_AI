@@ -1,7 +1,43 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../services/api_service.dart';
+
+/// Formatter tự động chuyển đổi ký tự có Shift (!@#$%^&*()) thành số 0-9 nếu bị dính CapsLock / Shift trên máy ảo
+class OtpDigitInputFormatter extends TextInputFormatter {
+  static const Map<String, String> _shiftedDigits = {
+    '!': '1',
+    '@': '2',
+    '#': '3',
+    r'$': '4',
+    '%': '5',
+    '^': '6',
+    '&': '7',
+    '*': '8',
+    '(': '9',
+    ')': '0',
+  };
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String text = newValue.text;
+    _shiftedDigits.forEach((key, val) {
+      text = text.replaceAll(key, val);
+    });
+    text = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (text.length > 6) {
+      text = text.substring(0, 6);
+    }
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
 
 /// Modal bottom sheet đẹp mắt, hiện đại phục vụ việc đổi địa chỉ email cho tất cả các role.
 class ChangeEmailDialog extends StatefulWidget {
@@ -476,6 +512,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
         TextField(
           controller: _otpController,
           keyboardType: TextInputType.number,
+          inputFormatters: [OtpDigitInputFormatter()],
           maxLength: 6,
           textAlign: TextAlign.center,
           autofocus: true,

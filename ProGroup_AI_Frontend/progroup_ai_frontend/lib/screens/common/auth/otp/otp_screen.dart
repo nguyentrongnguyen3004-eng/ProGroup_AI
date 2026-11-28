@@ -1,10 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:progroup_ai_frontend/core/localization/app_localizations.dart';
 
 import 'package:progroup_ai_frontend/core/routes/app_routes.dart';
 import 'package:progroup_ai_frontend/services/password_reset_api_service.dart';
 import 'package:progroup_ai_frontend/widgets/app_button.dart';
+
+/// Formatter tự động chuyển đổi ký tự có Shift (!@#$%^&*()) thành số 0-9 nếu bị dính CapsLock / Shift trên máy ảo
+class OtpDigitInputFormatter extends TextInputFormatter {
+  static const Map<String, String> _shiftedDigits = {
+    '!': '1',
+    '@': '2',
+    '#': '3',
+    r'$': '4',
+    '%': '5',
+    '^': '6',
+    '&': '7',
+    '*': '8',
+    '(': '9',
+    ')': '0',
+  };
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String text = newValue.text;
+    _shiftedDigits.forEach((key, val) {
+      text = text.replaceAll(key, val);
+    });
+    text = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (text.length > 6) {
+      text = text.substring(0, 6);
+    }
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
 
 class OtpScreen extends StatefulWidget {
   final String email;
@@ -115,6 +151,7 @@ class _OtpScreenState extends State<OtpScreen> {
               TextField(
                 controller: otpController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [OtpDigitInputFormatter()],
                 maxLength: 6,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
