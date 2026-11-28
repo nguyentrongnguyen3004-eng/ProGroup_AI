@@ -354,6 +354,46 @@ class LecturerApiService {
     );
   }
 
+  /// 6.1 Lấy đăng ký đề tài của nhóm cụ thể
+  /// GET /api/dang-ky-de-tai/cua-nhom/{groupId}
+  Future<Map<String, dynamic>?> fetchGroupTopicRegistration(int groupId, {bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<Map<String, dynamic>?>(
+      'lecturer_group_topic_reg_$groupId',
+      () async {
+        try {
+          final res = await ApiService.instance.get('/api/dang-ky-de-tai/cua-nhom/$groupId');
+          if (res is Map<String, dynamic>) return res;
+          return null;
+        } catch (_) {
+          return null;
+        }
+      },
+      ttl: const Duration(seconds: 15),
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  /// 6.2 Lấy thông tin chi tiết đề tài theo ID
+  /// GET /api/de-tai/{topicId}
+  Future<TopicModel?> fetchTopicById(int topicId, {bool forceRefresh = false}) async {
+    return DataCacheService.instance.getOrFetch<TopicModel?>(
+      'lecturer_topic_detail_$topicId',
+      () async {
+        try {
+          final res = await ApiService.instance.get('/api/de-tai/$topicId');
+          if (res is Map<String, dynamic>) {
+            return TopicModel.fromJson(res);
+          }
+          return null;
+        } catch (_) {
+          return null;
+        }
+      },
+      ttl: const Duration(seconds: 30),
+      forceRefresh: forceRefresh,
+    );
+  }
+
   /// 7. Duyệt / Từ chối đăng ký đề tài
   /// PUT /api/dang-ky-de-tai/{id}/duyet hoặc PUT /api/de-tai/registrations/{id}/decide
   Future<void> approveTopicRegistration(int id, bool chapNhan, {String? ghiChu}) async {
@@ -370,6 +410,9 @@ class LecturerApiService {
         'dongY': chapNhan,
         'ghiChu': ghiChu,
       });
+    } finally {
+      DataCacheService.instance.invalidatePrefix('lecturer_');
+      DataCacheService.instance.invalidatePrefix('student_');
     }
   }
 

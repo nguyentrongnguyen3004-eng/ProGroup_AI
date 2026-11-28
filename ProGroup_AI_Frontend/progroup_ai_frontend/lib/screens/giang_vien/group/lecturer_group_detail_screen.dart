@@ -36,29 +36,83 @@ class _LecturerGroupDetailScreenState extends State<LecturerGroupDetailScreen> {
 
   Future<void> _loadTopicAndRegistration() async {
     try {
-      final results = await Future.wait([
-        LecturerApiService.instance.fetchTopics(widget.course.courseId),
-        LecturerApiService.instance.fetchTopicRegistrations(widget.course.courseId),
-      ]);
-
-      final topics = results[0] as List<TopicModel>;
-      final rawRegs = results[1] as List<Map<String, dynamic>>;
-
       TopicRegistrationModel? matchedReg;
-      for (final raw in rawRegs) {
-        final reg = TopicRegistrationModel.fromJson(raw);
-        if (reg.groupId == widget.group.id) {
-          matchedReg = reg;
-          break;
+      TopicModel? matchedTopic;
+
+      // 1. Ưu tiên lấy trực tiếp bản ghi đăng ký của nhóm từ endpoint /api/dang-ky-de-tai/cua-nhom/{id}
+      final regData = await LecturerApiService.instance.fetchGroupTopicRegistration(
+        widget.group.id,
+        forceRefresh: true,
+      );
+
+      if (regData != null) {
+        final deTaiId = regData['deTaiId'] as int? ?? regData['topicId'] as int? ?? 0;
+        matchedReg = TopicRegistrationModel(
+          id: regData['dangKyDeTaiId'] as int? ?? regData['id'] as int? ?? 1,
+          groupId: widget.group.id,
+          topicId: deTaiId,
+          status: regData['trangThai'] as String? ?? regData['status'] as String? ?? 'Chờ duyệt',
+          registeredAt: regData['ngayDangKy'] != null
+              ? DateTime.tryParse(regData['ngayDangKy'].toString()) ?? DateTime.now()
+              : DateTime.now(),
+          rejectionReason: regData['rejectionReason'] as String? ??
+              regData['ghiChu'] as String? ??
+              regData['lyDoTuChoi'] as String? ??
+              regData['lyDo'] as String? ??
+              regData['reason'] as String?,
+        );
+
+        if (deTaiId > 0) {
+          matchedTopic = await LecturerApiService.instance.fetchTopicById(
+            deTaiId,
+            forceRefresh: true,
+          );
+          if (matchedTopic == null && regData['tenDeTai'] != null) {
+            matchedTopic = TopicModel(
+              id: deTaiId,
+              courseId: widget.group.courseId,
+              title: regData['tenDeTai'] as String,
+              description: '',
+              objective: '',
+              scope: '',
+              technology: '',
+              source: 'Giảng viên',
+              status: matchedReg.status,
+            );
+          }
         }
       }
 
-      TopicModel? matchedTopic;
-      if (matchedReg != null) {
-        for (final t in topics) {
-          if (t.id == matchedReg.topicId) {
-            matchedTopic = t;
+      // 2. Nếu endpoint trực tiếp chưa có, fallback tìm trong danh sách đăng ký của lớp học phần
+      if (matchedReg == null) {
+        final results = await Future.wait([
+          LecturerApiService.instance.fetchTopics(widget.course.courseId, true),
+          LecturerApiService.instance.fetchTopicRegistrations(widget.course.courseId, true),
+        ]);
+
+        final topics = results[0] as List<TopicModel>;
+        final rawRegs = results[1] as List<Map<String, dynamic>>;
+
+        for (final raw in rawRegs) {
+          final reg = TopicRegistrationModel.fromJson(raw);
+          if (reg.groupId == widget.group.id) {
+            matchedReg = reg;
             break;
+          }
+        }
+
+        if (matchedReg != null) {
+          for (final t in topics) {
+            if (t.id == matchedReg.topicId) {
+              matchedTopic = t;
+              break;
+            }
+          }
+          if (matchedTopic == null && matchedReg.topicId > 0) {
+            matchedTopic = await LecturerApiService.instance.fetchTopicById(
+              matchedReg.topicId,
+              forceRefresh: true,
+            );
           }
         }
       }
@@ -103,84 +157,88 @@ class _LecturerGroupDetailScreenState extends State<LecturerGroupDetailScreen> {
         bottom: true,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                children: [
-                  _GroupHeader(
-                    group: widget.group,
-                    course: groupCourse,
-                    statusColor: _groupStatusColor(context),
-                  ),
-                  const SizedBox(height: 16),
-                  _InfoCard(
-                    title: AppLocalizations.text(
-                      'Thông tin nhóm',
-                      en: 'Group information',
+            : RefreshIndicator(
+                onRefresh: _loadTopicAndRegistration,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                  children: [
+                    _GroupHeader(
+                      group: widget.group,
+                      course: groupCourse,
+                      statusColor: _groupStatusColor(context),
                     ),
-                    children: [
-                      _InfoRow(
-                        icon: Icons.school_rounded,
-                        iconColor: const Color(0xFF6366F1),
-                        label: AppLocalizations.text('Học phần', en: 'Course'),
-                        value:
-                            '${AppLocalizations.courseName(groupCourse.name)} • ${groupCourse.classCode}',
+                    const SizedBox(height: 16),
+                    _InfoCard(
+                      title: AppLocalizations.text(
+                        'Thông tin nhóm',
+                        en: 'Group information',
                       ),
-                      _InfoRow(
-                        icon: Icons.person_rounded,
-                        iconColor: const Color(0xFF8B5CF6),
-                        label: AppLocalizations.text('Trưởng nhóm', en: 'Leader'),
-                        value: widget.group.leader,
-                      ),
-                      _InfoRow(
-                        icon: Icons.people_alt_rounded,
-                        iconColor: const Color(0xFF2563EB),
-                        label: AppLocalizations.text('Số thành viên', en: 'Members'),
-                        value: AppLocalizations.memberCount(
-                          widget.group.memberCount,
-                          groupCourse.maxMembers,
+                      children: [
+                        _InfoRow(
+                          icon: Icons.school_rounded,
+                          iconColor: const Color(0xFF6366F1),
+                          label: AppLocalizations.text('Học phần', en: 'Course'),
+                          value:
+                              '${AppLocalizations.courseName(groupCourse.name)} • ${groupCourse.classCode}',
                         ),
-                      ),
-                      _InfoRow(
-                        icon: Icons.groups_rounded,
-                        iconColor: const Color(0xFF10B981),
-                        label: AppLocalizations.text(
-                          'Giới hạn thành viên',
-                          en: 'Member limits',
+                        _InfoRow(
+                          icon: Icons.person_rounded,
+                          iconColor: const Color(0xFF8B5CF6),
+                          label: AppLocalizations.text('Trưởng nhóm', en: 'Leader'),
+                          value: widget.group.leader,
                         ),
-                        value: '${groupCourse.minMembers} - ${groupCourse.maxMembers}',
-                      ),
-                      _InfoRow(
-                        icon: Icons.info_rounded,
-                        iconColor: _groupStatusColor(context),
-                        label: AppLocalizations.text('Trạng thái', en: 'Status'),
-                        value: AppLocalizations.status(widget.group.status),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _InfoCard(
-                    title: AppLocalizations.text('Thành viên', en: 'Members'),
-                    children: widget.group.members.isEmpty
-                        ? [
-                            Text(
-                              AppLocalizations.text(
-                                'Chưa có thông tin thành viên.',
-                                en: 'Member information is not available.',
+                        _InfoRow(
+                          icon: Icons.people_alt_rounded,
+                          iconColor: const Color(0xFF2563EB),
+                          label: AppLocalizations.text('Số thành viên', en: 'Members'),
+                          value: AppLocalizations.memberCount(
+                            widget.group.memberCount,
+                            groupCourse.maxMembers,
+                          ),
+                        ),
+                        _InfoRow(
+                          icon: Icons.groups_rounded,
+                          iconColor: const Color(0xFF10B981),
+                          label: AppLocalizations.text(
+                            'Giới hạn thành viên',
+                            en: 'Member limits',
+                          ),
+                          value: '${groupCourse.minMembers} - ${groupCourse.maxMembers}',
+                        ),
+                        _InfoRow(
+                          icon: Icons.info_rounded,
+                          iconColor: _groupStatusColor(context),
+                          label: AppLocalizations.text('Trạng thái', en: 'Status'),
+                          value: AppLocalizations.status(widget.group.status),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _InfoCard(
+                      title: AppLocalizations.text('Thành viên', en: 'Members'),
+                      children: widget.group.members.isEmpty
+                          ? [
+                              Text(
+                                AppLocalizations.text(
+                                  'Chưa có thông tin thành viên.',
+                                  en: 'Member information is not available.',
+                                ),
+                                style: TextStyle(color: colors.onSurfaceVariant),
                               ),
-                              style: TextStyle(color: colors.onSurfaceVariant),
-                            ),
-                          ]
-                        : [
-                            for (final member in widget.group.members)
-                              _MemberRow(
-                                name: member,
-                                isLeader: member == widget.group.leader,
-                              ),
-                          ],
-                  ),
-                  const SizedBox(height: 16),
-                  _TopicCard(topic: _topic, registration: _registration),
-                ],
+                            ]
+                          : [
+                              for (final member in widget.group.members)
+                                _MemberRow(
+                                  name: member,
+                                  isLeader: member == widget.group.leader,
+                                ),
+                            ],
+                    ),
+                    const SizedBox(height: 16),
+                    _TopicCard(topic: _topic, registration: _registration),
+                  ],
+                ),
               ),
       ),
     );
@@ -455,7 +513,7 @@ class _TopicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    if (topic == null || registration == null) {
+    if (topic == null && registration == null) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -495,6 +553,17 @@ class _TopicCard extends StatelessWidget {
         ),
       );
     }
+
+    final displayTitle = topic?.title.isNotEmpty == true
+        ? topic!.title
+        : (registration != null && registration!.topicId > 0
+            ? 'Đề tài #${registration!.topicId}'
+            : 'Đề tài đã đăng ký');
+    final displayDescription = topic?.description ?? '';
+    final regStatus = registration?.status ?? topic?.status ?? 'Chờ duyệt';
+    final topicStatus = topic?.status ?? regStatus;
+    final technology = topic?.technology ?? '';
+    final feedback = (registration?.rejectionReason ?? topic?.rejectionReason)?.trim();
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -540,18 +609,20 @@ class _TopicCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            AppLocalizations.topicText(topic!.title),
+            AppLocalizations.topicText(displayTitle),
             style: TextStyle(
               color: colors.onSurface,
               fontSize: 15.5,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            AppLocalizations.topicText(topic!.description),
-            style: TextStyle(color: colors.onSurfaceVariant),
-          ),
+          if (displayDescription.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              AppLocalizations.topicText(displayDescription),
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+          ],
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -559,16 +630,115 @@ class _TopicCard extends StatelessWidget {
             children: [
               _Tag(
                 label:
-                    '${AppLocalizations.text('Đăng ký', en: 'Registration')}: ${AppLocalizations.status(registration!.status)}',
+                    '${AppLocalizations.text('Đăng ký', en: 'Registration')}: ${AppLocalizations.status(regStatus)}',
               ),
               _Tag(
                 label:
-                    '${AppLocalizations.text('Trạng thái đề tài', en: 'Topic status')}: ${AppLocalizations.status(topic!.status)}',
+                    '${AppLocalizations.text('Trạng thái đề tài', en: 'Topic status')}: ${AppLocalizations.status(topicStatus)}',
               ),
-              if (topic!.technology.trim().isNotEmpty)
-                _Tag(label: topic!.technology),
+              if (technology.trim().isNotEmpty)
+                _Tag(label: technology),
             ],
           ),
+          if (feedback != null && feedback.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Builder(
+              builder: (context) {
+                final statusLower = regStatus.toLowerCase();
+                final isApproved = statusLower.contains('duyệt') ||
+                    statusLower.contains('chấp nhận') ||
+                    statusLower.contains('approved');
+                final isRejected = statusLower.contains('từ chối') ||
+                    statusLower.contains('rejected');
+
+                final boxBg = isApproved
+                    ? const Color(0xFFF0FDF4)
+                    : isRejected
+                        ? const Color(0xFFFEF2F2)
+                        : const Color(0xFFFFFBEB);
+                final boxBorder = isApproved
+                    ? const Color(0xFFBBF7D0)
+                    : isRejected
+                        ? const Color(0xFFFECACA)
+                        : const Color(0xFFFDE68A);
+                final iconColor = isApproved
+                    ? const Color(0xFF16A34A)
+                    : isRejected
+                        ? const Color(0xFFEF4444)
+                        : const Color(0xFFF59E0B);
+                final titleColor = isApproved
+                    ? const Color(0xFF15803D)
+                    : isRejected
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFFB45309);
+                final textColor = isApproved
+                    ? const Color(0xFF166534)
+                    : isRejected
+                        ? const Color(0xFF991B1B)
+                        : const Color(0xFF92400E);
+                final iconData = isApproved
+                    ? Icons.check_circle_outline
+                    : isRejected
+                        ? Icons.cancel_outlined
+                        : Icons.info_outline;
+                final titleText = isApproved
+                    ? AppLocalizations.text(
+                        'Nhận xét / Lời nhắn từ Giảng viên:',
+                        en: 'Lecturer Feedback / Note:',
+                      )
+                    : isRejected
+                        ? AppLocalizations.text(
+                            'Lý do từ chối từ Giảng viên:',
+                            en: 'Rejection Reason from Lecturer:',
+                          )
+                        : AppLocalizations.text(
+                            'Góp ý từ Giảng viên:',
+                            en: 'Feedback from Lecturer:',
+                          );
+
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: boxBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: boxBorder),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(iconData, color: iconColor, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              titleText,
+                              style: TextStyle(
+                                color: titleColor,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              feedback,
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
