@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -57,9 +58,30 @@ class _OtpScreenState extends State<OtpScreen> {
   final service = PasswordResetApiService.instance;
 
   bool loading = false;
+  int resendCountdown = 60;
+  Timer? countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    startCountdown();
+  }
+
+  void startCountdown() {
+    setState(() => resendCountdown = 60);
+    countdownTimer?.cancel();
+    countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (resendCountdown > 0) {
+        setState(() => resendCountdown--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    countdownTimer?.cancel();
     otpController.dispose();
     super.dispose();
   }
@@ -173,12 +195,13 @@ class _OtpScreenState extends State<OtpScreen> {
 
               Center(
                 child: TextButton.icon(
-                  onPressed: loading
+                  onPressed: (loading || resendCountdown > 0)
                       ? null
                       : () async {
                           setState(() => loading = true);
                           try {
                             await service.sendOtp(widget.email);
+                            startCountdown();
                             showMessage(
                               AppLocalizations.text(
                                 'Đã gửi lại mã OTP đến email ${widget.email}.',
@@ -193,10 +216,12 @@ class _OtpScreenState extends State<OtpScreen> {
                         },
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: Text(
-                    AppLocalizations.text(
-                      'Gửi lại mã OTP qua Email',
-                      en: 'Resend OTP via Email',
-                    ),
+                    resendCountdown > 0
+                        ? '${AppLocalizations.text('Gửi lại sau', en: 'Resend code in')} ${resendCountdown}s'
+                        : AppLocalizations.text(
+                            'Gửi lại mã OTP qua Email',
+                            en: 'Resend OTP via Email',
+                          ),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),

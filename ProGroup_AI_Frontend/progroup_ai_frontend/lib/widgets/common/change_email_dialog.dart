@@ -77,7 +77,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
   final TextEditingController _otpController = TextEditingController();
   String? _errorMessage;
   bool _isLoading = false;
-  int _resendTimer = 30;
+  int _resendTimer = 60;
   Timer? _timer;
 
   @override
@@ -95,7 +95,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
   }
 
   void _startResendCountdown() {
-    setState(() => _resendTimer = 30);
+    setState(() => _resendTimer = 60);
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_resendTimer > 0) {
