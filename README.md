@@ -4,28 +4,41 @@
 [![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart)](https://dart.dev)
 [![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
 [![SQL Server](https://img.shields.io/badge/Database-SQL%20Server-CC292B?logo=microsoftsqlserver)](https://www.microsoft.com/sql-server)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%7C%20FCM-FFA611?logo=firebase)](https://firebase.google.com/)
+[![Cloudflare R2](https://img.shields.io/badge/Storage-Cloudflare%20R2-F38020?logo=cloudflare)](https://www.cloudflare.com/products/r2/)
 [![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-8E75C2?logo=google)](https://ai.google.dev/)
 [![Material Design 3](https://img.shields.io/badge/UI-Material%20Design%203-757575?logo=materialdesign)](https://m3.material.io/)
 
-**ProGroup AI** là hệ thống toàn diện hỗ trợ sinh viên, giảng viên và các phòng ban quản lý đề tài đồ án môn học, đồ án tốt nghiệp một cách thông minh, chuẩn hóa và minh bạch. Ứng dụng tích hợp trí tuệ nhân tạo **Google Gemini AI**, được xây dựng trên nền tảng ứng dụng di động **Flutter** và máy chủ dịch vụ **ASP.NET Core Web API**, kết nối cơ sở dữ liệu **Microsoft SQL Server**.
+**ProGroup AI** là hệ thống toàn diện hỗ trợ sinh viên, giảng viên và các phòng ban quản lý đề tài đồ án môn học, đồ án tốt nghiệp một cách thông minh, chuẩn hóa và minh bạch. Ứng dụng tích hợp trí tuệ nhân tạo **Google Gemini AI**, kênh trao đổi thời gian thực **Cloud Firestore**, dịch vụ lưu trữ đám mây **Cloudflare R2 CDN**, được xây dựng trên nền tảng ứng dụng di động **Flutter** và máy chủ dịch vụ **ASP.NET Core Web API**, kết nối cơ sở dữ liệu **Microsoft SQL Server**.
 
 ---
 
 ## 🌟 Điểm nổi bật & Tính năng cốt lõi
 
 ### 1. 🤖 Trí tuệ Nhân tạo (Google Gemini AI)
-- **Tư vấn & Gợi ý đề tài chuyên sâu**: Sinh viên và giảng viên lựa chọn học phần, lĩnh vực nghiên cứu, công nghệ mục tiêu, nền tảng mong muốn và **tùy chỉnh số lượng đề tài cần AI tạo (1, 2, 3, 5, 10 đề tài)**.
+- **Tư vấn & Gợi ý đề tài chuyên sâu**: Sinh viên và giảng viên lựa chọn học phần, lĩnh vực nghiên cứu, công nghệ mục tiêu, nền tảng mong muốn và **tùy chỉnh số lượng đề tài cần AI tạo (1, 2, 3, 5, 10 đề tài)** với định dạng chuẩn đầu ra.
 - **Phân tích học vụ & Dự báo đào tạo**: Hỗ trợ Giáo vụ khoa và Phòng đào tạo phân tích khối lượng giảng dạy, dự báo xu hướng công nghệ đề tài và nhu cầu phân bổ nhân lực.
+- **Trợ lý phản biện đề tài**: Giảng viên có thể sử dụng AI để đánh giá tính khả thi và đưa ra gợi ý góp ý nhanh cho đề xuất của sinh viên.
 
-### 2. ⚡ Kết nối Thông minh & Tự động Nhận diện Máy chủ (Auto-Detect)
+### 2. 💬 Nhắn tin Nhóm Thời gian Thực (Real-time Group Chat & Offline Persistence)
+- **Kênh chat chuyên biệt theo nhóm**: Hỗ trợ trao đổi tức thì giữa các thành viên sinh viên trong nhóm và giảng viên hướng dẫn phụ trách.
+- **Lưu trữ Offline Cache**: Tích hợp **Cloud Firestore** cho phép đọc lại lịch sử hội thoại và soạn tin nhắn ngay cả khi mất mạng; tự động đồng bộ khi có kết nối trở lại.
+- **Trạng thái & Huy hiệu thông minh**: Hiển thị trạng thái hoạt động online/offline và đếm số lượng tin nhắn chưa đọc trực quan.
+
+### 3. ☁️ Dịch vụ Đám mây & Bảo mật Nâng cao
+- **Lưu trữ Avatar qua Cloudflare R2**: Hình ảnh đại diện người dùng được đồng bộ và phân phối qua mạng CDN toàn cầu tốc độ cao, giảm tải máy chủ API.
+- **Xác thực OTP 2 bước qua Email**: Hỗ trợ gửi mã xác minh OTP 6 số qua Gmail SMTP khi đổi địa chỉ email hoặc khôi phục mật khẩu.
+- **Thông báo đẩy (FCM - Firebase Cloud Messaging)**: Cập nhật tức thì các biến động học vụ như: đề tài được phê duyệt, có tin nhắn mới trong nhóm, hoặc sắp đến hạn nộp báo cáo.
+
+### 4. ⚡ Kết nối Thông minh & Tự động Nhận diện Máy chủ (Auto-Detect)
 - **Không cần cấu hình thủ công**: Khi khởi chạy ứng dụng, hệ thống tự động kiểm tra và kết nối nhanh (ping 2 giây) với địa chỉ máy chủ khả dụng ưu tiên:
   - Cầu nối USB tốc độ cao (`http://127.0.0.1:5094` qua ADB Reverse).
   - Mạng Wi-Fi nội bộ LAN (`http://192.168.x.x:5094`).
   - Địa chỉ máy ảo Android Emulator (`http://10.0.2.2:5094`).
 - **Giao diện tinh gọn, chuyên nghiệp**: Nút cấu hình máy chủ đã được ẩn khỏi màn hình Đăng nhập để tăng tính thẩm mỹ; tích hợp lối tắt ngầm cho Nhà phát triển bằng cách nhấn giữ vào biểu tượng logo ứng dụng.
 
-### 3. 👤 Trải nghiệm Cá nhân hóa & Lưu trữ Trạng thái
-- **Đồng bộ Avatar theo thời gian thực**: Ảnh đại diện được quản lý độc lập theo từng tài khoản, lưu trữ an toàn trên máy chủ và cập nhật tức thì trên trang chủ (*"Xin chào, [Họ tên]"*).
+### 5. 👤 Trải nghiệm Cá nhân hóa & Lưu trữ Trạng thái
+- **Đồng bộ Avatar theo thời gian thực**: Quản lý độc lập theo từng tài khoản, lưu trữ an toàn trên đám mây và cập nhật tức thì trên trang chủ (*"Xin chào, [Họ tên]"*).
 - **Ghi nhớ cấu hình người dùng**: Tự động lưu trữ giao diện (Sáng/Tối), ngôn ngữ (Tiếng Việt/Tiếng Anh) và trạng thái thông báo qua `SharedPreferences`, đảm bảo giữ nguyên cài đặt khi mở lại ứng dụng.
 - **Quản lý Thông báo hai chiều**: Đồng bộ trạng thái đã đọc/chưa đọc trực tiếp với cơ sở dữ liệu Backend.
 
@@ -35,8 +48,8 @@
 
 | Vai trò | Chức năng chính |
 | :--- | :--- |
-| **🎓 Sinh viên** | • Tra cứu danh sách lớp học phần và thông tin giảng viên phụ trách.<br>• Quản lý nhóm đồ án (xem thành viên, đổi tên nhóm thời gian thực).<br>• Đăng ký đề tài từ danh sách giảng viên công bố.<br>• Đề xuất đề tài cá nhân/nhóm gửi giảng viên phê duyệt.<br>• Nộp báo cáo tiến độ định kỳ theo từng giai đoạn.<br>• Trợ lý AI Gemini tư vấn đề tài đồ án chuyên sâu với tùy chọn số lượng.<br>• Nhận thông báo tự động khi có cập nhật trạng thái duyệt đề tài. |
-| **👨‍🏫 Giảng viên** | • Quản lý các lớp học phần được phân công và mở đợt đăng ký.<br>• Quản lý ngân hàng đề tài đồ án, tạo mới và chỉnh sửa đề tài.<br>• Phê duyệt hoặc từ chối đơn đăng ký đề tài của các nhóm sinh viên.<br>• Phê duyệt và phản hồi các đề tài do sinh viên tự đề xuất.<br>• Theo dõi, đánh giá và chấm điểm báo cáo tiến độ theo cột mốc.<br>• Thống kê trực quan tình hình đăng ký và tiến độ của các nhóm. |
+| **🎓 Sinh viên** | • Tra cứu danh sách lớp học phần và thông tin giảng viên phụ trách.<br>• Quản lý nhóm đồ án (xem thành viên, đổi tên nhóm thời gian thực).<br>• Đăng ký đề tài từ danh sách giảng viên công bố.<br>• Đề xuất đề tài cá nhân/nhóm gửi giảng viên phê duyệt.<br>• Kênh chat thời gian thực với các thành viên và giảng viên hướng dẫn.<br>• Nộp báo cáo tiến độ định kỳ theo từng giai đoạn.<br>• Trợ lý AI Gemini tư vấn đề tài đồ án chuyên sâu với tùy chọn số lượng.<br>• Nhận thông báo tự động khi có cập nhật trạng thái duyệt đề tài. |
+| **👨‍🏫 Giảng viên** | • Quản lý các lớp học phần được phân công và mở đợt đăng ký.<br>• Quản lý ngân hàng đề tài đồ án, tạo mới và chỉnh sửa đề tài.<br>• Phê duyệt hoặc từ chối đơn đăng ký đề tài của các nhóm sinh viên.<br>• Phê duyệt và phản hồi các đề tài do sinh viên tự đề xuất.<br>• Tham gia kênh chat nhóm đồ án để hướng dẫn và giải đáp sinh viên.<br>• Theo dõi, đánh giá và chấm điểm báo cáo tiến độ theo cột mốc.<br>• Thống kê trực quan tình hình đăng ký và tiến độ của các nhóm. |
 | **🏛️ Giáo vụ khoa** | • Quản lý danh mục lớp học phần toàn khoa.<br>• Phân công giảng viên phụ trách các lớp học phần.<br>• Theo dõi tiến độ đăng ký đề tài và danh sách sinh viên, giảng viên.<br>• Trợ lý AI Gemini phân tích khối lượng học vụ khoa. |
 | **🏫 Phòng đào tạo** | • Giám sát dữ liệu đào tạo toàn trường.<br>• Quản lý cấu hình kỳ học, lớp học phần và đợt đăng ký.<br>• AI dự báo khối lượng đào tạo và phân bổ nguồn lực. |
 | **🛡️ Quản trị viên (Admin)** | • Quản lý tài khoản toàn hệ thống (Kích hoạt / Khóa tài khoản, đặt lại mật khẩu).<br>• **Import người dùng hàng loạt từ file Excel (.xlsx) hoặc CSV** kèm file mẫu chuẩn.<br>• Thống kê phân bổ vai trò với **biểu đồ thanh ngang (Role Distribution Chart)** trực quan.<br>• Giám sát hoạt động và thông số vận hành hệ thống. |
@@ -170,12 +183,24 @@ Script tự động này sẽ:
 ```text
 ProGroup_AI/
 │
-├── 🚀 start_full_system.bat          # Script khởi động tự động toàn bộ Backend & ADB Reverse
+├── 🚀 start_full_system.bat          # Script 1-Click khởi động tự động Backend API & ADB Reverse USB
+├── 📱 start_emulator.bat             # Script khởi động nhanh máy ảo Android Emulator
 ├── 📄 README.md                      # Tài liệu hướng dẫn tổng quan và triển khai hệ thống
+├── 📘 Nhom2_ProGroup_AI.docx         # Báo cáo đồ án môn học hoàn chỉnh (Word Format)
+├── ⚙️ firebase.json                   # Cấu hình dịch vụ Firebase CLI
+├── 🛡️ firestore.rules                # Quy tắc bảo mật dữ liệu Cloud Firestore Rules
 │
 ├── 📁 backups/                       # Thư mục lưu trữ các bản sao lưu Database SQL Server (.bak)
 │
+├── 📁 docs/                          # Thư mục tài liệu, kiểm thử và thiết kế hệ thống:
+│   ├── 📁 audit_reports/             # Các báo cáo nghiệm thu và đánh giá chất lượng toàn diện
+│   ├── 📁 database/erd/              # Sơ đồ thực thể liên kết cơ sở dữ liệu (ERD)
+│   ├── 📁 sample_import_files/       # File mẫu chuẩn (.xlsx, .csv) phục vụ tính năng Import người dùng
+│   ├── 📁 screenshots/               # Ảnh chụp màn hình giao diện ứng dụng các phân hệ
+│   └── 📁 testcases/                 # Bộ testcase kiểm thử chuẩn (PROGROUP_AI_TESTCASES.xlsx)
+│
 ├── 📁 scripts/                       # Các tập lệnh tiện ích hỗ trợ vận hành:
+│   ├── 📁 automation/                # Bộ kịch bản tự động hóa kiểm thử
 │   ├── connect_usb.bat               # Thiết lập nhanh ADB Reverse qua cáp USB
 │   ├── backup_database.ps1           # Script PowerShell tự động sao lưu SQL Server
 │   ├── database_schema.sql           # Script cấu trúc bảng và dữ liệu mẫu CSDL
@@ -187,20 +212,20 @@ ProGroup_AI/
 │       ├── ProGroup_AI.API/         # Dự án Web API chính
 │       │   ├── Controllers/         # Auth, Student, Lecturer, Governance, Admin, DeTai, Groups...
 │       │   ├── DTOs/                # Data Transfer Objects cho từng module
-│       │   ├── Models/              # Thực thể ánh xạ cơ sở dữ liệu Entity Framework
+│       │   ├── Models/              # Thực thể ánh xạ cơ sở dữ liệu Entity Framework Core
 │       │   ├── Data/                # ApplicationDbContext và cấu hình quan hệ bảng
-│       │   ├── Services/            # Logic nghiệp vụ, Gemini AI, Email, Token Service
-│       │   ├── wwwroot/             # Thư mục phục vụ tệp tĩnh (ảnh đại diện upload...)
-│       │   └── appsettings.json     # Cấu hình CSDL SQL Server, JWT, Gemini API Key
+│       │   ├── Services/            # Logic nghiệp vụ, Gemini AI, Email OTP, Cloudflare R2 Storage...
+│       │   ├── wwwroot/             # Thư mục phục vụ tệp tĩnh
+│       │   └── appsettings.json     # Cấu hình CSDL SQL Server, JWT, Gemini API Key, Cloudflare R2...
 │       └── ProGroup_AI.sln          # Visual Studio Solution
 │
 └── 📁 ProGroup_AI_Frontend/          # Mã nguồn Ứng dụng Di động (Flutter SDK)
     └── progroup_ai_frontend/
         ├── lib/
         │   ├── core/                # Theme, định tuyến (AppRoutes), AppSettings, Localization (Vi/En)
-        │   ├── models/              # Model dữ liệu (User, Course, Group, Topic, Notification...)
+        │   ├── models/              # Model dữ liệu (User, Course, Group, Topic, Notification, Chat...)
         │   ├── screens/             # Giao diện người dùng phân theo 5 vai trò (sinh_vien, giang_vien...)
-        │   ├── services/            # ApiService, StudentApiService, LecturerApiService, GeminiService...
+        │   ├── services/            # ApiService, StudentApiService, ChatService, GeminiService...
         │   └── widgets/             # Các widget tái sử dụng (AppButton, AppTextField, Dialogs...)
         ├── android/                 # Cấu hình native Android (Permissions, Gradle, Manifest)
         └── pubspec.yaml             # Khai báo dependencies thư viện Flutter
@@ -222,9 +247,19 @@ Hệ thống được khởi tạo sẵn các tài khoản mẫu cho từng phâ
 
 ---
 
+## 📚 Tài liệu Bổ trợ & Báo cáo Đi kèm
+
+- **Báo cáo Đồ án Toàn diện**: [Nhom2_ProGroup_AI.docx](file:///Nhom2_ProGroup_AI.docx)
+- **Bộ Kịch bản Kiểm thử Chuẩn**: [docs/testcases/PROGROUP_AI_TESTCASES.xlsx](file:///docs/testcases/PROGROUP_AI_TESTCASES.xlsx)
+- **Sơ đồ Cơ sở Dữ liệu (ERD)**: [docs/database/erd/](file:///docs/database/erd/)
+- **Dữ liệu Mẫu Import Người dùng**: [docs/sample_import_files/](file:///docs/sample_import_files/)
+- **Ảnh Chụp Giao diện Hệ thống**: [docs/screenshots/](file:///docs/screenshots/)
+
+---
+
 ## 👥 Thông tin Tác giả & Bản quyền
 
 - **Sinh viên thực hiện**: Nguyễn Trọng Nguyên
 - **Học phần**: Phát triển Ứng dụng Di động
-- **Công nghệ chính**: Flutter (Dart) & ASP.NET Core Web API (C#) & Google Gemini AI & Microsoft SQL Server
+- **Công nghệ chính**: Flutter (Dart) & ASP.NET Core Web API (C#) & Google Gemini AI & Microsoft SQL Server & Firebase (Firestore/FCM) & Cloudflare R2
 - **Bản quyền**: © 2026 ProGroup AI. Dự án phục vụ mục đích học tập và nghiên cứu khoa học.
