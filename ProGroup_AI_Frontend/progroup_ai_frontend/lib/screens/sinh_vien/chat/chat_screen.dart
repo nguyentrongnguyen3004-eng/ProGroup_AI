@@ -87,6 +87,28 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  DateTime _parseMessageDateTime(dynamic createdAt) {
+    if (createdAt == null) return DateTime.now();
+    if (createdAt is DateTime) return createdAt;
+    if (createdAt is int) return DateTime.fromMillisecondsSinceEpoch(createdAt);
+    if (createdAt is String) {
+      return DateTime.tryParse(createdAt) ?? DateTime.now();
+    }
+    try {
+      return (createdAt as dynamic).toDate() as DateTime;
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
+
+  void _sortMessages(List<Map<String, dynamic>> list) {
+    list.sort((a, b) {
+      final dtA = _parseMessageDateTime(a['createdAt']);
+      final dtB = _parseMessageDateTime(b['createdAt']);
+      return dtA.compareTo(dtB);
+    });
+  }
+
   Future<void> _initChatMessages() async {
     final roomId = _chatRoomId;
 
@@ -98,6 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) return;
 
     if (local.isNotEmpty) {
+      _sortMessages(local);
       setState(() {
         messages = local;
       });
@@ -120,7 +143,7 @@ class _ChatScreenState extends State<ChatScreen> {
             final mappedFirestore = firestoreMsgs.map((m) {
               final senderId = m['senderId']?.toString() ?? '';
               final isMe = senderId == _currentUserId;
-              final rawCreated = m['createdAt'];
+              final rawCreated = m['createdAt'] ?? DateTime.now();
               final meta = m['metadata'] is Map ? m['metadata'] as Map : null;
               return {
                 'id': m['id'] ?? '',
@@ -140,6 +163,7 @@ class _ChatScreenState extends State<ChatScreen> {
             }).toList();
 
             final merged = _mergeWithLocalMessages(mappedFirestore, messages);
+            _sortMessages(merged);
 
             setState(() {
               messages = merged;
@@ -184,7 +208,7 @@ class _ChatScreenState extends State<ChatScreen> {
         continue;
       }
 
-      // Chỉ giữ lại tin nhắn văn bản cục bộ đang chờ đồng bộ hoặc gửi khi offline/lỗi quyền Firestore
+      // Giữ lại tin nhắn văn bản cục bộ
       final isPending = local['pendingSync'] == true;
       if (isPending) {
         final localText = local['message']?.toString() ?? '';
@@ -199,9 +223,13 @@ class _ChatScreenState extends State<ChatScreen> {
           result.add(local);
           if (id.isNotEmpty) existingIds.add(id);
         }
+      } else {
+        result.add(local);
+        if (id.isNotEmpty) existingIds.add(id);
       }
     }
 
+    _sortMessages(result);
     return result;
   }
 
@@ -282,7 +310,7 @@ class _ChatScreenState extends State<ChatScreen> {
           final reqId = r['id']?.toString() ?? '';
           if (!messages.any((m) => m['type'] == 'join_request' && (m['requestId']?.toString() == reqId || m['id'] == reqId))) {
             final created = r['createdAt'] != null ? DateTime.tryParse(r['createdAt'].toString()) : DateTime.now();
-            messages.insert(0, {
+            messages.add({
               'id': 'join_req_$reqId',
               'requestId': r['id'],
               'type': 'join_request',
@@ -297,6 +325,9 @@ class _ChatScreenState extends State<ChatScreen> {
             });
             added = true;
           }
+        }
+        if (added) {
+          _sortMessages(messages);
         }
       });
       if (added) {
@@ -357,6 +388,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       messages.add(localMsg);
+      _sortMessages(messages);
     });
     _scrollToBottom();
 

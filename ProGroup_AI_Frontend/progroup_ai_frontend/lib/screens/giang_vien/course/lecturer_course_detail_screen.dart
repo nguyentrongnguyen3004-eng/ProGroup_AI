@@ -46,11 +46,29 @@ class _LecturerCourseDetailScreenState
     });
 
     try {
+      final groupsFuture = LecturerApiService.instance
+          .fetchGroups(_course.id)
+          .catchError((_) => <GroupModel>[]);
+      final topicsFuture = LecturerApiService.instance
+          .fetchTopics(_course.id)
+          .catchError((_) => <TopicModel>[]);
+      final regsFuture = LecturerApiService.instance
+          .fetchTopicRegistrations(_course.id)
+          .catchError((_) => <Map<String, dynamic>>[]);
+      final periodsFuture = LecturerApiService.instance
+          .fetchCourseRegistrationPeriods(_course.id)
+          .catchError((_) => <Map<String, dynamic>>[]);
+
       final results = await Future.wait([
-        LecturerApiService.instance.fetchGroups(_course.id),
-        LecturerApiService.instance.fetchTopics(_course.id),
-        LecturerApiService.instance.fetchTopicRegistrations(_course.id),
-        LecturerApiService.instance.fetchCourseRegistrationPeriods(_course.id),
+        groupsFuture,
+        topicsFuture,
+        regsFuture,
+        periodsFuture,
+      ]).timeout(const Duration(seconds: 12), onTimeout: () => [
+        <GroupModel>[],
+        <TopicModel>[],
+        <Map<String, dynamic>>[],
+        <Map<String, dynamic>>[],
       ]);
 
       if (mounted) {
@@ -60,9 +78,12 @@ class _LecturerCourseDetailScreenState
           _registrations = results[2] as List<Map<String, dynamic>>;
           _periods = results[3] as List<Map<String, dynamic>>;
           if (_periods.isNotEmpty) {
-            final activeDot = _periods.firstWhere((d) => d['trangThai'] == 'Đang mở', orElse: () => _periods.first);
-            final nb = activeDot['ngayBatDau'];
-            final nk = activeDot['ngayKetThuc'];
+            final activeDot = _periods.firstWhere(
+              (d) => (d['trangThai'] ?? d['TrangThai']) == 'Đang mở',
+              orElse: () => _periods.first,
+            );
+            final nb = activeDot['ngayBatDau'] ?? activeDot['NgayBatDau'];
+            final nk = activeDot['ngayKetThuc'] ?? activeDot['NgayKetThuc'];
             if (nb != null && nk != null) {
               final d1 = DateTime.tryParse(nb.toString());
               final d2 = DateTime.tryParse(nk.toString());
@@ -76,7 +97,7 @@ class _LecturerCourseDetailScreenState
                   topicRegistrationEnd: s2,
                   minMembers: activeDot['minMembers'] as int? ?? _course.minMembers,
                   maxMembers: activeDot['maxMembers'] as int? ?? _course.maxMembers,
-                  status: activeDot['trangThai']?.toString() ?? _course.status,
+                  status: (activeDot['trangThai'] ?? activeDot['TrangThai'])?.toString() ?? _course.status,
                 );
               }
             }

@@ -62,7 +62,7 @@ public sealed class DeTaiController : ControllerBase
 
     [HttpGet("cua-toi")]
     [HttpGet("lecturer-topics")]
-    public async Task<ActionResult<IReadOnlyList<TopicResponse>>> GetLecturerTopics([FromQuery] int? dotDangKyId)
+    public async Task<ActionResult<IReadOnlyList<TopicResponse>>> GetLecturerTopics([FromQuery] int? dotDangKyId, [FromQuery] int? lopHocPhanId)
     {
         var lecturerId = await GetCurrentLecturerIdAsync();
         if (lecturerId is null)
@@ -72,6 +72,8 @@ public sealed class DeTaiController : ControllerBase
                 var adminQuery = _db.DeTaiDoAns.AsNoTracking().AsQueryable();
                 if (dotDangKyId.HasValue)
                     adminQuery = adminQuery.Where(t => t.DotDangKyId == dotDangKyId.Value);
+                if (lopHocPhanId.HasValue)
+                    adminQuery = adminQuery.Where(t => t.DotDangKy != null && t.DotDangKy.LopHocPhanId == lopHocPhanId.Value);
                 var adminList = await adminQuery.OrderByDescending(t => t.CreatedAt).Select(ToTopicResponse()).ToListAsync();
                 return Ok(adminList);
             }
@@ -90,6 +92,11 @@ public sealed class DeTaiController : ControllerBase
         if (dotDangKyId.HasValue)
         {
             query = query.Where(t => t.DotDangKyId == dotDangKyId.Value);
+        }
+
+        if (lopHocPhanId.HasValue)
+        {
+            query = query.Where(t => t.DotDangKy != null && t.DotDangKy.LopHocPhanId == lopHocPhanId.Value);
         }
 
         var list = (await query

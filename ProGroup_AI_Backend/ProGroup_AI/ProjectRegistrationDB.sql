@@ -3835,7 +3835,8 @@ SELECT 'DotImports', COUNT(*) FROM DotImports
 UNION ALL
 SELECT 'AIRequests', COUNT(*) FROM AIRequests;
 
+
 PRINT N'==============================================================================';
-PRINT N'>>> CHÚC MỪNG: HOÀN TẤT NẠP DỮ LIỆU ĐẦY ĐỦ VÀ PHONG PHÚ CHO PROGROUP AI! <<<';
+PRINT N'>>> CHÚC MỪNG: HOÀN TẤT NẠP DỮ LIỆU ĐẦY ĐỦ VÀ CHUẨN HÓA CHO PROGROUP AI! <<<';
 PRINT N'==============================================================================';
 GO

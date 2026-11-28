@@ -73,7 +73,7 @@ class LecturerApiService {
   }
 
   /// 2. Lấy danh sách nhóm đồ án
-  /// GET /api/groups hoặc GET /api/lecturer/courses/{id}/groups
+  /// GET /api/groups?lopHocPhanId={id} hoặc GET /api/groups
   Future<List<GroupModel>> fetchGroups([int? lopHocPhanId, bool forceRefresh = false]) async {
     return DataCacheService.instance.getOrFetch<List<GroupModel>>(
       'lecturer_groups_${lopHocPhanId ?? 'all'}',
@@ -81,15 +81,11 @@ class LecturerApiService {
         dynamic res;
         if (lopHocPhanId != null) {
           try {
-            res = await ApiService.instance.get('/api/lecturer/courses/$lopHocPhanId/groups');
+            res = await ApiService.instance.get('/api/groups?lopHocPhanId=$lopHocPhanId');
           } catch (_) {
             try {
               res = await ApiService.instance.get('/api/groups/course/$lopHocPhanId');
-            } catch (_) {
-              try {
-                res = await ApiService.instance.get('/api/groups?lopHocPhanId=$lopHocPhanId');
-              } catch (_) {}
-            }
+            } catch (_) {}
           }
         } else {
           try {
@@ -130,22 +126,30 @@ class LecturerApiService {
   }
 
   /// 3. Lấy danh sách đề tài của giảng viên
-  /// GET /api/de-tai/cua-toi hoặc GET /api/de-tai/lecturer-topics hoặc GET /api/de-tai
+  /// GET /api/de-tai/lecturer-topics hoặc GET /api/de-tai/cua-toi
   Future<List<TopicModel>> fetchTopics([int? courseId, bool forceRefresh = false]) async {
     return DataCacheService.instance.getOrFetch<List<TopicModel>>(
       'lecturer_topics_${courseId ?? 'all'}',
       () async {
         dynamic res;
-        try {
-          res = await ApiService.instance.get('/api/de-tai/cua-toi');
-        } catch (_) {
+        if (courseId != null) {
           try {
-            final query = courseId != null ? '?dotDangKyId=$courseId' : '';
-            res = await ApiService.instance.get('/api/de-tai/lecturer-topics$query');
+            res = await ApiService.instance.get('/api/de-tai/lecturer-topics?lopHocPhanId=$courseId');
           } catch (_) {
             try {
-              final query = courseId != null ? '?lopHocPhanId=$courseId' : '';
-              res = await ApiService.instance.get('/api/de-tai$query');
+              res = await ApiService.instance.get('/api/de-tai?lopHocPhanId=$courseId');
+            } catch (_) {
+              try {
+                res = await ApiService.instance.get('/api/de-tai/cua-toi');
+              } catch (_) {}
+            }
+          }
+        } else {
+          try {
+            res = await ApiService.instance.get('/api/de-tai/cua-toi');
+          } catch (_) {
+            try {
+              res = await ApiService.instance.get('/api/de-tai/lecturer-topics');
             } catch (_) {}
           }
         }
@@ -300,11 +304,16 @@ class LecturerApiService {
       () async {
         dynamic res;
         try {
-          res = await ApiService.instance.get('/api/dang-ky-de-tai');
+          final query = courseId != null ? '?lopHocPhanId=$courseId' : '';
+          res = await ApiService.instance.get('/api/dang-ky-de-tai$query');
         } catch (_) {
           try {
-            res = await ApiService.instance.get('/api/de-tai/registrations');
-          } catch (_) {}
+            res = await ApiService.instance.get('/api/dang-ky-de-tai');
+          } catch (_) {
+            try {
+              res = await ApiService.instance.get('/api/de-tai/registrations');
+            } catch (_) {}
+          }
         }
 
         if (res is List) {

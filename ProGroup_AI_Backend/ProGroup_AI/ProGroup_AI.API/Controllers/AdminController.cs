@@ -796,4 +796,86 @@ public sealed class AdminController : ControllerBase
             Message = $"Thành công: {successCount}, Thất bại: {failedCount}"
         });
     }
+
+    [Authorize(Roles = "ADMIN")]
+    [HttpPost("backup")]
+    public async Task<IActionResult> CreateBackup()
+    {
+        try
+        {
+            var contentRoot = AppContext.BaseDirectory;
+            var dir = new DirectoryInfo(contentRoot);
+            while (dir != null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "start_full_system.bat")))
+            {
+                dir = dir.Parent;
+            }
+            var repoRoot = dir?.FullName ?? AppDomain.CurrentDomain.BaseDirectory;
+            var backupDir = System.IO.Path.Combine(repoRoot, "backups");
+            if (!System.IO.Directory.Exists(backupDir))
+            {
+                System.IO.Directory.CreateDirectory(backupDir);
+            }
+
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var fileName = $"ProjectRegistrationDB_backup_{timestamp}.bak";
+            var backupPath = System.IO.Path.Combine(backupDir, fileName);
+
+            var sql = $"BACKUP DATABASE [ProjectRegistrationDB] TO DISK = N'{backupPath}' WITH FORMAT, INIT, STATS = 10";
+            await _db.Database.ExecuteSqlRawAsync(sql);
+
+            var fileInfo = new System.IO.FileInfo(backupPath);
+            return Ok(new
+            {
+                success = true,
+                message = "Sao lưu cơ sở dữ liệu thành công.",
+                fileName,
+                filePath = backupPath,
+                sizeBytes = fileInfo.Exists ? fileInfo.Length : 0,
+                createdAt = DateTime.Now
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = $"Lỗi sao lưu cơ sở dữ liệu: {ex.Message}" });
+        }
+    }
+
+    [Authorize(Roles = "ADMIN")]
+    [HttpGet("backups")]
+    public IActionResult GetBackups()
+    {
+        try
+        {
+            var contentRoot = AppContext.BaseDirectory;
+            var dir = new DirectoryInfo(contentRoot);
+            while (dir != null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "start_full_system.bat")))
+            {
+                dir = dir.Parent;
+            }
+            var repoRoot = dir?.FullName ?? AppDomain.CurrentDomain.BaseDirectory;
+            var backupDir = System.IO.Path.Combine(repoRoot, "backups");
+            if (!System.IO.Directory.Exists(backupDir))
+            {
+                return Ok(new List<object>());
+            }
+
+            var files = new System.IO.DirectoryInfo(backupDir)
+                .GetFiles("*.bak")
+                .OrderByDescending(f => f.CreationTime)
+                .Select(f => new
+                {
+                    fileName = f.Name,
+                    filePath = f.FullName,
+                    sizeBytes = f.Length,
+                    createdAt = f.CreationTime
+                })
+                .ToList();
+
+            return Ok(files);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = $"Lỗi lấy danh sách bản sao lưu: {ex.Message}" });
+        }
+    }
 }

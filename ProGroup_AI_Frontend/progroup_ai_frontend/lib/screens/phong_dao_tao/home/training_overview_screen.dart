@@ -119,12 +119,35 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     final unreadCount = _notifications.where((n) => n['isRead'] != true && n['daDoc'] != true).length;
 
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 38,
+                height: 38,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                AppLocalizations.text('Đang tải dữ liệu tổng quan...', en: 'Loading overview data...'),
+                style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    if (_errorMessage != null && _courses.isEmpty) {
+    if (_errorMessage != null && _courses.isEmpty && _overview.isEmpty) {
       return Scaffold(
         body: SafeArea(
           bottom: true,
@@ -178,8 +201,8 @@ class _TrainingOverviewScreenState extends State<TrainingOverviewScreen> {
     }
 
     final int totalCourses = _courses.length;
-    final int totalStudents = _overview['tongSinhVien'] as int? ?? _overview['totalStudents'] as int? ?? _overview['sinhViens'] as int? ?? 120;
-    final int totalLecturers = _overview['tongGiangVien'] as int? ?? _overview['totalLecturers'] as int? ?? _overview['giangViens'] as int? ?? 18;
+    final int totalStudents = (_overview['tongSinhVien'] as num?)?.toInt() ?? (_overview['totalStudents'] as num?)?.toInt() ?? (_overview['sinhViens'] as num?)?.toInt() ?? 120;
+    final int totalLecturers = (_overview['tongGiangVien'] as num?)?.toInt() ?? (_overview['totalLecturers'] as num?)?.toInt() ?? (_overview['giangViens'] as num?)?.toInt() ?? 18;
 
     return Scaffold(
       body: SafeArea(

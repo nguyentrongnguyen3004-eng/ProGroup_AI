@@ -1,0 +1,96 @@
+{
+  "4.1_login_lecturer": {
+    "status": 200,
+    "dur": 229.20049999993353
+  },
+  "4.2_reject_with_comments": {
+    "status": 200,
+    "dur": 168.5352000004059,
+    "res": {
+      "deTaiId": 130,
+      "dotDangKyId": 48,
+      "tenDot": "Đợt 1 - Đồ án E2E 2026",
+      "lopHocPhanId": 26,
+      "maLopHocPhan": "DA_E2E_2026",
+      "tenLopHocPhan": "Đồ án Tốt nghiệp E2E 2026",
+      "tenDeTai": "Ứng dụng Quản lý & Phê duyệt Đồ án Sinh viên ProGroup AI",
+      "moTa": "Nghiên cứu kiến trúc Microservices và ứng dụng di động Flutter hỗ trợ quản lý đề tài đồ án tốt nghiệp.",
+      "mucTieu": "Tự động hóa quy trình phân nhóm, đăng ký đề tài và nộp báo cáo định kỳ.",
+      "phamVi": "Toàn trường Đại học, áp dụng cho tất cả các khoa.",
+      "congNgheDuKien": "Flutter, ASP.NET Core Web API, SQL Server, Firebase",
+      "nguonDeTai": "Sinh viên đề xuất",
+      "giangVienId": 3,
+      "tenGiangVien": "Nguyễn Văn Giảng",
+      "maGiangVien": "GV001",
+      "sinhVienDeXuatId": 12,
+      "tenSinhVienDeXuat": "Trần Minh An",
+      "mssvDeXuat": "SV001",
+      "trangThai": "Chưa sử dụng",
+      "trangThaiDuyet": "Từ chối",
+      "lyDoTuChoi": "Cần bổ sung kiến trúc Microservices và kịch bản kiểm thử tải JMeter.",
+      "giangVien": "Nguyễn Văn Giảng",
+      "lecturerName": "Nguyễn Văn Giảng",
+      "proposerName": "Trần Minh An",
+      "sinhVienDeXuatTen": "Trần Minh An",
+      "sinhVienTen": "Trần Minh An",
+      "ghiChu": "Cần bổ sung kiến trúc Microservices và kịch bản kiểm thử tải JMeter.",
+      "lyDo": "Cần bổ sung kiến trúc Microservices và kịch bản kiểm thử tải JMeter.",
+      "rejectionReason": "Cần bổ sung kiến trúc Microservices và kịch bản kiểm thử tải JMeter.",
+      "createdAt": "2026-11-27T11:02:46.1503233",
+      "updatedAt": "2026-11-27T11:05:05.5744216"
+    }
+  },
+  "4.3_student_notifications": {
+    "status": 200,
+    "dur": 49.62129999876197,
+    "count": 44
+  },
+  "4.4_approve_topic": {
+    "status": 200,
+    "dur": 132.1896999997989,
+    "res": {
+      "deTaiId": 130,
+      "dotDangKyId": 48,
+      "tenDot": "Đợt 1 - Đồ án E2E 2026",
+      "lopHocPhanId": 26,
+      "maLopHocPhan": "DA_E2E_2026",
+      "tenLopHocPhan": "Đồ án Tốt nghiệp E2E 2026",
+      "tenDeTai": "Ứng dụng Quản lý & Phê duyệt Đồ án Sinh viên ProGroup AI",
+      "moTa": "Nghiên cứu kiến trúc Microservices và ứng dụng di động Flutter hỗ trợ quản lý đề tài đồ án tốt nghiệp.",
+      "mucTieu": "Tự động hóa quy trình phân nhóm, đăng ký đề tài và nộp báo cáo định kỳ.",
+      "phamVi": "Toàn trường Đại học, áp dụng cho tất cả các khoa.",
+      "congNgheDuKien": "Flutter, ASP.NET Core Web API, SQL Server, Firebase",
+      "nguonDeTai": "Sinh viên đề xuất",
+      "giangVienId": 3,
+      "tenGiangVien": "Nguyễn Văn Giảng",
+      "maGiangVien": "GV001",
+      "sinhVienDeXuatId": 12,
+      "tenSinhVienDeXuat": "Trần Minh An",
+      "mssvDeXuat": "SV001",
+      "trangThai": "Đã đăng ký",
+      "trangThaiDuyet": "Đã duyệt",
+      "lyDoTuChoi": null,
+      "giangVien": "Nguyễn Văn Giảng",
+      "lecturerName": "Nguyễn Văn Giảng",
+      "proposerName": "Trần Minh An",
+      "sinhVienDeXuatTen": "Trần Minh An",
+      "sinhVienTen": "Trần Minh An",
+      "ghiChu": null,
+      "lyDo": null,
+      "rejectionReason": null,
+      "createdAt": "2026-11-27T11:02:46.1503233",
+      "updatedAt": "2026-11-27T11:05:05.9792933"
+    }
+  },
+  "4.5_register_topic_to_group": {
+    "status": 409,
+    "dur": 83.43220000097062,
+    "res": {
+      "message": "Nhóm đã có đăng ký đề tài đang chờ hoặc đã duyệt."
+    }
+  },
+  "4.6_verify_group_linked": {
+    "status": 200,
+    "dur": 91.05730000010226
+  }
+}

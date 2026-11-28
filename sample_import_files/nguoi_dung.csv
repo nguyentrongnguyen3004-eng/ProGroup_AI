@@ -1,0 +1,8 @@
+﻿Tên đăng nhập,Mật khẩu,Họ và tên,Email,Số điện thoại,Vai trò,Trạng thái
+sinhvien_demo01,Pass@123,Trần Quang Khải,khai.tq@hufi.edu.vn,0901234501,SINHVIEN,Hoạt động
+sinhvien_demo02,Pass@123,Nguyễn Thảo My,my.nt@hufi.edu.vn,0901234502,SINHVIEN,Hoạt động
+sinhvien_demo03,Pass@123,Phạm Quốc Tuấn,tuan.pq@hufi.edu.vn,0901234503,SINHVIEN,Hoạt động
+giangvien_demo01,Pass@123,ThS. Dương Thanh Bình,binh.dt@hufi.edu.vn,0912345601,GIANGVIEN,Hoạt động
+giangvien_demo02,Pass@123,TS. Lê Quỳnh Chi,chi.lq@hufi.edu.vn,0912345602,GIANGVIEN,Hoạt động
+giaovu_demo01,Pass@123,Cô Nguyễn Thanh Trúc,truc.nt@hufi.edu.vn,0923456701,GIAOVUKHOA,Hoạt động
+pdt_demo01,Pass@123,Thầy Hoàng Trọng Nghĩa,nghia.ht@hufi.edu.vn,0934567801,PHONGDAOTAO,Hoạt động

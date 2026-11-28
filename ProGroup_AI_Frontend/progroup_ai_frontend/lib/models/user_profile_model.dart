@@ -56,10 +56,30 @@ class UserProfileModel {
         sinhVien?['gioiTinh'] as String? ??
         '';
 
-    final dateOfBirth = json['ngaySinh']?.toString() ??
+    final rawDateOfBirth = json['ngaySinh']?.toString() ??
         json['dateOfBirth'] as String? ??
         sinhVien?['ngaySinh']?.toString() ??
         '';
+
+    String dateOfBirth = '';
+    if (rawDateOfBirth.trim().isNotEmpty) {
+      try {
+        final dt = DateTime.parse(rawDateOfBirth.trim());
+        dateOfBirth = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+      } catch (_) {
+        final clean = rawDateOfBirth.split('T').first.split(' ').first;
+        if (clean.contains('-')) {
+          final parts = clean.split('-');
+          if (parts.length == 3 && parts[0].length == 4) {
+            dateOfBirth = '${parts[2].padLeft(2, '0')}/${parts[1].padLeft(2, '0')}/${parts[0]}';
+          } else {
+            dateOfBirth = clean;
+          }
+        } else {
+          dateOfBirth = clean;
+        }
+      }
+    }
 
     return UserProfileModel(
       id: json['nguoiDungId'] as int? ??

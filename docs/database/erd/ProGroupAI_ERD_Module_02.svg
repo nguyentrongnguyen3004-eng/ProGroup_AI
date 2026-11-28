@@ -1,0 +1,347 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1450 1200" width="1450" height="1200">
+  <defs>
+    <filter id="card-shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+    <marker id="crow-foot" markerWidth="14" markerHeight="14" refX="10" refY="7" orient="auto">
+      <path d="M 0 1 L 10 7 L 0 13 M 10 2 L 10 12" fill="none" stroke="#475569" stroke-width="1.8"/>
+    </marker>
+    <marker id="one-bar" markerWidth="14" markerHeight="14" refX="2" refY="7" orient="auto">
+      <path d="M 4 2 L 4 12 M 8 2 L 8 12" fill="none" stroke="#475569" stroke-width="1.8"/>
+    </marker>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#F1F5F9" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1450" height="1200" fill="#F8FAFC"/>
+  <rect width="1450" height="1200" fill="url(#grid)"/>
+  <rect x="30" y="20" width="1390" height="76" rx="8" fill="#1E293B"/>
+  <text x="50" y="52" font-family="Segoe UI, sans-serif" font-size="19" font-weight="800" fill="#FFFFFF">PROGROUP AI - SƠ ĐỒ ERD CHI TIẾT: QUẢN LÝ ĐÀO TẠO, KHOA & LỚP HỌC PHẦN</text>
+  <text x="50" y="78" font-family="Segoe UI, sans-serif" font-size="11.5" font-weight="500" fill="#94A3B8">Phân hệ gồm 8 bảng | Cơ sở dữ liệu: ProjectRegistrationDB | Độ nét vector chất lượng cao</text>
+  <g id="table_Khoas" class="table-card" transform="translate(60, 140)">
+    <rect width="380" height="166" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">Khoas</text>
+    <rect x="312" y="8" width="56" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="340.0" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">5 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">KhoaId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="73" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">MaKhoa</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">varchar(20)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="97" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TenKhoa</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(200)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="121" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TrangThai</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">bit</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="145" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">CreatedAt</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <g id="table_HocKys" class="table-card" transform="translate(520, 140)">
+    <rect width="380" height="214" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">HocKys</text>
+    <rect x="312" y="8" width="56" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="340.0" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">3 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">HocKyId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="73" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TenHocKy</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(100)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="97" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">NamHoc</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">varchar(20)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="121" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">NgayBatDau</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">date</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="145" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">NgayKetThuc</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">date</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="158" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="169" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="174" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TrangThai</text>
+    <text x="334" y="174" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">bit</text>
+    <text x="368" y="174" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="193" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="198" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">CreatedAt</text>
+    <text x="334" y="198" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="198" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <g id="table_HocPhans" class="table-card" transform="translate(60, 380)">
+    <rect width="380" height="238" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">HocPhans</text>
+    <rect x="312" y="8" width="56" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="340.0" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">8 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">HocPhanId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="73" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">MaHocPhan</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">varchar(30)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="97" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TenHocPhan</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(300)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="121" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">SoTinChi</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="12" y="138" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="149" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">KhoaId</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <rect x="2" y="158" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="169" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="174" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="500" fill="#334155">MoTa</text>
+    <text x="334" y="174" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(1000)</text>
+    <text x="368" y="174" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <circle cx="23" cy="193" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="198" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TrangThai</text>
+    <text x="334" y="198" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">bit</text>
+    <text x="368" y="198" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="206" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="217" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="222" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">CreatedAt</text>
+    <text x="334" y="222" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="222" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <g id="table_LopHocPhans" class="table-card" transform="translate(520, 420)">
+    <rect width="380" height="262" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">LopHocPhans</text>
+    <rect x="305" y="8" width="63" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="336.5" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">13 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">LopHocPhanId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="73" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">MaLopHocPhan</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">varchar(50)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="97" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="500" fill="#334155">TenLopHocPhan</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(300)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="114" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="125" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">HocPhanId</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="12" y="138" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="149" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">HocKyId</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="158" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="162" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="173" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="174" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">KhoaId</text>
+    <text x="334" y="174" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="174" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="193" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="198" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="500" fill="#334155">SoLuongToiDa</text>
+    <text x="334" y="198" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="198" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <rect x="2" y="206" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="217" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="222" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TrangThai</text>
+    <text x="334" y="222" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">bit</text>
+    <text x="368" y="222" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="241" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="246" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">CreatedAt</text>
+    <text x="334" y="246" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="246" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <g id="table_SinhViens" class="table-card" transform="translate(60, 680)">
+    <rect width="380" height="214" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">SinhViens</text>
+    <rect x="298" y="8" width="70" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="333.0" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">253 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">SinhVienId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="66" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="77" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">NguoiDungId</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="97" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">MSSV</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">varchar(30)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="114" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="125" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">KhoaId</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="145" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="500" fill="#334155">NgaySinh</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">date</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <rect x="2" y="158" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="169" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="174" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="500" fill="#334155">GioiTinh</text>
+    <text x="334" y="174" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(10)</text>
+    <text x="368" y="174" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <circle cx="23" cy="193" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="198" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">CreatedAt</text>
+    <text x="334" y="198" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="198" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <g id="table_GiangViens" class="table-card" transform="translate(980, 140)">
+    <rect width="380" height="214" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">GiangViens</text>
+    <rect x="312" y="8" width="56" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="340.0" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">6 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">GiangVienId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="66" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="77" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">NguoiDungId</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="97" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">MaGiangVien</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">varchar(30)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="114" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="125" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">KhoaId</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="145" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="500" fill="#334155">HocVi</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(100)</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <rect x="2" y="158" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="169" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="174" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="500" fill="#334155">ChuyenMon</text>
+    <text x="334" y="174" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(200)</text>
+    <text x="368" y="174" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" text-anchor="end">NULL</text>
+    <circle cx="23" cy="193" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="198" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">CreatedAt</text>
+    <text x="334" y="198" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="198" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <g id="table_PhanCongGiangViens" class="table-card" transform="translate(980, 440)">
+    <rect width="380" height="190" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">PhanCongGiangViens</text>
+    <rect x="305" y="8" width="63" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="336.5" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">17 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">PhanCongId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="66" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="77" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">LopHocPhanId</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="12" y="90" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="101" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">GiangVienId</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="121" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">VaiTro</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">nvarchar(100)</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="145" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">NgayPhanCong</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="158" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="169" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="174" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TrangThai</text>
+    <text x="334" y="174" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">bit</text>
+    <text x="368" y="174" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <g id="table_SinhVienLopHocPhans" class="table-card" transform="translate(60, 960)">
+    <rect width="380" height="166" rx="8" ry="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <path d="M 0 8 Q 0 0 8 0 L 372 0 Q 380 0 380 8 L 380 36 L 0 36 Z" fill="#065F46"/>
+    <text x="16" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">SinhVienLopHocPhans</text>
+    <rect x="298" y="8" width="70" height="20" rx="10" ry="10" fill="rgba(255,255,255,0.2)"/>
+    <text x="333.0" y="22" font-family="Segoe UI, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">453 rows</text>
+    <rect x="12" y="42" width="22" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+    <text x="23" y="53" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+    <text x="60" y="54" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">SinhVienLopHocPhanId</text>
+    <text x="334" y="54" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="54" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="62" width="376" height="24" fill="#F8FAFC"/>
+    <rect x="12" y="66" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="77" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="78" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">SinhVienId</text>
+    <text x="334" y="78" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="78" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="12" y="90" width="22" height="15" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+    <text x="23" y="101" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+    <text x="60" y="102" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0F172A">LopHocPhanId</text>
+    <text x="334" y="102" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">int(10)</text>
+    <text x="368" y="102" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <rect x="2" y="110" width="376" height="24" fill="#F8FAFC"/>
+    <circle cx="23" cy="121" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="126" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">NgayThamGia</text>
+    <text x="334" y="126" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">datetime2</text>
+    <text x="368" y="126" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+    <circle cx="23" cy="145" r="2.5" fill="#CBD5E1"/>
+    <text x="36" y="150" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#334155">TrangThai</text>
+    <text x="334" y="150" font-family="Consolas, monospace" font-size="9.5" fill="#64748B" text-anchor="end">bit</text>
+    <text x="368" y="150" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="600" fill="#047857" text-anchor="end">NN</text>
+  </g>
+  <path d="M 980 262.0 C 764.0 262.0, 656.0 190.0, 440 190.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 440 526.0 C 440.0 526.0, 440.0 190.0, 440 190.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 900 566.0 C 900.0 566.0, 900.0 190.0, 900 190.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 520 542.0 C 488.0 542.0, 472.0 430.0, 440 430.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 520 590.0 C 488.0 590.0, 472.0 190.0, 440 190.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 1360 538.0 C 1360.0 538.0, 1360.0 190.0, 1360 190.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 980 514.0 C 948.0 514.0, 932.0 470.0, 900 470.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 440 1058.0 C 472.0 1058.0, 488.0 470.0, 520 470.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 440 1034.0 C 440.0 1034.0, 440.0 730.0, 440 730.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+  <path d="M 440 802.0 C 440.0 802.0, 440.0 190.0, 440 190.0" fill="none" stroke="#059669" stroke-width="1.8" stroke-dasharray="none" opacity="0.82" marker-end="url(#crow-foot)" marker-start="url(#one-bar)"/>
+</svg>

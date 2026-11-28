@@ -1,0 +1,124 @@
+{
+  "results": {
+    "3.1a_login_sv001": {
+      "status": 200,
+      "dur": 272.65780000016093
+    },
+    "3.1b_create_group": {
+      "status": 201,
+      "dur": 266.4237000008143,
+      "res": {
+        "nhomId": 73,
+        "tenNhom": "Nhóm E2E ProGroup AI"
+      }
+    },
+    "3.2_constraint_invalid_student": {
+      "status": 404,
+      "dur": 55.83989999831829,
+      "expected": 400
+    },
+    "3.3_invite_sv002": {
+      "status": 200,
+      "dur": 129.69340000017837
+    },
+    "3.4_constraint_duplicate_invite": {
+      "status": 200,
+      "dur": 30.945800001063617
+    },
+    "3.6_ai_suggest": {
+      "status": 200,
+      "dur": 50.51169999933336,
+      "res": {
+        "success": true,
+        "requestId": 5,
+        "prompt": "Gợi ý đề tài đồ án tốt nghiệp chuyên ngành: Công nghệ thông tin, Định hướng: Phần mềm & AI, Công nghệ: Flutter, ASP.NET Core, Gemini API",
+        "suggestions": [
+          {
+            "tenDeTai": "Hệ thống Quản lý và Đăng ký Đồ án Tốt nghiệp tích hợp AI (ProGroup AI)",
+            "mucTieu": "Xây dựng nền tảng hỗ trợ sinh viên lập nhóm, đề xuất đề tài và phân công giảng viên tự động với AI hỗ trợ.",
+            "congNgheDuKien": "Flutter, ASP.NET Core Web API, SQL Server, Google Gemini AI, Firebase Cloud Messaging",
+            "phamVi": "Triển khai thử nghiệm cho khoa Công nghệ Thông tin trường Đại học",
+            "ketQuaDuKien": "Ứng dụng di động iOS/Android, Web API backend bảo mật JWT, module gợi ý và chuẩn hóa đề tài tự động."
+          },
+          {
+            "tenDeTai": "Ứng dụng Điểm danh Sinh viên Thông minh qua Nhận diện Khuôn mặt đa góc nghiêng",
+            "mucTieu": "Tự động hóa công tác điểm danh trong lớp học phần, ngăn ngừa gian lận.",
+            "congNgheDuKien": "Flutter, Python FastAPI, YOLOv8, FaceNet, PostgreSQL",
+            "phamVi": "Triển khai cho các giảng đường có camera góc rộng",
+            "ketQuaDuKien": "Tốc độ nhận diện < 500ms, độ chính xác đạt trên 98%."
+          },
+          {
+            "tenDeTai": "Nền tảng Ôn luyện Phỏng vấn Kỹ thuật IT với Trợ lý Ảo AI phỏng vấn trực tiếp",
+            "mucTieu": "Giúp sinh viên thực hành phỏng vấn lập trình viên và nhận đánh giá năng lực thời gian thực.",
+            "congNgheDuKien": "React Native / Flutter, Node.js, WebRTC, Gemini Live API",
+            "phamVi": "Hỗ trợ các vị trí Frontend, Backend, Mobile, DevOps",
+            "ketQuaDuKien": "Sinh viên được chấm điểm chi tiết theo rubric tiêu chuẩn doanh nghiệp."
+          }
+        ],
+        "createdAt": "2026-11-27T11:02:46.0429085+07:00"
+      }
+    },
+    "3.7_ai_standardize": {
+      "status": 200,
+      "dur": 23.189499999716645,
+      "res": {
+        "success": true,
+        "requestId": 6,
+        "standardizedTopic": {
+          "tenDeTai": "Hệ thống hỗ trợ đăng ký và quản lý nhóm đồ án sinh viên tích hợp AI",
+          "mucTieu": "Xây dựng hệ thống hoàn chỉnh giải quyết triệt để bài toán quản lý, tối ưu thời gian thao tác của người dùng và đảm bảo an toàn dữ liệu.",
+          "phamVi": "Áp dụng cho quy mô toàn trường đại học, phục vụ đồng thời tối thiểu 1.000 người dùng trong mùa đăng ký cao điểm.",
+          "congNgheDuKien": "Flutter 3.x, ASP.NET Core 10, SQL Server, Redis Cache, Docker",
+          "ketQuaDuKien": "Bộ mã nguồn chuẩn clean architecture, tài liệu đặc tả API Swagger, ứng dụng di động hoàn chỉnh và báo cáo nghiệm thu kỹ thuật."
+        },
+        "createdAt": "2026-11-27T11:02:46.0908342+07:00"
+      }
+    },
+    "3.8_propose_topic": {
+      "status": 201,
+      "dur": 136.9563999996899,
+      "res": {
+        "deTaiId": 130,
+        "dotDangKyId": 48,
+        "tenDot": "Đợt 1 - Đồ án E2E 2026",
+        "lopHocPhanId": 26,
+        "maLopHocPhan": "DA_E2E_2026",
+        "tenLopHocPhan": "Đồ án Tốt nghiệp E2E 2026",
+        "tenDeTai": "Ứng dụng Quản lý & Phê duyệt Đồ án Sinh viên ProGroup AI",
+        "moTa": "Nghiên cứu kiến trúc Microservices và ứng dụng di động Flutter hỗ trợ quản lý đề tài đồ án tốt nghiệp.",
+        "mucTieu": "Tự động hóa quy trình phân nhóm, đăng ký đề tài và nộp báo cáo định kỳ.",
+        "phamVi": "Toàn trường Đại học, áp dụng cho tất cả các khoa.",
+        "congNgheDuKien": "Flutter, ASP.NET Core Web API, SQL Server, Firebase",
+        "nguonDeTai": "Sinh viên đề xuất",
+        "giangVienId": 3,
+        "tenGiangVien": "Nguyễn Văn Giảng",
+        "maGiangVien": "GV001",
+        "sinhVienDeXuatId": 12,
+        "tenSinhVienDeXuat": "Trần Minh An",
+        "mssvDeXuat": "SV001",
+        "trangThai": "Chưa sử dụng",
+        "trangThaiDuyet": "Chờ duyệt",
+        "lyDoTuChoi": null,
+        "giangVien": "Nguyễn Văn Giảng",
+        "lecturerName": "Nguyễn Văn Giảng",
+        "proposerName": "Trần Minh An",
+        "sinhVienDeXuatTen": "Trần Minh An",
+        "sinhVienTen": "Trần Minh An",
+        "ghiChu": null,
+        "lyDo": null,
+        "rejectionReason": null,
+        "createdAt": "2026-11-27T11:02:46.1503233",
+        "updatedAt": null
+      }
+    },
+    "3.9_constraint_duplicate_proposal": {
+      "status": 400,
+      "dur": 6.296100000326987,
+      "res": {
+        "message": "Bạn đã có đề tài trong đợt này đang chờ duyệt hoặc đã được duyệt. Mỗi sinh viên chỉ gửi 1 đề tài trong một đợt."
+      }
+    }
+  },
+  "groupId": 73,
+  "topicId": null
+}

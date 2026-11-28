@@ -37,19 +37,16 @@ public sealed class GroupsController : ControllerBase
 
 
     [HttpGet]
-
-    public async Task<IActionResult> GetAll([FromQuery] int? lopHocPhanId)
-
+    [HttpGet("course/{lopHocPhanId:int}")]
+    [HttpGet("/api/lecturer/courses/{lopHocPhanId:int}/groups")]
+    public async Task<IActionResult> GetAll([FromQuery] int? lopHocPhanId, [FromRoute(Name = "lopHocPhanId")] int? routeLopHocPhanId = null)
     {
-
+        var targetLopHocPhanId = lopHocPhanId ?? routeLopHocPhanId;
         var query = _db.NhomDoAns.AsNoTracking().AsQueryable();
 
-        if (lopHocPhanId.HasValue)
-
+        if (targetLopHocPhanId.HasValue)
         {
-
-            query = query.Where(g => g.DotDangKy != null && g.DotDangKy.LopHocPhanId == lopHocPhanId.Value);
-
+            query = query.Where(g => g.DotDangKy != null && g.DotDangKy.LopHocPhanId == targetLopHocPhanId.Value);
         }
 
         var groups = await query
@@ -58,7 +55,6 @@ public sealed class GroupsController : ControllerBase
             .ToListAsync();
 
         return Ok(groups.Select(FinalizeGroupResponse));
-
     }
 
 

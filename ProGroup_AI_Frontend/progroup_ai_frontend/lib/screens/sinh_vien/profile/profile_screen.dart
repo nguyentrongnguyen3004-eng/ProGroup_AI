@@ -349,6 +349,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }
 
+  String _formatDateOfBirth(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 'Chưa cập nhật';
+    final trimmed = raw.trim();
+    try {
+      final dt = DateTime.parse(trimmed);
+      final d = dt.day.toString().padLeft(2, '0');
+      final m = dt.month.toString().padLeft(2, '0');
+      final y = dt.year.toString();
+      return '$d/$m/$y';
+    } catch (_) {
+      final clean = trimmed.split('T').first.split(' ').first;
+      if (clean.contains('-')) {
+        final parts = clean.split('-');
+        if (parts.length == 3 && parts[0].length == 4) {
+          return '${parts[2].padLeft(2, '0')}/${parts[1].padLeft(2, '0')}/${parts[0]}';
+        }
+      }
+      return clean.isNotEmpty ? clean : 'Chưa cập nhật';
+    }
+  }
+
   // ============================================================
   // SECTIONS
   // ============================================================
@@ -364,9 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final faculty = _profile?.faculty.isNotEmpty == true
         ? _profile!.faculty
         : 'Khoa Công nghệ thông tin';
-    final dob = _profile?.dateOfBirth.isNotEmpty == true
-        ? _profile!.dateOfBirth
-        : 'Chưa cập nhật';
+    final dob = _formatDateOfBirth(_profile?.dateOfBirth);
     final gender = _profile?.gender.isNotEmpty == true
         ? _profile!.gender
         : 'Chưa cập nhật';

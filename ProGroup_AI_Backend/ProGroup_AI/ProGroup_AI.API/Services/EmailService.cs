@@ -34,7 +34,7 @@ public class EmailService : IEmailService
 
             if (string.IsNullOrWhiteSpace(senderPassword))
             {
-                _logger.LogWarning("Chưa cấu hình mật khẩu SMTP (SMTP_PASSWORD hoặc EmailSettings:SenderPassword). Bỏ qua gửi email thực tế cho {Email}.", toEmail);
+                _logger.LogInformation("[DEV_OTP] Mã xác thực OTP cho {Email} ({RecipientName}) là: {OtpCode}", toEmail, recipientName, otpCode);
                 return true;
             }
 

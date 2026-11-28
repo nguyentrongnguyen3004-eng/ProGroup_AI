@@ -25,6 +25,7 @@ public sealed class DangKyDeTaiController : ControllerBase
     [HttpGet("/api/de-tai/registrations")]
     public async Task<ActionResult<IReadOnlyList<DangKyDeTaiResponse>>> GetAll(
         [FromQuery] int? dotDangKyId,
+        [FromQuery] int? lopHocPhanId,
         [FromQuery] string? trangThai)
     {
         var query = _db.DangKyDeTais.AsNoTracking().AsQueryable();
@@ -32,6 +33,11 @@ public sealed class DangKyDeTaiController : ControllerBase
         if (dotDangKyId.HasValue)
         {
             query = query.Where(r => r.DeTai != null && r.DeTai.DotDangKyId == dotDangKyId.Value);
+        }
+
+        if (lopHocPhanId.HasValue)
+        {
+            query = query.Where(r => r.DeTai != null && r.DeTai.DotDangKy != null && r.DeTai.DotDangKy.LopHocPhanId == lopHocPhanId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(trangThai))

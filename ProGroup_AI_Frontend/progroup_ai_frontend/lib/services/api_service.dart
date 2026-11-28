@@ -220,23 +220,23 @@ class ApiService {
           case 'POST':
             response = await _client
                 .post(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 25));
+                .timeout(const Duration(seconds: 10));
             break;
           case 'PUT':
             response = await _client
                 .put(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 25));
+                .timeout(const Duration(seconds: 10));
             break;
           case 'DELETE':
             response = await _client
                 .delete(uri, headers: headers, body: bodyStr)
-                .timeout(const Duration(seconds: 25));
+                .timeout(const Duration(seconds: 10));
             break;
           case 'GET':
           default:
             response = await _client
                 .get(uri, headers: headers)
-                .timeout(const Duration(seconds: 25));
+                .timeout(const Duration(seconds: 10));
             break;
         }
 
@@ -267,13 +267,15 @@ class ApiService {
           }
         }
 
-        // Nếu nhận 403/404 từ router hoặc thiết bị mạng lạ không mang cấu trúc JSON của Backend API, bỏ qua để thử URL tiếp theo
-        if ((response.statusCode == 403 || response.statusCode == 404) &&
-            !responseBody.contains('message') &&
-            !responseBody.contains('title') &&
-            !responseBody.contains('status')) {
-          debugPrint('[ApiService] Bỏ qua $baseUrl do phản hồi ${response.statusCode} từ thiết bị mạng không phải Backend API');
-          continue;
+        // Nếu nhận 403/404 từ router hoặc thiết bị mạng lạ khi CHƯA xác định được máy chủ làm việc (_workingBaseUrl)
+        if (_workingBaseUrl == null || baseUrl != _workingBaseUrl) {
+          if ((response.statusCode == 403 || response.statusCode == 404) &&
+              !responseBody.contains('message') &&
+              !responseBody.contains('title') &&
+              !responseBody.contains('status')) {
+            debugPrint('[ApiService] Bỏ qua $baseUrl do phản hồi ${response.statusCode} từ thiết bị mạng không phải Backend API');
+            continue;
+          }
         }
 
         // Lấy thông báo lỗi chi tiết từ phản hồi nếu có

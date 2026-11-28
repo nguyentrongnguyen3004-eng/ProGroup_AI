@@ -383,6 +383,33 @@ public sealed class LopHocPhanController : ControllerBase
         return Ok(new { success = true, lopHocPhanId = lopHocPhan.LopHocPhanId, message = "Tạo lớp học phần thành công." });
     }
 
+    [Authorize(Roles = "ADMIN,GIAOVUKHOA,PHONGDAOTAO")]
+    [HttpPost("{id:int}/students")]
+    public async Task<IActionResult> EnrollStudents(int id, [FromBody] List<int> studentIds)
+    {
+        var lhp = await _db.LopHocPhans.FindAsync(id);
+        if (lhp == null) return NotFound(new { message = "Lớp học phần không tồn tại." });
+
+        int added = 0;
+        foreach (var sid in studentIds)
+        {
+            var exists = await _db.SinhVienLopHocPhans.AnyAsync(s => s.LopHocPhanId == id && s.SinhVienId == sid);
+            if (!exists)
+            {
+                _db.SinhVienLopHocPhans.Add(new SinhVienLopHocPhan
+                {
+                    LopHocPhanId = id,
+                    SinhVienId = sid,
+                    TrangThai = true,
+                    NgayThamGia = DateTime.Now
+                });
+                added++;
+            }
+        }
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, addedCount = added, message = $"Đã ghi danh {studentIds.Count} sinh viên vào lớp học phần." });
+    }
+
     [Authorize(Roles = "GIANGVIEN,ADMIN,GIAOVUKHOA")]
     [HttpPut("{id:int}/cau-hinh")]
     public async Task<IActionResult> UpdateCourseSettings(int id, [FromBody] UpdateCourseSettingsRequest request)

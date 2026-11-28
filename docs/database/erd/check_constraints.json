@@ -1,0 +1,112 @@
+﻿[
+    {
+        "TableName":  "AIRequests",
+        "ConstraintName":  "CK_AIRequests_TrangThai",
+        "Definition":  "([TrangThai]=N\u0027Thất bại\u0027 OR [TrangThai]=N\u0027Thành công\u0027 OR [TrangThai]=N\u0027Đang xử lý\u0027)"
+    },
+    {
+        "TableName":  "BaoCaoTienDos",
+        "ConstraintName":  "CK_BaoCaoTienDos_Diem",
+        "Definition":  "([Diem] IS NULL OR [Diem]\u003e=(0.0) AND [Diem]\u003c=(10.0))"
+    },
+    {
+        "TableName":  "DangKyDeTais",
+        "ConstraintName":  "CK_DangKyDeTais_NgayDuyet",
+        "Definition":  "([TrangThai]=N\u0027Chờ duyệt\u0027 AND [NgayDuyet] IS NULL OR ([TrangThai]=N\u0027Từ chối\u0027 OR [TrangThai]=N\u0027Đã duyệt\u0027) AND [NgayDuyet] IS NOT NULL OR [TrangThai]=N\u0027Đã hủy\u0027)"
+    },
+    {
+        "TableName":  "DangKyDeTais",
+        "ConstraintName":  "CK_DangKyDeTais_TrangThai",
+        "Definition":  "([TrangThai]=N\u0027Đã hủy\u0027 OR [TrangThai]=N\u0027Từ chối\u0027 OR [TrangThai]=N\u0027Đã duyệt\u0027 OR [TrangThai]=N\u0027Chờ duyệt\u0027)"
+    },
+    {
+        "TableName":  "DeTaiDoAns",
+        "ConstraintName":  "CK_DeTaiDoAns_Nguon",
+        "Definition":  "([NguonDeTai]=N\u0027Sinh viên đề xuất\u0027 OR [NguonDeTai]=N\u0027Giảng viên\u0027)"
+    },
+    {
+        "TableName":  "DeTaiDoAns",
+        "ConstraintName":  "CK_DeTaiDoAns_TrangThai",
+        "Definition":  "([TrangThai]=N\u0027Đã hủy\u0027 OR [TrangThai]=N\u0027Đã đăng ký\u0027 OR [TrangThai]=N\u0027Đã khóa\u0027 OR [TrangThai]=N\u0027Tạm khóa\u0027 OR [TrangThai]=N\u0027Đang hoạt động\u0027 OR [TrangThai]=N\u0027Chưa sử dụng\u0027)"
+    },
+    {
+        "TableName":  "DeTaiDoAns",
+        "ConstraintName":  "CK_DeTaiDoAns_TrangThaiDuyet",
+        "Definition":  "([TrangThaiDuyet]=N\u0027Từ chối\u0027 OR [TrangThaiDuyet]=N\u0027Đã duyệt\u0027 OR [TrangThaiDuyet]=N\u0027Chờ duyệt\u0027)"
+    },
+    {
+        "TableName":  "DotDangKyDoAns",
+        "ConstraintName":  "CK_DotDangKyDoAns_Ngay",
+        "Definition":  "([NgayKetThuc]\u003e[NgayBatDau])"
+    },
+    {
+        "TableName":  "DotDangKyDoAns",
+        "ConstraintName":  "CK_DotDangKyDoAns_ThanhVien",
+        "Definition":  "([MinMembers]\u003e(0) AND [MaxMembers]\u003e=[MinMembers])"
+    },
+    {
+        "TableName":  "DotDangKyDoAns",
+        "ConstraintName":  "CK_DotDangKyDoAns_TrangThai",
+        "Definition":  "([TrangThai]=N\u0027Đã đóng\u0027 OR [TrangThai]=N\u0027Đang mở\u0027 OR [TrangThai]=N\u0027Chưa mở\u0027)"
+    },
+    {
+        "TableName":  "DotImports",
+        "ConstraintName":  "CK_DotImports_SoDong",
+        "Definition":  "([TongSoDong]\u003e=(0) AND [SoDongThanhCong]\u003e=(0) AND [SoDongLoi]\u003e=(0) AND ([SoDongThanhCong]+[SoDongLoi])\u003c=[TongSoDong])"
+    },
+    {
+        "TableName":  "DotImports",
+        "ConstraintName":  "CK_DotImports_TrangThai",
+        "Definition":  "([TrangThai]=N\u0027Thất bại\u0027 OR [TrangThai]=N\u0027Hoàn thành có lỗi\u0027 OR [TrangThai]=N\u0027Hoàn thành\u0027 OR [TrangThai]=N\u0027Đang xử lý\u0027)"
+    },
+    {
+        "TableName":  "HocKys",
+        "ConstraintName":  "CK_HocKys_Ngay",
+        "Definition":  "([NgayKetThuc]\u003e[NgayBatDau])"
+    },
+    {
+        "TableName":  "HocPhans",
+        "ConstraintName":  "CK_HocPhans_SoTinChi",
+        "Definition":  "([SoTinChi]\u003e(0))"
+    },
+    {
+        "TableName":  "LoiImports",
+        "ConstraintName":  "CK_LoiImports_SoDong",
+        "Definition":  "([SoDong]\u003e(0))"
+    },
+    {
+        "TableName":  "LopHocPhans",
+        "ConstraintName":  "CK_LopHocPhans_SoLuong",
+        "Definition":  "([SoLuongToiDa] IS NULL OR [SoLuongToiDa]\u003e(0))"
+    },
+    {
+        "TableName":  "NguoiDungs",
+        "ConstraintName":  "CK_NguoiDungs_SoDienThoai",
+        "Definition":  "([SoDienThoai] IS NULL OR len([SoDienThoai])\u003e=(9) AND len([SoDienThoai])\u003c=(11) AND NOT [SoDienThoai] like \u0027%[^0-9]%\u0027)"
+    },
+    {
+        "TableName":  "NhomDoAns",
+        "ConstraintName":  "CK_NhomDoAns_TrangThai",
+        "Definition":  "([TrangThai]=N\u0027Đã hủy\u0027 OR [TrangThai]=N\u0027Đã khóa\u0027 OR [TrangThai]=N\u0027Đang hoạt động\u0027)"
+    },
+    {
+        "TableName":  "PasswordResetOtps",
+        "ConstraintName":  "CK_PasswordResetOtps_ExpiredAt",
+        "Definition":  "([ExpiredAt]\u003e[CreatedAt])"
+    },
+    {
+        "TableName":  "PasswordResetOtps",
+        "ConstraintName":  "CK_PasswordResetOtps_SoLanThu",
+        "Definition":  "([SoLanThu]\u003e=(0))"
+    },
+    {
+        "TableName":  "ThanhVienNhoms",
+        "ConstraintName":  "CK_ThanhVienNhoms_TrangThai",
+        "Definition":  "([TrangThai]=N\u0027Đã rời nhóm\u0027 OR [TrangThai]=N\u0027Đã tham gia\u0027 OR [TrangThai]=N\u0027Chờ tham gia\u0027)"
+    },
+    {
+        "TableName":  "ThanhVienNhoms",
+        "ConstraintName":  "CK_ThanhVienNhoms_VaiTro",
+        "Definition":  "([VaiTro]=N\u0027Thành viên\u0027 OR [VaiTro]=N\u0027Trưởng nhóm\u0027)"
+    }
+]
