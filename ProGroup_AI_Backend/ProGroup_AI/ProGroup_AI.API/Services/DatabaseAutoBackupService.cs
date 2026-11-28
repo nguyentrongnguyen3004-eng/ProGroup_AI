@@ -84,13 +84,13 @@ public class DatabaseAutoBackupService : BackgroundService
 
         _logger.LogInformation("[Auto-Backup] Sao lưu cơ sở dữ liệu định kỳ thành công: {BackupPath}", backupPath);
 
-        // Xoay vòng bản sao lưu: Giữ lại tối đa 7 bản gần nhất (chỉ xoay vòng file có timestamp, bảo toàn file ProjectRegistrationDB_latest.bak)
+        // Xoay vòng bản sao lưu: Giữ lại tối đa 3 bản gần nhất (chỉ xoay vòng file có timestamp, bảo toàn file ProjectRegistrationDB_latest.bak)
         try
         {
             var dirInfo = new DirectoryInfo(backupDir);
             var oldFiles = dirInfo.GetFiles("ProjectRegistrationDB_backup_*.bak")
                                   .OrderByDescending(f => f.CreationTime)
-                                  .Skip(7)
+                                  .Skip(3)
                                   .ToList();
 
             foreach (var file in oldFiles)

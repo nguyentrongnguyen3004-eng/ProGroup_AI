@@ -50,6 +50,8 @@ app.*.map.json
 # IDEs & Editor temp
 **/.idea/
 **/.vscode/
+~$*
+*.tmp
 
 # Secrets & Local credentials
 **/firebase-admin-sdk.json
