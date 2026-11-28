@@ -678,49 +678,87 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                           ),
                                       ],
                                     ),
-                                    if (isRejected || (registration.rejectionReason != null && registration.rejectionReason!.trim().isNotEmpty)) ...[
+                                    if (registration.rejectionReason != null && registration.rejectionReason!.trim().isNotEmpty) ...[
                                       const SizedBox(height: 10),
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFFEF2F2),
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: const Color(0xFFFECACA)),
-                                        ),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            const Icon(Icons.info_outline, color: Color(0xFFDC2626), size: 18),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  const Text(
-                                                    'Lý do từ chối / Góp ý từ Giảng viên:',
-                                                    style: TextStyle(
-                                                      color: Color(0xFFDC2626),
-                                                      fontSize: 12.5,
-                                                      fontWeight: FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    (registration.rejectionReason != null && registration.rejectionReason!.trim().isNotEmpty)
-                                                        ? registration.rejectionReason!.trim()
-                                                        : 'Không có lý do cụ thể.',
-                                                    style: const TextStyle(
-                                                      color: Color(0xFF991B1B),
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+                                      Builder(
+                                        builder: (context) {
+                                          final boxBg = isApproved
+                                              ? const Color(0xFFF0FDF4)
+                                              : isRejected
+                                                  ? const Color(0xFFFEF2F2)
+                                                  : const Color(0xFFFFFBEB);
+                                          final boxBorder = isApproved
+                                              ? const Color(0xFFBBF7D0)
+                                              : isRejected
+                                                  ? const Color(0xFFFECACA)
+                                                  : const Color(0xFFFDE68A);
+                                          final iconColor = isApproved
+                                              ? const Color(0xFF16A34A)
+                                              : isRejected
+                                                  ? const Color(0xFFDC2626)
+                                                  : const Color(0xFFD97706);
+                                          final titleColor = isApproved
+                                              ? const Color(0xFF15803D)
+                                              : isRejected
+                                                  ? const Color(0xFFDC2626)
+                                                  : const Color(0xFFB45309);
+                                          final textColor = isApproved
+                                              ? const Color(0xFF166534)
+                                              : isRejected
+                                                  ? const Color(0xFF991B1B)
+                                                  : const Color(0xFF92400E);
+                                          final iconData = isApproved
+                                              ? Icons.check_circle_outline
+                                              : isRejected
+                                                  ? Icons.cancel_outlined
+                                                  : Icons.info_outline;
+                                          final titleText = isApproved
+                                              ? AppLocalizations.text('Nhận xét / Lời nhắn từ Giảng viên:', en: 'Lecturer Feedback / Note:')
+                                              : isRejected
+                                                  ? AppLocalizations.text('Lý do từ chối từ Giảng viên:', en: 'Rejection Reason from Lecturer:')
+                                                  : AppLocalizations.text('Góp ý từ Giảng viên:', en: 'Feedback from Lecturer:');
+
+                                          return Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: boxBg,
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: boxBorder),
                                             ),
-                                          ],
-                                        ),
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Icon(iconData, color: iconColor, size: 18),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        titleText,
+                                                        style: TextStyle(
+                                                          color: titleColor,
+                                                          fontSize: 12.5,
+                                                          fontWeight: FontWeight.w700,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        registration.rejectionReason!.trim(),
+                                                        style: TextStyle(
+                                                          color: textColor,
+                                                          fontSize: 13,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ],

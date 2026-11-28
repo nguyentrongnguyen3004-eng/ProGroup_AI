@@ -438,36 +438,68 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
           ],
           if (widget.topic.rejectionReason != null && widget.topic.rejectionReason!.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Lý do từ chối đề xuất:',
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          widget.topic.rejectionReason!,
-                          style: const TextStyle(color: Colors.red, fontSize: 13),
-                        ),
-                      ],
-                    ),
+            Builder(
+              builder: (context) {
+                final isApproved = widget.topic.status == 'Đã duyệt' || widget.topic.approvalStatus == 'Đã duyệt';
+                final isRejected = widget.topic.status == 'Từ chối' || widget.topic.approvalStatus == 'Từ chối';
+                final boxColor = isApproved
+                    ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                    : isRejected
+                        ? Colors.red.withValues(alpha: 0.08)
+                        : Colors.orange.withValues(alpha: 0.08);
+                final borderColor = isApproved
+                    ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                    : isRejected
+                        ? Colors.red.withValues(alpha: 0.3)
+                        : Colors.orange.withValues(alpha: 0.3);
+                final iconColor = isApproved
+                    ? const Color(0xFF059669)
+                    : isRejected
+                        ? Colors.red
+                        : Colors.orange;
+                final titleColor = isApproved
+                    ? const Color(0xFF065F46)
+                    : isRejected
+                        ? Colors.red
+                        : Colors.orange.shade800;
+                final title = isApproved
+                    ? 'Nhận xét / Lời nhắn từ Giảng viên:'
+                    : isRejected
+                        ? 'Lý do từ chối đề xuất:'
+                        : 'Góp ý từ Giảng viên:';
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: boxColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor),
                   ),
-                ],
-              ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(isApproved ? Icons.check_circle_outline : Icons.error_outline_rounded, color: iconColor, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(color: titleColor, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.topic.rejectionReason!,
+                              style: TextStyle(color: titleColor, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ],

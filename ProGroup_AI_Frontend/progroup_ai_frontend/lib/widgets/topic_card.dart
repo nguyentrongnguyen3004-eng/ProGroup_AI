@@ -185,37 +185,64 @@ class TopicCard extends StatelessWidget {
 
                 if (topic.rejectionReason != null && topic.rejectionReason!.isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFFEF4444).withValues(alpha: 0.25),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.feedback_outlined,
-                          size: 14,
-                          color: Color(0xFFDC2626),
+                  Builder(
+                    builder: (context) {
+                      final isApproved = topic.status == 'Đã duyệt' || topic.approvalStatus == 'Đã duyệt';
+                      final isRejected = topic.status == 'Từ chối' || topic.approvalStatus == 'Từ chối';
+                      final boxColor = isApproved
+                          ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                          : isRejected
+                              ? const Color(0xFFEF4444).withValues(alpha: 0.08)
+                              : const Color(0xFFF59E0B).withValues(alpha: 0.08);
+                      final borderColor = isApproved
+                          ? const Color(0xFF10B981).withValues(alpha: 0.25)
+                          : isRejected
+                              ? const Color(0xFFEF4444).withValues(alpha: 0.25)
+                              : const Color(0xFFF59E0B).withValues(alpha: 0.25);
+                      final textColor = isApproved
+                          ? const Color(0xFF065F46)
+                          : isRejected
+                              ? const Color(0xFF991B1B)
+                              : const Color(0xFF92400E);
+                      final prefix = isApproved
+                          ? 'Nhận xét: '
+                          : isRejected
+                              ? 'Lý do: '
+                              : 'Góp ý: ';
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: boxColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: borderColor),
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Lý do: ${topic.rejectionReason!}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF991B1B),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                        child: Row(
+                          children: [
+                            Icon(
+                              isApproved ? Icons.check_circle_outline : Icons.feedback_outlined,
+                              size: 14,
+                              color: isApproved
+                                  ? const Color(0xFF059669)
+                                  : (isRejected ? const Color(0xFFDC2626) : const Color(0xFFD97706)),
                             ),
-                          ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                '$prefix${topic.rejectionReason!}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ],
               ],
