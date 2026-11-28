@@ -29,7 +29,7 @@ public class EmailService : IEmailService
             var portStr = Environment.GetEnvironmentVariable("SMTP_PORT") ?? _configuration["EmailSettings:Port"];
             var port = int.TryParse(portStr, out var p) ? p : 587;
             var senderEmail = Environment.GetEnvironmentVariable("SMTP_SENDER_EMAIL") ?? _configuration["EmailSettings:SenderEmail"] ?? "no-reply@progroupai.edu.vn";
-            var senderPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? _configuration["EmailSettings:SenderPassword"] ?? string.Empty;
+            var senderPassword = (Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? _configuration["EmailSettings:SenderPassword"] ?? string.Empty).Replace(" ", "").Trim();
             var displayName = _configuration["EmailSettings:SenderDisplayName"] ?? "ProGroup AI";
 
             if (string.IsNullOrWhiteSpace(senderPassword))

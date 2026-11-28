@@ -151,6 +151,11 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
               ),
               actions: [
                 IconButton(
+                  icon: const Icon(Icons.backup_rounded),
+                  tooltip: 'Sao lưu CSDL',
+                  onPressed: _showBackupDialog,
+                ),
+                IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   tooltip: 'Tải lại',
                   onPressed: _loadOverview,
@@ -220,6 +225,11 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.backup_rounded, color: Colors.white),
+                      tooltip: 'Sao lưu CSDL',
+                      onPressed: _showBackupDialog,
                     ),
                     IconButton(
                       icon: const Icon(Icons.refresh_rounded, color: Colors.white),
@@ -370,6 +380,229 @@ class _AdminDataManagementScreenState extends State<AdminDataManagementScreen> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _showBackupDialog() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        bool isBackingUp = false;
+        List<Map<String, dynamic>> backups = [];
+        bool isLoadingBackups = true;
+
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            void loadList() async {
+              setModalState(() => isLoadingBackups = true);
+              final list = await AdminApiService.instance.fetchBackups();
+              setModalState(() {
+                backups = list;
+                isLoadingBackups = false;
+              });
+            }
+
+            if (isLoadingBackups && backups.isEmpty) {
+              loadList();
+            }
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.4,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (_, scrollCtrl) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.backup_rounded, color: Color(0xFF2563EB), size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sao lưu CSDL SQL Server',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Tự động mỗi 12h hoặc sao lưu thủ công',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: isBackingUp
+                              ? null
+                              : () async {
+                                  setModalState(() => isBackingUp = true);
+                                  try {
+                                    final res = await AdminApiService.instance.createBackup();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(res['message']?.toString() ?? 'Sao lưu thành công!'),
+                                          backgroundColor: const Color(0xFF10B981),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Lỗi sao lưu: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  } finally {
+                                    setModalState(() => isBackingUp = false);
+                                    loadList();
+                                  }
+                                },
+                          icon: isBackingUp
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+                          label: Text(
+                            isBackingUp ? 'Đang tạo bản sao lưu...' : 'Tạo bản sao lưu mới ngay',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563EB),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Danh sách bản sao lưu (${backups.length})',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: isLoadingBackups
+                            ? const Center(child: CircularProgressIndicator())
+                            : backups.isEmpty
+                                ? const Center(child: Text('Chưa có bản sao lưu nào.'))
+                                : ListView.separated(
+                                    controller: scrollCtrl,
+                                    itemCount: backups.length,
+                                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                                    itemBuilder: (ctx, i) {
+                                      final b = backups[i];
+                                      final name = b['fileName']?.toString() ?? 'backup.bak';
+                                      final sizeBytes = b['sizeBytes'] as int? ?? 0;
+                                      final sizeMb = (sizeBytes / (1024 * 1024)).toStringAsFixed(2);
+                                      final created = b['createdAt']?.toString() ?? '';
+                                      final isLatest = i == 0;
+
+                                      return Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: isLatest
+                                              ? const Color(0xFF2563EB).withValues(alpha: 0.06)
+                                              : Colors.grey.withValues(alpha: 0.05),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: isLatest
+                                                ? const Color(0xFF2563EB).withValues(alpha: 0.3)
+                                                : Colors.grey.withValues(alpha: 0.2),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.storage_rounded,
+                                              color: isLatest ? const Color(0xFF2563EB) : Colors.grey,
+                                              size: 28,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    name,
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    '$sizeMb MB · $created',
+                                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (isLatest)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: const Text(
+                                                  'Mới nhất',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF10B981),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

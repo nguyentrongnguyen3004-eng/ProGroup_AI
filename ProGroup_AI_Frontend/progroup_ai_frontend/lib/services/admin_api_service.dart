@@ -203,4 +203,23 @@ class AdminApiService {
     } catch (_) {}
     return [];
   }
+
+  /// Tạo bản sao lưu CSDL SQL Server ngay lập tức (TC_ADMIN_BACKUP)
+  Future<Map<String, dynamic>> createBackup() async {
+    final res = await ApiService.instance.post('/api/admin/backup', {});
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return {'success': false, 'message': 'Không nhận được phản hồi từ máy chủ.'};
+  }
+
+  /// Lấy danh sách lịch sử các bản sao lưu CSDL (.bak)
+  Future<List<Map<String, dynamic>>> fetchBackups() async {
+    try {
+      final res = await ApiService.instance.get('/api/admin/backups');
+      if (res is List) {
+        return res.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
 }
